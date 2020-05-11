@@ -214,6 +214,7 @@ def write_ometiff_aicsimageio(savepath, imgarray, metadata,
         # remove dimensions from array
         imgarray = np.squeeze(imgarray, axis=dims2remove)
 
+    """
     # write the array as an OME-TIFF incl. the metadata
     try:
         with ome_tiff_writer.OmeTiffWriter(savepath, overwrite_file=overwrite) as writer:
@@ -229,5 +230,38 @@ def write_ometiff_aicsimageio(savepath, imgarray, metadata,
     except Exception:
         print('Could not write OME-TIFF')
         savepath = None
+    """
+
+    with ome_tiff_writer.OmeTiffWriter(savepath, overwrite_file=overwrite) as writer:
+        writer.save(imgarray,
+                    channel_names=channel_names,
+                    image_name=os.path.basename((savepath)),
+                    pixels_physical_size=pixels_physical_size,
+                    channel_colors=None,
+                    dimension_order=new_dimorder)
+        writer.close()
+        print('Saved image as: ', savepath)
 
     return savepath
+
+
+def correct_omeheader(omefile,
+                      old=("2012-03", "2013-06", r"ome/2016-06"),
+                      new=("2016-06", "2016-06", r"OME/2016-06")
+                      ):
+
+    tif = tifffile.TiffFile(omefile)
+    array = tif.asarray()
+    omexml_string = tif.ome_metadata
+
+    for ostr, nstr in zip(old, new):
+        print('Replace: ', ostr, 'with', nstr)
+        omexml_string = omexml_string.replace(ostr, nstr)
+
+    tifffile.imsave(omefile, array,
+                    photometric='minisblack',
+                    description=omexml_string)
+
+    tif.close()
+
+    print('Updated OME Header.')

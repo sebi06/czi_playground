@@ -596,7 +596,7 @@ def get_metadata_czi(filename, dim2none=False):
 
                 try:
                     # count the content of the list, e.g. how many time a certain well was detected
-                    metadata['WellCounter'] = Counter(metadata['Well_PositionNames'])
+                    metadata['WellCounter'] = Counter(metadata['Well_ArrayNames'])
                 except KeyError as e:
                     print('Key not found in Metadata Dictionary:', e)
                     metadata['WellCounter'].append(Counter({'A1': 1}))
@@ -1293,6 +1293,12 @@ def get_array_czi(filename,
     czi.close()
 
     return cziarray, metadata, additional_metadata_czi
+
+
+def get_array_pylibczi(filename, return_addmd=False, **kwargs):
+
+    metadata = get_metadata_czi(filename)
+    additional_metadata_czi = get_additional_metadata_czi(filename)
 
 
 def replace_value(data, value=0):
