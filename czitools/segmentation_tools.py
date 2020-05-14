@@ -47,13 +47,19 @@ from MightyMosaic import MightyMosaic
 try:
     print('Trying to find mxnet library ...')
     import mxnet
-    from cellpose import plot, transforms
-    from cellpose import models, utils
-
-except ImportError as error:
+except (ImportError, ModuleNotFoundError) as error:
     # Output expected ImportErrors.
     print(error.__class__.__name__ + ": " + error.msg)
     print('mxnet will not be used.')
+
+try:
+    print('Trying to find cellpose library ...')
+    from cellpose import plot, transforms
+    from cellpose import models, utils
+except (ImportError, ModuleNotFoundError) as error:
+    # Output expected ImportErrors.
+    print(error.__class__.__name__ + ": " + error.msg)
+    print('CellPose cannot be used.')
 
 try:
     print('Trying to find tensorflow library ...')
@@ -63,7 +69,7 @@ try:
     import tensorflow as tf
     logging.getLogger("tensorflow").setLevel(logging.ERROR)
     print('TensorFlow Version : ', tf.version.GIT_VERSION, tf.__version__)
-except ImportError as error:
+except (ImportError, ModuleNotFoundError) as error:
     # Output expected ImportErrors.
     print(error.__class__.__name__ + ": " + error.msg)
     print('TensorFlow will not be used.')
@@ -72,7 +78,7 @@ try:
     print('Trying to find stardist library ...')
     from stardist.models import StarDist2D
     from csbdeep.utils import Path, normalize
-except ImportError as error:
+except (ImportError, ModuleNotFoundError) as error:
     # Output expected ImportErrors.
     print(error.__class__.__name__ + ": " + error.msg)
     print('StarDist will not be used.')
