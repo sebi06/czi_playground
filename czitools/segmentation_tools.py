@@ -534,11 +534,12 @@ def add_boundingbox(props, ax2plot):
     return ax2plot
 
 
-def segment_nuclei_cellpose(image2d, model,
-                            channels=[0, 0],
-                            rescale=None,
-                            diameter=None):
-    """Segment nucleus or cytosol using a cellpose model
+def segment_nuclei_cellpose2d(image2d, model,
+                              channels=[0, 0],
+                              rescale=None,
+                              diameter=None,
+                              verbose=False):
+    """Segment nucleus or cytosol using a cellpose model in 2D
 
     - define CHANNELS to run segmentation on
     - grayscale=0, R=1, G=2, B=3
@@ -561,7 +562,9 @@ def segment_nuclei_cellpose(image2d, model,
     :type rescale: float, optional
     :param diameter: Estimated diameter of objects. If set to None,
     then diameter is automatically estimated if size model is loaded, defaults to None
-    :type diamter: list, optional
+    :type diameter: float, optional
+    :param verbose: show additional output, defaults to False
+    :type verbose: bool, optional
     :return: mask - binary mask
     :rtype: NumPy.Array
     """
@@ -576,20 +579,27 @@ def segment_nuclei_cellpose(image2d, model,
     # channels = [2,3] # IF YOU HAVE G=cytoplasm and B=nucleus
     # channels = [2,1] # IF YOU HAVE G=cytoplasm and R=nucleus
 
-    # get the mask for a single image
+    # start the clock
+    if verbose:
+        start = perf_counter()
 
+    # get the mask for a single image
     masks, _, _, _ = model.eval([image2d],
                                 channels=channels,
                                 diameter=diameter,
                                 invert=False,
+                                rescale=rescale,
                                 do_3D=False,
                                 net_avg=True,
                                 tile=False,
-                                threshold=0.4,
-                                rescale=rescale,
+                                flow_threshold=0.4,
+                                cellprob_threshold=0.0,
                                 progress=None)
 
-    # masks, _, _, _ = model.eval([image2d], rescale=rescale, channels=channels)
+    if verbose:
+        end = perf_counter()
+        st = end - start
+        print('Segmentation Time CellPose:', st)
 
     return masks[0]
 

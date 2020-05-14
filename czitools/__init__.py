@@ -9,4 +9,4 @@ from .segmentation_tools import create_heatmap, show_heatmap
 from .segmentation_tools import segment_nuclei_cellpose, segment_nuclei_stardist,
 from .segmentation_tools import segment_zentf_tiling, segment_zentf
 
-from ometifftools.py import write_ometiff_aicsimageio
+from .ometifftools.py import write_ometiff_aicsimageio

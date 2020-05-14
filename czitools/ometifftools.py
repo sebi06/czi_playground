@@ -127,7 +127,7 @@ def write_ometiff_aicsimageio(savepath, imgarray, metadata,
                               overwrite=False):
     """Write an OME-TIFF file from an image array based on the metadata
 
-    :param filepath: savepath of the OME-TIFF stack 
+    :param filepath: savepath of the OME-TIFF stack
     :type filepath: str
     :param imgarray: multi-dimensional image array
     :type imgarray: NumPy.Array
@@ -214,33 +214,20 @@ def write_ometiff_aicsimageio(savepath, imgarray, metadata,
         # remove dimensions from array
         imgarray = np.squeeze(imgarray, axis=dims2remove)
 
-    """
-    # write the array as an OME-TIFF incl. the metadata
-    try:
-        with ome_tiff_writer.OmeTiffWriter(savepath, overwrite_file=overwrite) as writer:
-            writer.save(imgarray,
-                        channel_names=channel_names,
-                        image_name=os.path.basename((savepath)),
-                        pixels_physical_size=pixels_physical_size,
-                        channel_colors=None,
-                        dimension_order=new_dimorder)
-            writer.close()
-
-        print('Saved image as: ', savepath)
-    except Exception:
-        print('Could not write OME-TIFF')
-        savepath = None
-    """
-
-    with ome_tiff_writer.OmeTiffWriter(savepath, overwrite_file=overwrite) as writer:
-        writer.save(imgarray,
-                    channel_names=channel_names,
-                    image_name=os.path.basename((savepath)),
-                    pixels_physical_size=pixels_physical_size,
-                    channel_colors=None,
-                    dimension_order=new_dimorder)
-        writer.close()
-        print('Saved image as: ', savepath)
+        # write the array as an OME-TIFF incl. the metadata
+        try:
+            with ome_tiff_writer.OmeTiffWriter(savepath, overwrite_file=overwrite) as writer:
+                writer.save(imgarray,
+                            channel_names=channel_names,
+                            image_name=os.path.basename((savepath)),
+                            pixels_physical_size=pixels_physical_size,
+                            channel_colors=None,
+                            dimension_order=new_dimorder)
+                writer.close()
+                print('Saved image as: ', savepath)
+        except Exception as error:
+            print('Could not write OME-TIFF')
+            savepath = None
 
     return savepath
 

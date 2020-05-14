@@ -16,9 +16,10 @@
 # warnings.simplefilter('ignore')
 
 import czifile as zis
-from apeer_ometiff_library import io, processing, omexmlClass
+#from apeer_ometiff_library import io, processing, omexmlClass
+from apeer_ometiff_library import omexmlClass
 import os
-from skimage.external import tifffile
+#from skimage.external import tifffile
 from matplotlib import pyplot as plt, cm
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import xmltodict
