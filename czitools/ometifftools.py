@@ -15,7 +15,7 @@ import os
 import numpy as np
 from aicsimageio import AICSImage, imread
 from aicsimageio.writers import ome_tiff_writer
-import imgfileutils as imf
+from czitools import imgfileutils as imf
 
 try:
     import javabridge as jv

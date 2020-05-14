@@ -22,7 +22,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import matplotlib.patches as mpatches
-import imgfileutils as imf
+from czitools import imgfileutils as imf
 from scipy import ndimage
 from aicsimageio import AICSImage, imread
 from skimage import exposure
