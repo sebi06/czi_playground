@@ -1,2 +1,13 @@
 # czitools
- Collection of functions to read and analyze CZI (and OME-TIFF) images
+
+ Collection of functions to read, analyze, display and segment CZI (and OME-TIFF) images
+
+ * **imgfileutils** - collection to functions to read the image metadata and also display those inside jupyter notebooks or using the Napari viewer
+
+* **segmentation_tools** - collection of function to segment images using
+  * scikit-image
+  * pretrained networks used in ZEN
+  * StarDist2D segmentation
+  * CellPose segmentation
+
+* **ometifftools** - collection of function to save NumPy.Array as OME-TIFF

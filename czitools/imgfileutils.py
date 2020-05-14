@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : imgfileutils.py
-# Version     : 0.8
+# Version     : 0.9
 # Author      : czsrh
-# Date        : 04.05.2020
+# Date        : 14.05.2020
 # Institution : Carl Zeiss Microscopy GmbH
 #
 # Copyright (c) 2020 Carl Zeiss AG, Germany. All Rights Reserved.

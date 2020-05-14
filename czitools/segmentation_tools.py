@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : segmentation_tools.py
-# Version     : 0.1
+# Version     : 0.2
 # Author      : czsrh
-# Date        : 20.04.2020
+# Date        : 14.05.2020
 # Institution : Carl Zeiss Microscopy GmbH
 #
 # Copyright (c) 2020 Carl Zeiss AG, Germany. All Rights Reserved.
@@ -608,9 +608,30 @@ def segment_nuclei_stardist(image2d, sdmodel,
                             prob_thresh=0.5,
                             overlap_thresh=0.3,
                             norm=True,
-                            norm_pmin=1,
+                            norm_pmin=1.0,
                             norm_pmax=99.8,
                             norm_clip=False):
+    """[summary]
+
+    :param image2d: 2d image to be segmented
+    :type image2d: NumPy.Array
+    :param sdmodel: stardit 2d model
+    :type sdmodel: StarDist Model
+    :param prob_thresh: probability threshold, defaults to 0.5
+    :type prob_thresh: float, optional
+    :param overlap_thresh: overlap threshold, defaults to 0.3
+    :type overlap_thresh: float, optional
+    :param norm: switch on image normalization, defaults to True
+    :type norm: bool, optional
+    :param norm_pmin: minimum percentile for normalization, defaults to 1.0
+    :type norm_pmin: float, optional
+    :param norm_pmax: maximum percentile for normalization, defaults to 99.8
+    :type norm_pmax: float, optional
+    :param norm_clip: clipping normalization, defaults to False
+    :type norm_clip: bool, optional
+    :return: mask - binary mask
+    :rtype: NumPy.Array
+    """
 
     # workaround explained here to avoid errors
     # https://github.com/openai/spinningup/issues/16

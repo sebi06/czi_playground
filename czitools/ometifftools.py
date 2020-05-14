@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : ometifftools.py
-# Version     : 0.1
+# Version     : 0.3
 # Author      : czsrh
-# Date        : 20.04.2020
+# Date        : 14.05.2020
 # Institution : Carl Zeiss Microscopy GmbH
 #
 # Copyright (c) 2020 Carl Zeiss AG, Germany. All Rights Reserved.
@@ -236,19 +236,35 @@ def correct_omeheader(omefile,
                       old=("2012-03", "2013-06", r"ome/2016-06"),
                       new=("2016-06", "2016-06", r"OME/2016-06")
                       ):
+    """This function is actually a workaround for AICSImageIO<=3.1.4 that
+    correct some incorrect namespaces inside the OME-XML header
 
+    :param omefile: OME-TIFF image file
+    :type omefile: string
+    :param old: strings that should be corrected, defaults to ("2012-03", "2013-06", r"ome/2016-06")
+    :type old: tuple, optional
+    :param new: replacement for the strings to be corrected, defaults to ("2016-06", "2016-06", r"OME/2016-06")
+    :type new: tuple, optional
+    """
+
+    # create the tif object from the filename
     tif = tifffile.TiffFile(omefile)
+
+    # get the pixel array and the OME-XML string
     array = tif.asarray()
     omexml_string = tif.ome_metadata
 
+    # search for the strings to be replaced and do it
     for ostr, nstr in zip(old, new):
         print('Replace: ', ostr, 'with', nstr)
         omexml_string = omexml_string.replace(ostr, nstr)
 
+    # save the file with the new, correct strings
     tifffile.imsave(omefile, array,
                     photometric='minisblack',
                     description=omexml_string)
 
+    # close tif object
     tif.close()
 
     print('Updated OME Header.')
