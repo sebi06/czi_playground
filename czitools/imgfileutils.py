@@ -184,11 +184,16 @@ def get_metadata_ometiff(filename, series=0):
     """
 
     with tifffile.TiffFile(filename) as tif:
-        # get OME-XML metadata as string
-        omexml = tif[0].image_description.decode('utf-8')
+        try:
+            # get OME-XML metadata as string the old way
+            omexml_string = tif[0].image_description.decode('utf-8')
+        except TypeError as error:
+            print(error)
+            print('Using new method instead.')
+            omexml_string = tif.ome_metadata
 
     # get the OME-XML using the apeer-ometiff-library
-    omemd = omexmlClass.OMEXML(omexml)
+    omemd = omexmlClass.OMEXML(omexml_string)
 
     # create dictionary for metadata and get OME-XML data
     metadata = create_metadata_dict()
@@ -1851,8 +1856,8 @@ def write_ometiff_aicsimageio(savepath, imgarray, metadata,
                         channel_colors=None,
                         dimension_order=new_dimorder)
             writer.close()
-            print('Saved image as: ', savepath)
     except Exception as error:
+        print(error.__class__.__name__ + ": " + error.msg)
         print('Could not write OME-TIFF')
         savepath = None
 
