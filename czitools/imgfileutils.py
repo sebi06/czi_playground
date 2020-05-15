@@ -188,8 +188,6 @@ def get_metadata_ometiff(filename, series=0):
             # get OME-XML metadata as string the old way
             omexml_string = tif[0].image_description.decode('utf-8')
         except TypeError as error:
-            print(error)
-            print('Using new method instead.')
             omexml_string = tif.ome_metadata
 
     # get the OME-XML using the apeer-ometiff-library
