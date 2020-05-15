@@ -544,7 +544,8 @@ def segment_nuclei_cellpose2d(image2d, model,
                               channels=[0, 0],
                               rescale=None,
                               diameter=None,
-                              verbose=False):
+                              verbose=False,
+                              autotune=False):
     """Segment nucleus or cytosol using a cellpose model in 2D
 
     - define CHANNELS to run segmentation on
@@ -574,6 +575,11 @@ def segment_nuclei_cellpose2d(image2d, model,
     :return: mask - binary mask
     :rtype: NumPy.Array
     """
+
+    if not autotune:
+        # Running performance tests to find the best convolution algorithm, this can take a while...
+        # set the environment variable MXNET_CUDNN_AUTOTUNE_DEFAULT to 0 to disable)
+        os.environ['MXNET_CUDNN_AUTOTUNE_DEFAULT'] = '0'
 
     # define CHANNELS to run segmentation on
     # grayscale=0, R=1, G=2, B=3
