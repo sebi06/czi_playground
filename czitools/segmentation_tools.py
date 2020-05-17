@@ -399,7 +399,8 @@ def showheatmap(heatmap, parameter2display,
 
 
 def getrowandcolumn(platetype=96):
-    """[summary]
+    """Calculate the number of rows and colums of a wellplate based on
+    the wellplate type
 
     :param platetype: number total wells of plate (6, 24, 96, 384 or 1536), defaults to 96
     :type platetype: int, optional
