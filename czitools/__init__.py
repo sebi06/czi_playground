@@ -7,8 +7,8 @@ from .imgfileutils import write_ometiff_aicsimageio, writeOMETIFFplanes, write_o
 
 from .segmentation_tools import apply_watershed, apply_watershed_adv, autoThresholding
 from .segmentation_tools import segment_threshold, cutout_subimage
-from .segmentation_tools import create_heatmap, showheatmap
 from .segmentation_tools import segment_nuclei_cellpose2d, segment_nuclei_stardist
 from .segmentation_tools import segment_zentf_tiling, segment_zentf
 
-#from .ometifftools import write_ometiff_aicsimageio, writeOMETIFFplanes, write_ometiff
+from .visutools import create_heatmap, showheatmap, getrowandcolumn
+from .visutools import convert_array_to_heatmap, extract_labels, plot_segresults, add_boundingbox
