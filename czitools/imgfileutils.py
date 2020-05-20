@@ -1323,7 +1323,9 @@ def get_array_czi(filename,
     if cziarray.shape[-1] == 3:
         pass
     else:
+        # remove the last dimension from string and from array
         cziarray = np.squeeze(cziarray, axis=len(metadata['Axes']) - 1)
+        metadata['Axes'] = metadata['Axes'][:-1]
 
     if replace_value:
         cziarray = replace_value(cziarray, value=0)
