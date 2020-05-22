@@ -30,6 +30,7 @@ import time
 import re
 from aicsimageio import AICSImage, imread, imread_dask
 from aicsimageio.writers import ome_tiff_writer
+from aicspylibczi import CziFile
 import dask.array as da
 import pandas as pd
 import tifffile
@@ -108,11 +109,14 @@ def create_metadata_dict():
                 'SizeC': 1,
                 'SizeT': 1,
                 'SizeS': 1,
+                'SizeB': 1,
+                'SizeM': 1,
+                'SizeM': 1,
                 'Sizes BF': None,
                 # 'DimOrder BF': None,
                 # 'DimOrder BF Array': None,
-                'Axes': None,
-                'Shape': None,
+                # 'Axes_czifile': None,
+                # 'Shape_czifile': None,
                 'isRGB': None,
                 'ObjNA': None,
                 'ObjMag': None,
@@ -329,8 +333,8 @@ def get_metadata_czi(filename, dim2none=False):
     metadata['ImageType'] = 'czi'
 
     # add axes and shape information using czifile package
-    metadata['Axes'] = czi.axes
-    metadata['Shape'] = czi.shape
+    metadata['Axes_czifile'] = czi.axes
+    metadata['Shape_czifile'] = czi.shape
 
     # add axes and shape information using aicsimageio package
     czi_aics = AICSImage(filename)
@@ -342,6 +346,14 @@ def get_metadata_czi(filename, dim2none=False):
     metadata['SizeZ_aics'] = czi_aics.size_t
     metadata['SizeT_aics'] = czi_aics.size_t
     metadata['SizeS_aics'] = czi_aics.size_s
+
+    # get additional data by using pylibczi directly
+    # Get the shape of the data, the coordinate pairs are (start index, size)
+    aics_czi = CziFile(filename)
+    metadata['dims_aicspylibczi'] = aics_czi.dims_shape()[0]
+    metadata['dimorder_aicspylibczi'] = aics_czi.dims
+    metadata['size_aicspylibczi'] = aics_czi.size
+    metadata['czi_ismosaic'] = aics_czi.is_mosaic()
 
     # determine pixel type for CZI array
     metadata['NumPy.dtype'] = czi.dtype
@@ -438,6 +450,33 @@ def get_metadata_czi(filename, dim2none=False):
             metadatada['SizeS'] = None
         if not dim2none:
             metadata['SizeS'] = 1
+
+    try:
+        metadata['SizeH'] = np.int(metadatadict_czi['ImageDocument']['Metadata']['Information']['Image']['SizeH'])
+    except Exception as e:
+        print('Exception:', e)
+        if dim2none:
+            metadatada['SizeH'] = None
+        if not dim2none:
+            metadata['SizeH'] = 1
+
+    try:
+        metadata['SizeI'] = np.int(metadatadict_czi['ImageDocument']['Metadata']['Information']['Image']['SizeI'])
+    except Exception as e:
+        #print('Exception:', e)
+        if dim2none:
+            metadatada['SizeI'] = None
+        if not dim2none:
+            metadata['SizeI'] = 1
+
+    try:
+        metadata['SizeV'] = np.int(metadatadict_czi['ImageDocument']['Metadata']['Information']['Image']['SizeV'])
+    except Exception as e:
+        #print('Exception:', e)
+        if dim2none:
+            metadatada['SizeV'] = None
+        if not dim2none:
+            metadata['SizeV'] = 1
 
     try:
         # metadata['Scaling'] = metadatadict_czi['ImageDocument']['Metadata']['Scaling']
@@ -621,7 +660,7 @@ def get_metadata_czi(filename, dim2none=False):
                     well = allscenes[s]
                     metadata['Well_ArrayNames'].append(well['ArrayName'])
                 except KeyError as e:
-                    #print('Key not found in Metadata Dictionary:', e)
+                    # print('Key not found in Metadata Dictionary:', e)
                     try:
                         metadata['Well_ArrayNames'].append(well['Name'])
                     except KeyError as e:
@@ -1288,18 +1327,21 @@ def get_array_czi(filename,
     cziarray = czi.asarray()
 
     # check for H dimension and remove
-    if remove_HDim and metadata['Axes'][0] == 'H':
-        metadata['Axes'] = metadata['Axes'][1:]
+    if remove_HDim and metadata['Axes_czifile'][0] == 'H':
+        # metadata['Axes'] = metadata['Axes_czifile'][1:]
+        metadata['Axes_czifile'] = metadata['Axes_czifile'].replace('H', '')
         cziarray = np.squeeze(cziarray, axis=0)
 
     # get additional information about dimension order etc.
-    dim_dict, dim_list, numvalid_dims = get_dimorder(metadata['Axes'])
+    dim_dict, dim_list, numvalid_dims = get_dimorder(metadata['Axes_czifile'])
     metadata['DimOrder CZI'] = dim_dict
 
     if cziarray.shape[-1] == 3:
         pass
     else:
-        cziarray = np.squeeze(cziarray, axis=len(metadata['Axes']) - 1)
+        # remove the last dimension from the end
+        cziarray = np.squeeze(cziarray, axis=len(metadata['Axes_czifile']) - 1)
+        metadata['Axes_czifile'] = metadata['Axes_czifile'].replace('0', '')
 
     if replace_value:
         cziarray = replace_value(cziarray, value=0)
