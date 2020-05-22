@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : imgfileutils.py
-# Version     : 0.9
+# Version     : 1.0
 # Author      : czsrh
-# Date        : 14.05.2020
+# Date        : 18.05.2020
 # Institution : Carl Zeiss Microscopy GmbH
 #
 # Copyright (c) 2020 Carl Zeiss AG, Germany. All Rights Reserved.
@@ -287,7 +287,31 @@ def get_metadata_ometiff(filename, series=0):
     # close AICSImage object
     ometiff_aics.close()
 
+    # check for None inside Scaling to avoid issues later one ...
+    metadata = checkmdscale_none(metadata,
+                                 tocheck=['XScale', 'YScale', 'ZScale'],
+                                 replace=[1.0, 1.0, 1.0])
+
     return metadata
+
+
+def checkmdscale_none(md, tocheck=['ZScale'], replace=[1.0]):
+    """Check scaling entries for None to avaoid issues later on
+
+    :param md: original metadata
+    :type md: dict
+    :param tocheck: list with entries to check for None, defaults to ['ZScale']
+    :type tocheck: list, optional
+    :param replace: list with values replacing the None, defaults to [1.0]
+    :type replace: list, optional
+    :return: modified metadata where None entries where replaces by
+    :rtype: [type]
+    """
+    for tc, rv in zip(tocheck, replace):
+        if md[tc] is None:
+            md[tc] = rv
+
+    return md
 
 
 def get_metadata_czi(filename, dim2none=False):
