@@ -27,6 +27,7 @@ from scipy import ndimage
 from aicsimageio import AICSImage, imread
 from skimage import exposure
 from skimage.morphology import watershed, dilation
+from skimage.morphology import white_tophat, black_tophat, disk, ball
 from skimage.feature import peak_local_max
 from skimage.measure import label
 from scipy.ndimage import distance_transform_edt
@@ -407,7 +408,7 @@ def segment_nuclei_stardist(image2d, sdmodel,
 
     # workaround explained here to avoid errors
     # https://github.com/openai/spinningup/issues/16
-    #os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
+    # os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
     # normalize image
     image2d_norm = normalize(image2d,
@@ -645,3 +646,35 @@ def add_padding(image2d, input_height=1024, input_width=1024):
         image2d_padded = np.squeeze(image2d_padded, axis=2)
 
     return image2d_padded, (padding_top, padding_bottom, padding_left, padding_right)
+
+
+def subtract_background(image,
+                        elem='disk',
+                        radius=50,
+                        light_bg=False):
+    """Background substraction using structure element.
+    Slightly adapted from: https://forum.image.sc/t/background-subtraction-in-scikit-image/39118/4
+
+    :param image: input image
+    :type image: NumPy.Array
+    :param elem: type of the structure element, defaults to 'disk'
+    :type elem: str, optional
+    :param radius: size of structure element [pixel], defaults to 50
+    :type radius: int, optional
+    :param light_bg: light background, defaults to False
+    :type light_bg: bool, optional
+    :return: image with background subtracted
+    :rtype: NumPy.Array
+    """
+    # use 'ball' here to get a slightly smoother result at the cost of increased computing time
+    if elem == 'disk':
+        str_el = disk(radius)
+    if elem == 'ball':
+        str_el = ball(radius)
+
+    if light_bg:
+        img_subtracted = black_tophat(image, str_el)
+    if not light_bg:
+        img_subtracted = white_tophat(image, str_el)
+
+    return img_subtracted
