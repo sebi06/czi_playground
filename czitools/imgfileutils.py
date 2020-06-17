@@ -506,8 +506,8 @@ def get_metadata_czi(filename, dim2none=False):
         # metadata['Scaling'] = metadatadict_czi['ImageDocument']['Metadata']['Scaling']
         metadata['XScale'] = float(metadatadict_czi['ImageDocument']['Metadata']['Scaling']['Items']['Distance'][0]['Value']) * 1000000
         metadata['YScale'] = float(metadatadict_czi['ImageDocument']['Metadata']['Scaling']['Items']['Distance'][1]['Value']) * 1000000
-        metadata['XScale'] = np.round(metadata['XScale'], 3)
-        metadata['YScale'] = np.round(metadata['YScale'], 3)
+        #metadata['XScale'] = np.round(metadata['XScale'], 3)
+        #metadata['YScale'] = np.round(metadata['YScale'], 3)
         try:
             metadata['XScaleUnit'] = metadatadict_czi['ImageDocument']['Metadata']['Scaling']['Items']['Distance'][0]['DefaultUnitFormat']
             metadata['YScaleUnit'] = metadatadict_czi['ImageDocument']['Metadata']['Scaling']['Items']['Distance'][1]['DefaultUnitFormat']
@@ -517,7 +517,7 @@ def get_metadata_czi(filename, dim2none=False):
             metadata['YScaleUnit'] = None
         try:
             metadata['ZScale'] = float(metadatadict_czi['ImageDocument']['Metadata']['Scaling']['Items']['Distance'][2]['Value']) * 1000000
-            metadata['ZScale'] = np.round(metadata['ZScale'], 3)
+            #metadata['ZScale'] = np.round(metadata['ZScale'], 3)
             try:
                 metadata['ZScaleUnit'] = metadatadict_czi['ImageDocument']['Metadata']['Scaling']['Items']['Distance'][2]['DefaultUnitFormat']
             except KeyError as e:
@@ -1376,10 +1376,13 @@ def get_array_czi(filename,
     return cziarray, metadata, additional_metadata_czi
 
 
+"""
 def get_array_pylibczi(filename, return_addmd=False, **kwargs):
+
 
     metadata = get_metadata_czi(filename)
     additional_metadata_czi = get_additional_metadata_czi(filename)
+"""
 
 
 def replace_value(data, value=0):
@@ -1415,9 +1418,9 @@ def get_scalefactor(metadata):
 
     try:
         # get the factor between XY scaling
-        scalefactors['xy'] = np.round(metadata['XScale'] / metadata['YScale'], 3)
+        scalefactors['xy'] = metadata['XScale'] / metadata['YScale']
         # get the scalefactor between XZ scaling
-        scalefactors['zx'] = np.round(metadata['ZScale'] / metadata['YScale'], 3)
+        scalefactors['zx'] = metadata['ZScale'] / metadata['YScale']
     except KeyError as e:
         print('Key not found: ', e)
 
