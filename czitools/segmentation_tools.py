@@ -19,30 +19,32 @@ import logging
 import numpy as np
 import pandas as pd
 import seaborn as sns
+
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import matplotlib.patches as mpatches
+
 from czitools import imgfileutils as imf
-from scipy import ndimage
+
 from aicsimageio import AICSImage, imread
-from skimage import exposure
-from skimage.morphology import watershed, dilation
-from skimage.morphology import white_tophat, black_tophat, disk, ball
-from skimage.feature import peak_local_max
-from skimage.measure import label
-from scipy.ndimage import distance_transform_edt
-from skimage.segmentation import random_walker
+
 from skimage import io, measure, segmentation
-from skimage.filters import threshold_otsu, threshold_triangle, rank
-from skimage.segmentation import clear_border
-from skimage.color import label2rgb
+from skimage import exposure
 from skimage.exposure import rescale_intensity
-from skimage.util import invert
-from skimage.filters import median, gaussian
-from skimage.morphology import closing, square
+from skimage.morphology import watershed, dilation
+from skimage.morphology import white_tophat, black_tophat, disk, square, ball, closing, square
 from skimage.morphology import remove_small_objects, remove_small_holes
-from skimage.morphology import disk, square, ball
+from skimage.feature import peak_local_max
 from skimage.measure import label, regionprops
+from skimage.filters import threshold_otsu, threshold_triangle, rank, median, gaussian
+from skimage.segmentation import clear_border
+from skimage.segmentation import random_walker
+from skimage.color import label2rgb
+from skimage.util import invert
+
+from scipy.ndimage import distance_transform_edt
+from scipy import ndimage
+
 from MightyMosaic import MightyMosaic
 
 try:
@@ -522,7 +524,9 @@ def load_tfmodel(modelfolder='model_folder'):
 def segment_zentf(image2d, model, classlabel=1):
     """Segment a singe [X, Y] 2D image using a pretrained segmentation
     model from the ZEN. The out will be a binary mask from the prediction
-    of ZEN czmodel which is a TF.SavedModel with metainformation
+    of ZEN czmodel which is a TF.SavedModel with metainformation.
+    Should work for any TF.SavedModel that fullfil the requirements.
+    See also: https://pypi.org/project/czmodel/
 
     :param image2d: image to be segmented
     :type image2d: NumPy.Array

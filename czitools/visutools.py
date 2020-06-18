@@ -67,7 +67,7 @@ def showheatmap(heatmap, parameter2display,
     :param robust: If True and vmin or vmax are absent, the colormap range is
     computed with robust quantiles instead of the extreme values., defaults to True
     :type robust: bool, optional
-    :param filename: filename of the original image file - will be used to derive
+    :param filename: filename of the original image - will be used to derive
     the filename for the PNG image to be saved, defaults to 'Test.czi'
     :type filename: str, optional
     :param dpi: dpi, defaults to 100
@@ -118,7 +118,7 @@ def showheatmap(heatmap, parameter2display,
 
 
 def getrowandcolumn(platetype=96):
-    """[summary]
+    """Returns the number of rows and columns for a given wellplate type
 
     :param platetype: number total wells of plate (6, 24, 96, 384 or 1536), defaults to 96
     :type platetype: int, optional
@@ -150,7 +150,8 @@ def getrowandcolumn(platetype=96):
 
 
 def convert_array_to_heatmap(hmarray, nr, nc):
-    """Get the labels for a well plate and create a data frame from the numpy array
+    """Get the labels for a well plate and create a data frame
+    from the numpy array.
 
     :param hmarray: The numpy array containing the actual heatmap
     :type hmarray: NumPy.Array

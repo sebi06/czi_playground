@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : imgfileutils.py
-# Version     : 1.0
+# Version     : 1.1
 # Author      : czsrh
-# Date        : 18.05.2020
+# Date        : 18.06.2020
 # Institution : Carl Zeiss Microscopy GmbH
 #
 # Copyright (c) 2020 Carl Zeiss AG, Germany. All Rights Reserved.
@@ -16,10 +16,8 @@
 # warnings.simplefilter('ignore')
 
 import czifile as zis
-#from apeer_ometiff_library import io, processing, omexmlClass
 from apeer_ometiff_library import omexmlClass
 import os
-#from skimage.external import tifffile
 from matplotlib import pyplot as plt, cm
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import xmltodict
@@ -28,13 +26,13 @@ from collections import Counter
 from lxml import etree as ET
 import time
 import re
+import sys
 from aicsimageio import AICSImage, imread, imread_dask
 from aicsimageio.writers import ome_tiff_writer
 from aicspylibczi import CziFile
 import dask.array as da
 import pandas as pd
 import tifffile
-#from czitools import imgfileutils as imf
 
 try:
     import javabridge as jv
@@ -1376,15 +1374,6 @@ def get_array_czi(filename,
     return cziarray, metadata, additional_metadata_czi
 
 
-"""
-def get_array_pylibczi(filename, return_addmd=False, **kwargs):
-
-
-    metadata = get_metadata_czi(filename)
-    additional_metadata_czi = get_additional_metadata_czi(filename)
-"""
-
-
 def replace_value(data, value=0):
     """Replace specifc values in array with NaN
 
@@ -1732,7 +1721,8 @@ def write_ometiff(filepath, img,
                   pixeltype=np.uint16,
                   swapxyaxes=True,
                   series=1):
-    """
+    """ONLY FOR INTERNAL TESTING - DO NOT USE!
+
     This function will write an OME-TIFF file to disk.
     The out 6D array has the following dimension order:
 
@@ -1800,7 +1790,9 @@ def write_ometiff(filepath, img,
 
 
 def writeOMETIFFplanes(pixel, SizeT=1, SizeZ=1, SizeC=1, order='TZCXY', verbose=False):
+    """ONLY FOR INTERNAL TESTING - DO NOT USE!
 
+    """
     if order == 'TZCYX' or order == 'TZCXY':
 
         pixel.DimensionOrder = bioformats.omexml.DO_XYCZT
@@ -1824,7 +1816,7 @@ def writeOMETIFFplanes(pixel, SizeT=1, SizeZ=1, SizeC=1, order='TZCXY', verbose=
 def write_ometiff_aicsimageio(savepath, imgarray, metadata,
                               reader='aicsimageio',
                               overwrite=False):
-    """Write an OME-TIFF file from an image array based on the metadata
+    """Write an OME-TIFF file from an image array based on the metadata.
 
     :param filepath: savepath of the OME-TIFF stack
     :type filepath: str
@@ -1862,7 +1854,7 @@ def write_ometiff_aicsimageio(savepath, imgarray, metadata,
     # get the dimensions and their position inside the dimension string
     if reader == 'aicsimageio':
 
-        dims_dict, dimindex_list, numvalid_dims = imf.get_dimorder(metadata['Axes_aics'])
+        dims_dict, dimindex_list, numvalid_dims = get_dimorder(metadata['Axes_aics'])
 
         # if the array has more than 5 dimensions then remove the S dimension
         # because it is not supported by OME-TIFF
@@ -1878,7 +1870,7 @@ def write_ometiff_aicsimageio(savepath, imgarray, metadata,
     if reader == 'czifile':
 
         new_dimorder = metadata['Axes']
-        dims_dict, dimindex_list, numvalid_dims = imf.get_dimorder(metadata['Axes'])
+        dims_dict, dimindex_list, numvalid_dims = get_dimorder(metadata['Axes'])
         """
         '0': 'Sample',  # e.g. RGBA
         'X': 'Width',
