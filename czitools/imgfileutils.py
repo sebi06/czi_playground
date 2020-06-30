@@ -18,6 +18,7 @@
 import czifile as zis
 from apeer_ometiff_library import omexmlClass
 import os
+from pathlib import Path
 from matplotlib import pyplot as plt, cm
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import xmltodict
@@ -1959,3 +1960,78 @@ def correct_omeheader(omefile,
     tif.close()
 
     print('Updated OME Header.')
+
+
+def get_fname_woext(filepath):
+
+    # create empty string
+    real_extension = ''
+
+    # get all part of the file extension
+    sufs = Path(filepath).suffixes
+    for s in sufs:
+        real_extension = real_extension + s
+
+    # remover real extension from filepath
+    filepath_woext = filepath.replace(real_extension, '')
+
+    return filepath_woext
+
+
+def convert_to_ometiff(imagefilepath,
+                       bftoolsdir='/Users/bftools',
+                       czi_include_attachments=False,
+                       czi_autostitch=True,
+                       verbose=True):
+
+    # check if path exits
+    if not os.path.exists(bftoolsdir):
+        print('No bftools dirctory found. Nothing will be converted')
+        file_ometiff = None
+        file_omexml = None
+
+    if os.path.exists(bftoolsdir):
+
+        # set working dir
+        os.chdir(bftoolsdir)
+
+        # get the imagefile path without extension
+        imagefilepath_woext = get_fname_woext(imagefilepath)
+
+        # create imagefile path for OME.TIFF and OME.XML
+        file_ometiff = imagefilepath_woext + '.ome.tiff'
+        file_omexml = imagefilepath_woext + '.ome.xml'
+
+        # create cmdstring for CZI files- mind the spaces !!!
+        if imagefilepath.lower().endswith('.czi'):
+
+            # configure the CZI options
+            if czi_include_attachments:
+                czi_att = 'true'
+            if not czi_include_attachments:
+                czi_att = 'false'
+
+            if czi_autostitch:
+                czi_stitch = 'true'
+            if not czi_autostitch:
+                czi_stitch = 'false'
+
+            # create cmdstring - mind the spaces !!!
+            cmdstring = 'bfconvert -no-upgrade -option zeissczi.attachments ' + czi_att + ' -option zeissczi.autostitch ' + czi_stitch + ' -option ometiff.companion ' + \
+                '"' + file_omexml + '"' + ' ' + '"' + imagefilepath + '"' + " " + '"' + file_ometiff + '"'
+        else:
+            # create cmdstring for non-CZIs- mind the spaces !!!
+            cmdstring = 'bfconvert -no-upgrade -option ometiff.companion ' + '"' + file_omexml + \
+                '"' + ' ' + '"' + imagefilepath + '"' + " " + '"' + file_ometiff + '"'
+
+        if verbose:
+            print('Original ImageFile : ', imagefilepath_woext)
+            print('ImageFile OME.TIFF : ', file_ometiff)
+            print('ImageFile OEM.XML  : ', file_omexml)
+            print('Use CMD : ', cmdstring)
+
+        # run the bfconvert tool with the specified parameters
+        os.system(cmdstring)
+        print('Done.')
+
+    return file_ometiff, file_omexml
