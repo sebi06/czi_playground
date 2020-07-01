@@ -1963,7 +1963,15 @@ def correct_omeheader(omefile,
 
 
 def get_fname_woext(filepath):
+    """Get the complete path of a file without the extension
+    It alos will works for extensions like c:\myfile.abc.xyz
+    The output will be: c:\myfile
 
+    :param filepath: complete fiepath
+    :type filepath: str
+    :return: complete filepath without extension
+    :rtype: str
+    """
     # create empty string
     real_extension = ''
 
@@ -1983,7 +1991,21 @@ def convert_to_ometiff(imagefilepath,
                        czi_include_attachments=False,
                        czi_autostitch=True,
                        verbose=True):
+    """Convert image file using bfconvert tool into a OME-TIFF from with a python script.
 
+    :param imagefilepath: path to imagefile
+    :type imagefilepath: str
+    :param bftoolsdir: bftools directory containing the bfconvert, defaults to '/Users/bftools'
+    :type bftoolsdir: str, optional
+    :param czi_include_attachments: option convert a CZI attachment (if CZI), defaults to False
+    :type czi_include_attachments: bool, optional
+    :param czi_autostitch: option stich a CZI, defaults to True
+    :type czi_autostitch: bool, optional
+    :param verbose: show additional output, defaults to True
+    :type verbose: bool, optional
+    :return: fileparh of created OME-TIFF file
+    :rtype: str
+    """
     # check if path exits
     if not os.path.exists(bftoolsdir):
         print('No bftools dirctory found. Nothing will be converted')
@@ -1997,7 +2019,7 @@ def convert_to_ometiff(imagefilepath,
         # get the imagefile path without extension
         imagefilepath_woext = get_fname_woext(imagefilepath)
 
-        # create imagefile path for OME.TIFF and OME.XML
+        # create imagefile path for OME-TIFF
         file_ometiff = imagefilepath_woext + '.ome.tiff'
 
         # create cmdstring for CZI files- mind the spaces !!!
