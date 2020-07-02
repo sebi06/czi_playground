@@ -1421,7 +1421,8 @@ def show_napari(array, metadata,
                 blending='additive',
                 gamma=0.85,
                 verbose=True,
-                use_pylibczi=True):
+                use_pylibczi=True,
+                rename_sliders=False):
     """Show the multidimensional array using the Napari viewer
 
     :param array: multidimensional NumPy.Array containing the pixeldata
@@ -1436,6 +1437,8 @@ def show_napari(array, metadata,
     :type verbose: bool, optional
     :param use_pylibczi: specify if pylibczi was used to read the CZI file, defaults to True
     :type use_pylibczi: bool, optional
+    :param rename_sliders: name slider with correct labels output, defaults to False
+    :type verbose: bool, optional
     """
 
     def calc_scaling(data, corr_min=1.0,
@@ -1507,25 +1510,30 @@ def show_napari(array, metadata,
 
             if not use_pylibczi:
                 # use find position of dimensions
-                posZ = metadata['Axes'].find('Z')
-                posC = metadata['Axes'].find('C')
-                posT = metadata['Axes'].find('T')
+                #posZ = metadata['Axes'].find('Z')
+                #posC = metadata['Axes'].find('C')
+                #posT = metadata['Axes'].find('T')
+                dimpos = get_dimpositions(metadata['Axes'])
 
             if use_pylibczi:
-                posZ = metadata['Axes_aics'].find('Z')
-                posC = metadata['Axes_aics'].find('C')
-                posT = metadata['Axes_aics'].find('T')
+                #posZ = metadata['Axes_aics'].find('Z')
+                #posC = metadata['Axes_aics'].find('C')
+                #posT = metadata['Axes_aics'].find('T')
+                dimpos = get_dimpositions(metadata['Axes_aics'])
 
             # get the scalefactors from the metadata
             scalef = get_scalefactor(metadata)
             # modify the tuple for the scales for napari
-            scalefactors[posZ] = scalef['zx']
+            # temporary workaround for slider / floating point issue
+            # https://forum.image.sc/t/problem-with-dimension-slider-when-adding-array-as-new-layer-for-ome-tiff/39092/2?u=sebi06
+            scalef['zx'] = np.round(scalef['zx'], 3)
 
-            if verbose:
-                print('Dim PosT : ', posT)
-                print('Dim PosZ : ', posZ)
-                print('Dim PosC : ', posC)
-                print('Scale Factors : ', scalefactors)
+            # modify the tuple for the scales for napari
+            scalefactors[dimpos['Z']] = scalef['zx']
+
+            # remove C dimension from scalefactor
+            scalefactors_ch = scalefactors.copy()
+            del scalefactors_ch[dimpos['C']]
 
             if metadata['SizeC'] > 1:
                 # add all channels as layers
@@ -1542,29 +1550,36 @@ def show_napari(array, metadata,
                     # use dask if array is a dask.array
                     if isinstance(array, da.Array):
                         print('Extract Channel using Dask.Array')
-                        channel = array.compute().take(ch, axis=posC)
+                        channel = array.compute().take(ch, axis=dimpos['C'])
+                        new_dimstring = metadata['Axes_aics'].replace('C', '')
 
                     else:
                         # use normal numpy if not
                         print('Extract Channel NumPy.Array')
-                        channel = array.take(ch, axis=posC)
-
-                    print('Shape Channel : ', ch, channel.shape)
+                        channel = array.take(ch, axis=dimpos['C'])
+                        if not use_pylibczi:
+                            new_dimstring = metadata['Axes'].replace('C', '')
+                        if use_pylibczi:
+                            new_dimstring = metadata['Axes_aics'].replace('C', '')
 
                     # actually show the image array
-                    print('Adding Channel: ', chname)
-                    print('Scaling Factors: ', scalefactors)
+                    print('Adding Channel  : ', chname)
+                    print('Shape Channel   : ', ch, channel.shape)
+                    print('Scaling Factors : ', scalefactors_ch)
 
                     # get min-max values for initial scaling
-                    # clim = calc_scaling(channel)
+                    clim = calc_scaling(channel,
+                                        corr_min=1.0,
+                                        offset_min=0,
+                                        corr_max=0.85,
+                                        offset_max=0)
 
                     viewer.add_image(channel,
                                      name=chname,
                                      scale=scalefactors,
-                                     # contrast_limits=clim,
+                                     contrast_limits=clim,
                                      blending=blending,
-                                     gamma=gamma,
-                                     is_pyramid=False)
+                                     gamma=gamma)
 
             if metadata['SizeC'] == 1:
 
@@ -1590,6 +1605,24 @@ def show_napari(array, metadata,
                                  blending=blending,
                                  gamma=gamma,
                                  is_pyramid=False)
+
+        if rename_sliders:
+
+            print('Renaming the Sliders based on the Dimension String ....')
+
+            # get the position of dimension entries after removing C dimension
+            dimpos_viewer = get_dimpositions(new_dimstring)
+
+            # get the label of the sliders
+            sliders = viewer.dims.axis_labels
+
+            # update the labels with the correct dimension strings
+            slidernames = ['B', 'S', 'T', 'Z']
+            for s in slidernames:
+                if dimpos_viewer[s] >= 0:
+                    sliders[dimpos_viewer[s]] = s
+            # apply the new labels to the viewer
+            viewer.dims.axis_labels = sliders
 
 
 def check_for_previewimage(czi):
@@ -2054,3 +2087,20 @@ def convert_to_ometiff(imagefilepath,
         print('Done.')
 
     return file_ometiff
+
+
+def get_dimpositions(dimstring, tocheck=['B', 'S', 'T', 'Z', 'C']):
+    """Simple function to get the indices of the dimension identifiers in a string
+
+    :param dimstring: dimension string
+    :type dimstring: str
+    :param tocheck: list of entries to check, defaults to ['B', 'S', 'T', 'Z', 'C']
+    :type tocheck: list, optional
+    :return: dictionary with positions of dimensions inside string
+    :rtype: dict
+    """
+    dimpos = {}
+    for p in tocheck:
+        dimpos[p] = dimstring.find(p)
+
+    return dimpos
