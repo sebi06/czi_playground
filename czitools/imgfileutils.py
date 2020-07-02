@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : imgfileutils.py
-# Version     : 1.1
+# Version     : 1.2
 # Author      : czsrh
-# Date        : 18.06.2020
+# Date        : 02.07.2020
 # Institution : Carl Zeiss Microscopy GmbH
 #
 # Copyright (c) 2020 Carl Zeiss AG, Germany. All Rights Reserved.
@@ -48,10 +48,10 @@ try:
 except ModuleNotFoundError as error:
     print(error.__class__.__name__ + ": " + error.msg)
 
-try:
-    import napari
-except ModuleNotFoundError as error:
-    print(error.__class__.__name__ + ": " + error.msg)
+# try:
+#    import napari
+# except ModuleNotFoundError as error:
+#    print(error.__class__.__name__ + ": " + error.msg)
 
 
 def get_imgtype(imagefile):
@@ -130,9 +130,11 @@ def create_metadata_dict():
                 'ZScaleUnit': None,
                 'DetectorModel': [],
                 'DetectorName': [],
-                'DetectorID': None,
-                'InstrumentID': None,
+                'DetectorID': [],
+                'DetectorType': [],
+                'InstrumentID': [],
                 'Channels': [],
+                'ChannelNames': [],
                 'ImageIDs': [],
                 'NumPy.dtype': None
                 }
@@ -414,29 +416,45 @@ def get_metadata_czi(filename, dim2none=False):
             metadata['SizeC'] = 1
 
     channels = []
+    channels_names = []
     if metadata['SizeC'] == 1:
         try:
             channels.append(metadatadict_czi['ImageDocument']['Metadata']['DisplaySetting']
                                             ['Channels']['Channel']['ShortName'])
-        except Exception as e:
-            channels.append(None)
+        except KeyError as e:
+            try:
+                channels.append(metadatadict_czi['ImageDocument']['Metadata']['DisplaySetting']
+                                ['Channels']['Channel']['DyeName'])
+            except KeyError as e:
+                channels.append('CH1')
+
+        try:
+            channels_names.append(metadatadict_czi['ImageDocument']['Metadata']['DisplaySetting']
+                                  ['Channels']['Channel']['Name'])
+        except KeyError as e:
+            channels_names.append['CH1']
 
     if metadata['SizeC'] > 1:
         for ch in range(metadata['SizeC']):
             try:
                 channels.append(metadatadict_czi['ImageDocument']['Metadata']['DisplaySetting']
                                                 ['Channels']['Channel'][ch]['ShortName'])
-            except Exception as e:
-                print('Exception:', e)
+            except KeyError as e:
                 try:
                     channels.append(metadatadict_czi['ImageDocument']['Metadata']['DisplaySetting']
-                                                    ['Channels']['Channel']['ShortName'])
-                except Exception as e:
-                    print('Exception:', e)
+                                                    ['Channels']['Channel'][ch]['DyeName'])
+                except KeyError as e:
                     channels.append(str(ch))
+
+            try:
+                channels_names.append(metadatadict_czi['ImageDocument']['Metadata']['DisplaySetting']
+                                      ['Channels']['Channel'][ch]['Name'])
+            except KeyError as e:
+                channels_names.append[None]
 
     # write channels information into metadata dictionary
     metadata['Channels'] = channels
+    metadata['ChannelNames'] = channels_names
 
     try:
         metadata['SizeT'] = np.int(metadatadict_czi['ImageDocument']['Metadata']['Information']['Image']['SizeT'])
@@ -486,7 +504,7 @@ def get_metadata_czi(filename, dim2none=False):
     try:
         metadata['SizeI'] = np.int(metadatadict_czi['ImageDocument']['Metadata']['Information']['Image']['SizeI'])
     except Exception as e:
-        #print('Exception:', e)
+        # print('Exception:', e)
         if dim2none:
             metadatada['SizeI'] = None
         if not dim2none:
@@ -495,7 +513,7 @@ def get_metadata_czi(filename, dim2none=False):
     try:
         metadata['SizeV'] = np.int(metadatadict_czi['ImageDocument']['Metadata']['Information']['Image']['SizeV'])
     except Exception as e:
-        #print('Exception:', e)
+        # print('Exception:', e)
         if dim2none:
             metadatada['SizeV'] = None
         if not dim2none:
@@ -505,8 +523,8 @@ def get_metadata_czi(filename, dim2none=False):
         # metadata['Scaling'] = metadatadict_czi['ImageDocument']['Metadata']['Scaling']
         metadata['XScale'] = float(metadatadict_czi['ImageDocument']['Metadata']['Scaling']['Items']['Distance'][0]['Value']) * 1000000
         metadata['YScale'] = float(metadatadict_czi['ImageDocument']['Metadata']['Scaling']['Items']['Distance'][1]['Value']) * 1000000
-        #metadata['XScale'] = np.round(metadata['XScale'], 3)
-        #metadata['YScale'] = np.round(metadata['YScale'], 3)
+        # metadata['XScale'] = np.round(metadata['XScale'], 3)
+        # metadata['YScale'] = np.round(metadata['YScale'], 3)
         try:
             metadata['XScaleUnit'] = metadatadict_czi['ImageDocument']['Metadata']['Scaling']['Items']['Distance'][0]['DefaultUnitFormat']
             metadata['YScaleUnit'] = metadatadict_czi['ImageDocument']['Metadata']['Scaling']['Items']['Distance'][1]['DefaultUnitFormat']
@@ -516,7 +534,7 @@ def get_metadata_czi(filename, dim2none=False):
             metadata['YScaleUnit'] = None
         try:
             metadata['ZScale'] = float(metadatadict_czi['ImageDocument']['Metadata']['Scaling']['Items']['Distance'][2]['Value']) * 1000000
-            #metadata['ZScale'] = np.round(metadata['ZScale'], 3)
+            # metadata['ZScale'] = np.round(metadata['ZScale'], 3)
             try:
                 metadata['ZScaleUnit'] = metadatadict_czi['ImageDocument']['Metadata']['Scaling']['Items']['Distance'][2]['DefaultUnitFormat']
             except KeyError as e:
@@ -601,23 +619,71 @@ def get_metadata_czi(filename, dim2none=False):
         metadata['ObjMag'] = None
 
     # get detector information
-    try:
-        metadata['DetectorID'] = metadatadict_czi['ImageDocument']['Metadata']['Information']['Instrument']['Detectors']['Detector']['Id']
-    except KeyError as e:
-        print('Key not found:', e)
-        metadata['DetectorID'] = None
+    if isinstance(metadatadict_czi['ImageDocument']['Metadata']['Information']['Instrument']['Detectors']['Detector'], list):
+        num_detectors = len(metadatadict_czi['ImageDocument']['Metadata']['Information']['Instrument']['Detectors']['Detector'])
+    else:
+        num_detectors = 1
 
-    try:
-        metadata['DetectorModel'] = metadatadict_czi['ImageDocument']['Metadata']['Information']['Instrument']['Detectors']['Detector']['Name']
-    except KeyError as e:
-        print('Key not found:', e)
-        metadata['DetectorModel'] = None
+    if num_detectors == 1:
 
-    try:
-        metadata['DetectorName'] = metadatadict_czi['ImageDocument']['Metadata']['Information']['Instrument']['Detectors']['Detector']['Manufacturer']['Model']
-    except KeyError as e:
-        print('Key not found:', e)
-        metadata['DetectorName'] = None
+        # check for detector ID
+        try:
+            metadata['DetectorID'].append(metadatadict_czi['ImageDocument']['Metadata']['Information']
+                                          ['Instrument']['Detectors']['Detector']['Id'])
+        except KeyError as e:
+            metadata['DetectorID'].append(None)
+
+        # check for detector Name
+        try:
+            metadata['DetectorName'].append(metadatadict_czi['ImageDocument']['Metadata']['Information']
+                                            ['Instrument']['Detectors']['Detector']['Name'])
+        except KeyError as e:
+            metadata['DetectorName'].append(None)
+
+        # check for detector model
+        try:
+            metadata['DetectorModel'].append(metadatadict_czi['ImageDocument']['Metadata']['Information']
+                                             ['Instrument']['Detectors']['Detector']['Manufacturer']['Model'])
+        except KeyError as e:
+            metadata['DetectorModel'].append(None)
+
+        # check for detector type
+        try:
+            metadata['DetectorType'].append(metadatadict_czi['ImageDocument']['Metadata']['Information']
+                                            ['Instrument']['Detectors']['Detector']['Type'])
+        except KeyError as e:
+            metadata['DetectorType'].append(None)
+
+    if num_detectors > 1:
+        for d in range(num_detectors):
+
+            # check for detector ID
+            try:
+                metadata['DetectorID'].append(metadatadict_czi['ImageDocument']['Metadata']['Information']
+                                              ['Instrument']['Detectors']['Detector'][d]['Id'])
+            except KeyError as e:
+                metadata['DetectorID'].append(None)
+
+            # check for detector Name
+            try:
+                metadata['DetectorName'].append(metadatadict_czi['ImageDocument']['Metadata']['Information']
+                                                ['Instrument']['Detectors']['Detector'][d]['Name'])
+            except KeyError as e:
+                metadata['DetectorName'].append(None)
+
+            # check for detector model
+            try:
+                metadata['DetectorModel'].append(metadatadict_czi['ImageDocument']['Metadata']['Information']
+                                                 ['Instrument']['Detectors']['Detector'][d]['Manufacturer']['Model'])
+            except KeyError as e:
+                metadata['DetectorModel'].append(None)
+
+            # check for detector type
+            try:
+                metadata['DetectorType'].append(metadatadict_czi['ImageDocument']['Metadata']['Information']
+                                                ['Instrument']['Detectors']['Detector'][d]['Type'])
+            except KeyError as e:
+                metadata['DetectorType'].append(None)
 
     # check for well information
     metadata['Well_ArrayNames'] = []
@@ -640,7 +706,7 @@ def get_metadata_czi(filename, dim2none=False):
                 try:
                     metadata['Well_ArrayNames'].append(allscenes['ArrayName'])
                 except KeyError as e:
-                    #print('Key not found in Metadata Dictionary:', e)
+                    # print('Key not found in Metadata Dictionary:', e)
                     try:
                         metadata['Well_ArrayNames'].append(well['Name'])
                     except KeyError as e:
@@ -1510,15 +1576,15 @@ def show_napari(array, metadata,
 
             if not use_pylibczi:
                 # use find position of dimensions
-                #posZ = metadata['Axes'].find('Z')
-                #posC = metadata['Axes'].find('C')
-                #posT = metadata['Axes'].find('T')
+                # posZ = metadata['Axes'].find('Z')
+                # posC = metadata['Axes'].find('C')
+                # posT = metadata['Axes'].find('T')
                 dimpos = get_dimpositions(metadata['Axes'])
 
             if use_pylibczi:
-                #posZ = metadata['Axes_aics'].find('Z')
-                #posC = metadata['Axes_aics'].find('C')
-                #posT = metadata['Axes_aics'].find('T')
+                # posZ = metadata['Axes_aics'].find('Z')
+                # posC = metadata['Axes_aics'].find('C')
+                # posT = metadata['Axes_aics'].find('T')
                 dimpos = get_dimpositions(metadata['Axes_aics'])
 
             # get the scalefactors from the metadata
