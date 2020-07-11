@@ -134,6 +134,7 @@ def create_metadata_dict():
                 'InstrumentID': [],
                 'Channels': [],
                 'ChannelNames': [],
+                'ChannelColors': [],
                 'ImageIDs': [],
                 'NumPy.dtype': None
                 }
@@ -416,7 +417,9 @@ def get_metadata_czi(filename, dim2none=False):
 
     channels = []
     channels_names = []
+    channels_colors = []
     if metadata['SizeC'] == 1:
+        # get name for dye
         try:
             channels.append(metadatadict_czi['ImageDocument']['Metadata']['DisplaySetting']
                                             ['Channels']['Channel']['ShortName'])
@@ -427,14 +430,23 @@ def get_metadata_czi(filename, dim2none=False):
             except KeyError as e:
                 channels.append('CH1')
 
+        # get channel name
         try:
             channels_names.append(metadatadict_czi['ImageDocument']['Metadata']['DisplaySetting']
                                   ['Channels']['Channel']['Name'])
         except KeyError as e:
             channels_names.append['CH1']
 
+        # get channel color
+        try:
+            channels_colors.append(metadatadict_czi['ImageDocument']['Metadata']['DisplaySetting']
+                                  ['Channels']['Channel']['Color'])
+        except:
+            channels_colors.append('80808000')
+
     if metadata['SizeC'] > 1:
         for ch in range(metadata['SizeC']):
+            # get name for dyes
             try:
                 channels.append(metadatadict_czi['ImageDocument']['Metadata']['DisplaySetting']
                                                 ['Channels']['Channel'][ch]['ShortName'])
@@ -445,15 +457,25 @@ def get_metadata_czi(filename, dim2none=False):
                 except KeyError as e:
                     channels.append(str(ch))
 
+            # get channel names
             try:
                 channels_names.append(metadatadict_czi['ImageDocument']['Metadata']['DisplaySetting']
                                       ['Channels']['Channel'][ch]['Name'])
             except KeyError as e:
-                channels_names.append[None]
+                channels_names.append('CH' + str(ch))
+
+            # get channel colors
+            try:
+                channels_colors.append(metadatadict_czi['ImageDocument']['Metadata']['DisplaySetting']
+                                  ['Channels']['Channel'][ch]['Color'])
+            except:
+                # use grayscale instead
+                channels_colors.append('80808000')
 
     # write channels information into metadata dictionary
     metadata['Channels'] = channels
     metadata['ChannelNames'] = channels_names
+    metadata['ChannelColors'] = channels_colors
 
     try:
         metadata['SizeT'] = np.int(metadatadict_czi['ImageDocument']['Metadata']['Information']['Image']['SizeT'])
