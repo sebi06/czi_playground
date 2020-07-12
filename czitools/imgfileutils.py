@@ -2,18 +2,14 @@
 
 #################################################################
 # File        : imgfileutils.py
-# Version     : 1.2
+# Version     : 1.3
 # Author      : czsrh
-# Date        : 02.07.2020
+# Date        : 12.07.2020
 # Institution : Carl Zeiss Microscopy GmbH
 #
 # Copyright (c) 2020 Carl Zeiss AG, Germany. All Rights Reserved.
 #################################################################
 
-# this can be used to switch on/off warnings
-# import warnings
-# warnings.filterwarnings('ignore')
-# warnings.simplefilter('ignore')
 
 import czifile as zis
 from apeer_ometiff_library import omexmlClass
@@ -48,10 +44,10 @@ try:
 except ModuleNotFoundError as error:
     print(error.__class__.__name__ + ": " + error.msg)
 
-# try:
-#    import napari
-# except ModuleNotFoundError as error:
-#    print(error.__class__.__name__ + ": " + error.msg)
+try:
+    import napari
+except ModuleNotFoundError as error:
+    print(error.__class__.__name__ + ": " + error.msg)
 
 
 def get_imgtype(imagefile):
@@ -158,21 +154,25 @@ def get_metadata(imagefile, omeseries=0):
 
     # get the image type
     imgtype = get_imgtype(imagefile)
-    print('Image Type: ', imgtype)
+    print('Detected Image Type (based on extension): ', imgtype)
 
-    md = None
-    additional_md = None
+    md = {}
+    additional_md = {}
 
     if imgtype == 'ometiff':
 
         # parse the OME-XML and return the metadata dictionary and additional info
         md = get_metadata_ometiff(imagefile, series=omeseries)
 
-    if imgtype == 'czi':
+    elif imgtype == 'czi':
 
         # parse the CZI metadata return the metadata dictionary and additional info
         md = get_metadata_czi(imagefile, dim2none=False)
         additional_md = get_additional_metadata_czi(imagefile)
+
+    else:
+        # no metadate will be returned
+        print('No metadata will be returned.')
 
     return md, additional_md
 
@@ -209,14 +209,14 @@ def get_metadata_ometiff(filename, series=0):
     metadata['AcqDate'] = omemd.image(series).AcquisitionDate
     metadata['Name'] = omemd.image(series).Name
 
-    # get image dimensions
+    # get image dimensions TZCXY
     metadata['SizeT'] = omemd.image(series).Pixels.SizeT
     metadata['SizeZ'] = omemd.image(series).Pixels.SizeZ
     metadata['SizeC'] = omemd.image(series).Pixels.SizeC
     metadata['SizeX'] = omemd.image(series).Pixels.SizeX
     metadata['SizeY'] = omemd.image(series).Pixels.SizeY
 
-    # get number of series
+    # get number of image series
     metadata['TotalSeries'] = omemd.get_image_count()
     metadata['Sizes BF'] = [metadata['TotalSeries'],
                             metadata['SizeT'],
@@ -297,7 +297,7 @@ def get_metadata_ometiff(filename, series=0):
 
 
 def checkmdscale_none(md, tocheck=['ZScale'], replace=[1.0]):
-    """Check scaling entries for None to avaoid issues later on
+    """Check scaling entries for None to avoid issues later on
 
     :param md: original metadata
     :type md: dict
@@ -342,13 +342,13 @@ def get_metadata_czi(filename, dim2none=False):
     :rtype: dict
     """
 
-    # get CZI object and read array
+    # get CZI object
     czi = zis.CziFile(filename)
 
     # parse the XML into a dictionary
     metadatadict_czi = czi.metadata(raw=False)
 
-    # initilaize metadata dictionary
+    # initialize metadata dictionary
     metadata = create_metadata_dict()
 
     # get directory and filename etc.
@@ -415,64 +415,77 @@ def get_metadata_czi(filename, dim2none=False):
         if not dim2none:
             metadata['SizeC'] = 1
 
+    # create empty lists for channel related informatiobn
     channels = []
     channels_names = []
     channels_colors = []
+
+    # in case of only one channel
     if metadata['SizeC'] == 1:
         # get name for dye
         try:
             channels.append(metadatadict_czi['ImageDocument']['Metadata']['DisplaySetting']
                                             ['Channels']['Channel']['ShortName'])
         except KeyError as e:
+            print('Exception:', e)
             try:
                 channels.append(metadatadict_czi['ImageDocument']['Metadata']['DisplaySetting']
                                 ['Channels']['Channel']['DyeName'])
             except KeyError as e:
-                channels.append('CH1')
+                print('Exception:', e)
+                channels.append('Dye-CH1')
 
         # get channel name
         try:
             channels_names.append(metadatadict_czi['ImageDocument']['Metadata']['DisplaySetting']
                                   ['Channels']['Channel']['Name'])
         except KeyError as e:
+            print('Exception:', e)
             channels_names.append['CH1']
 
         # get channel color
         try:
             channels_colors.append(metadatadict_czi['ImageDocument']['Metadata']['DisplaySetting']
-                                  ['Channels']['Channel']['Color'])
-        except:
+                                   ['Channels']['Channel']['Color'])
+        except KeyError as e:
+            print('Exception:', e)
             channels_colors.append('80808000')
 
+    # in case of two or more channels
     if metadata['SizeC'] > 1:
+        # loop over all channels
         for ch in range(metadata['SizeC']):
             # get name for dyes
             try:
                 channels.append(metadatadict_czi['ImageDocument']['Metadata']['DisplaySetting']
                                                 ['Channels']['Channel'][ch]['ShortName'])
             except KeyError as e:
+                print('Exception:', e)
                 try:
                     channels.append(metadatadict_czi['ImageDocument']['Metadata']['DisplaySetting']
                                                     ['Channels']['Channel'][ch]['DyeName'])
                 except KeyError as e:
-                    channels.append(str(ch))
+                    print('Exception:', e)
+                    channels.append('Dye-CH' + str(ch))
 
             # get channel names
             try:
                 channels_names.append(metadatadict_czi['ImageDocument']['Metadata']['DisplaySetting']
                                       ['Channels']['Channel'][ch]['Name'])
             except KeyError as e:
+                print('Exception:', e)
                 channels_names.append('CH' + str(ch))
 
             # get channel colors
             try:
                 channels_colors.append(metadatadict_czi['ImageDocument']['Metadata']['DisplaySetting']
-                                  ['Channels']['Channel'][ch]['Color'])
-            except:
+                                       ['Channels']['Channel'][ch]['Color'])
+            except KeyError as e:
+                print('Exception:', e)
                 # use grayscale instead
                 channels_colors.append('80808000')
 
-    # write channels information into metadata dictionary
+    # write channels information (as lists) into metadata dictionary
     metadata['Channels'] = channels
     metadata['ChannelNames'] = channels_names
     metadata['ChannelColors'] = channels_colors
@@ -507,7 +520,7 @@ def get_metadata_czi(filename, dim2none=False):
     try:
         metadata['SizeS'] = np.int(metadatadict_czi['ImageDocument']['Metadata']['Information']['Image']['SizeS'])
     except Exception as e:
-        print('Exception:', e)
+        # print('Exception:', e)
         if dim2none:
             metadatada['SizeS'] = None
         if not dim2none:
@@ -516,7 +529,7 @@ def get_metadata_czi(filename, dim2none=False):
     try:
         metadata['SizeH'] = np.int(metadatadict_czi['ImageDocument']['Metadata']['Information']['Image']['SizeH'])
     except Exception as e:
-        print('Exception:', e)
+        # print('Exception:', e)
         if dim2none:
             metadatada['SizeH'] = None
         if not dim2none:
@@ -540,6 +553,7 @@ def get_metadata_czi(filename, dim2none=False):
         if not dim2none:
             metadata['SizeV'] = 1
 
+    # get the scaling information
     try:
         # metadata['Scaling'] = metadatadict_czi['ImageDocument']['Metadata']['Scaling']
         metadata['XScale'] = float(metadatadict_czi['ImageDocument']['Metadata']['Scaling']['Items']['Distance'][0]['Value']) * 1000000
@@ -626,6 +640,7 @@ def get_metadata_czi(filename, dim2none=False):
         metadata['ObjNominalMag'] = np.float(metadatadict_czi['ImageDocument']['Metadata']['Information']
                                              ['Instrument']['Objectives']['Objective']['NominalMagnification'])
     except KeyError as e:
+        print('Key not found:', e)
         metadata['ObjNominalMag'] = None
 
     try:
@@ -1397,11 +1412,13 @@ def get_dimorder(dimstring):
     dims = ['R', 'I', 'M', 'H', 'V', 'B', 'S', 'T', 'C', 'Z', 'Y', 'X', '0']
     dims_dict = {}
 
+    # loop over all dimensions and find the index
     for d in dims:
 
         dims_dict[d] = dimstring.find(d)
         dimindex_list.append(dimstring.find(d))
 
+    # check if a dimension really exists
     numvalid_dims = sum(i > 0 for i in dimindex_list)
 
     return dims_dict, dimindex_list, numvalid_dims
@@ -1488,7 +1505,7 @@ def get_scalefactor(metadata):
     :rtype: dict
     """
 
-    # set default scale factore to 1
+    # set default scale factor to 1.0
     scalefactors = {'xy': 1.0,
                     'zx': 1.0
                     }
@@ -1499,7 +1516,7 @@ def get_scalefactor(metadata):
         # get the scalefactor between XZ scaling
         scalefactors['zx'] = metadata['ZScale'] / metadata['YScale']
     except KeyError as e:
-        print('Key not found: ', e)
+        print('Key not found: ', e, 'Using defaults = 1.0')
 
     return scalefactors
 
@@ -1723,6 +1740,7 @@ def check_for_previewimage(czi):
 
     att = []
 
+    # loop over the attachments
     for attachment in czi.attachments():
         entry = attachment.attachment_entry
         print(entry.name)
@@ -1730,6 +1748,7 @@ def check_for_previewimage(czi):
 
     has_attimage = False
 
+    # check for the entry "SlidePreview"
     if 'SlidePreview' in att:
         has_attimage = True
 
@@ -1825,10 +1844,12 @@ def addzeros(number):
     """
 
     if number < 10:
-        zerostring = '000' + str(number)
+        zerostring = '0000' + str(number)
     if number >= 10 and number < 100:
-        zerostring = '00' + str(number)
+        zerostring = '000' + str(number)
     if number >= 100 and number < 1000:
+        zerostring = '00' + str(number)
+    if number >= 1000 and number < 10000:
         zerostring = '0' + str(number)
 
     return zerostring
@@ -1960,8 +1981,8 @@ def write_ometiff_aicsimageio(savepath, imgarray, metadata,
                                 metadata['ZScale']]
     except KeyError as e:
         print('Key not found:', e)
-        print('Use default scaling XYZ=1')
-        pixels_physical_size = [1, 1, 1]
+        print('Use default scaling XYZ=1.0')
+        pixels_physical_size = [1.0, 1.0, 1.0]
 
     # define channel names list from metadata
     try:
