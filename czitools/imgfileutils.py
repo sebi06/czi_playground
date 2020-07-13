@@ -141,14 +141,18 @@ def create_metadata_dict():
     return metadata
 
 
-def get_metadata(imagefile, omeseries=0):
+def get_metadata(imagefile,
+                 omeseries=0,
+                 round_values=False):
     """Returns a dictionary with metadata depending on the image type.
     Only CZI and OME-TIFF are currently supported.
 
     :param imagefile: filename of the image
     :type imagefile: str
-    :param series: series of OME-TIFF file, , defaults to 0
-    :type series: int, optional
+    :param omeseries: series of OME-TIFF file, , defaults to 0
+    :type omeseries: int, optional
+    :param round_values: option to round some values, defaults to TrueFalse
+    :type round_values: bool, optional
     :return: metadata - dict with the metainformation
     :rtype: dict
     :return: additional_mdczi - dict with additional the metainformation for CZI only
@@ -172,6 +176,15 @@ def get_metadata(imagefile, omeseries=0):
         # parse the CZI metadata return the metadata dictionary and additional info
         md = get_metadata_czi(imagefile, dim2none=False)
         additional_md = get_additional_metadata_czi(imagefile)
+
+    # TODO - Remove this when issue is fixed
+    if round_values:
+        # temporary workaround for slider / floating point issue in Napari viewer
+        # https://forum.image.sc/t/problem-with-dimension-slider-when-adding-array-as-new-layer-for-ome-tiff/39092/2?u=sebi06
+
+        md['XScale'] = np.round(md['XScale'], 3)
+        md['YScale'] = np.round(md['YScale'], 3)
+        md['ZScale'] = np.round(md['ZScale'], 3)
 
     return md, additional_md
 
