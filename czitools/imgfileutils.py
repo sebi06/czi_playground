@@ -427,7 +427,7 @@ def get_metadata_czi(filename, dim2none=False):
         if not dim2none:
             metadata['SizeC'] = 1
 
-    # create empty lists for channel related informatiobn
+    # create empty lists for channel related information
     channels = []
     channels_names = []
     channels_colors = []
