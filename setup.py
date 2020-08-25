@@ -41,6 +41,7 @@ setup(name='czitools',
           'apeer-ometiff-library>=1.6.0',
           'csbdeep>=0.5.1',
           'ipywidgets>=7.5.1',
+          'pydash>=4.8.0',
       ],
       include_package_data=True,
       zip_safe=False)
