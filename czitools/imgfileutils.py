@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : imgfileutils.py
-# Version     : 1.3
+# Version     : 1.3.1
 # Author      : czsrh
-# Date        : 12.07.2020
+# Date        : 02.09.2020
 # Institution : Carl Zeiss Microscopy GmbH
 #
 # Copyright (c) 2020 Carl Zeiss AG, Germany. All Rights Reserved.
@@ -106,7 +106,6 @@ def create_metadata_dict():
                 'SizeS': 1,
                 'SizeB': 1,
                 'SizeM': 1,
-                'SizeM': 1,
                 'Sizes BF': None,
                 # 'DimOrder BF': None,
                 # 'DimOrder BF Array': None,
@@ -185,7 +184,7 @@ def get_metadata(imagefile,
         md['ZScale'] = np.round(md['ZScale'], 3)
     else:
         # no metadate will be returned
-        print('No metadata will be returned.')
+        print('Scales will not be rounded.')
 
     return md, additional_md
 
@@ -2264,3 +2263,27 @@ def get_dimpositions(dimstring, tocheck=['B', 'S', 'T', 'Z', 'C']):
         dimpos[p] = dimstring.find(p)
 
     return dimpos
+
+
+def norm_columns(df, colname='Time [s]', mode='min'):
+    """Normalize a specif column inside a Pandas dataframe
+
+    :param df: DataFrame
+    :type df: pf.DataFrame
+    :param colname: Name of the coumn to be normalized, defaults to 'Time [s]'
+    :type colname: str, optional
+    :param mode: Mode of Normalization, defaults to 'min'
+    :type mode: str, optional
+    :return: Dataframe with normalized column
+    :rtype: pd.DataFrame
+    """
+    # normalize columns according to min or max value
+    if mode == 'min':
+        min_value = df[colname].min()
+        df[colname] = df[colname] - min_value
+
+    if mode == 'max':
+        max_value = df[colname].max()
+        df[colname] = df[colname] - max_value
+
+    return df
