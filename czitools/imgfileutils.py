@@ -419,9 +419,14 @@ def get_metadata_czi(filename, dim2none=False,
     except KeyError as e:
         print('Key not found:', e)
         metadata['PixelType'] = None
-
-    metadata['SizeX'] = np.int(metadatadict_czi['ImageDocument']['Metadata']['Information']['Image']['SizeX'])
-    metadata['SizeY'] = np.int(metadatadict_czi['ImageDocument']['Metadata']['Information']['Image']['SizeY'])
+    try:
+        metadata['SizeX'] = np.int(metadatadict_czi['ImageDocument']['Metadata']['Information']['Image']['SizeX'])
+    except KeyError as e:
+        metadata['SizeX'] = None
+    try:
+        metadata['SizeY'] = np.int(metadatadict_czi['ImageDocument']['Metadata']['Information']['Image']['SizeY'])
+    except KeyError as e:
+        metadata['SizeY'] = None
 
     try:
         metadata['SizeZ'] = np.int(metadatadict_czi['ImageDocument']['Metadata']['Information']['Image']['SizeZ'])
@@ -2287,3 +2292,28 @@ def norm_columns(df, colname='Time [s]', mode='min'):
         df[colname] = df[colname] - max_value
 
     return df
+
+
+def update5dstack(image5d, image2d,
+                  dimstring5d='TCZYX',
+                  t=0,
+                  z=0,
+                  c=0):
+
+    # remove XY
+    dimstring5d = dimstring5d.replace('X', '').replace('Y', '')
+
+    if dimstring5d == 'TZC':
+        image5d[t, z, c, :, :] = image2d
+    if dimstring5d == 'TCZ':
+        image5d[t, c, z, :, :] = image2d
+    if dimstring5d == 'ZTC':
+        image5d[z, t, c, :, :] = image2d
+    if dimstring5d == 'ZCT':
+        image5d[z, c, t, :, :] = image2d
+    if dimstring5d == 'CTZ':
+        image5d[c, t, z, :, :] = image2d
+    if dimstring5d == 'CZT':
+        image5d[c, z, t, :, :] = image2d
+
+    return image5d
