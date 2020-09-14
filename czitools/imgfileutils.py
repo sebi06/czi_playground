@@ -770,6 +770,8 @@ def get_metadata_czi(filename, dim2none=False,
     metadata['Well_ColId'] = []
     metadata['Well_RowId'] = []
     metadata['WellCounter'] = None
+    metadata['SceneStageCenterX'] = []
+    metadata['SceneStageCenterY'] = []
 
     try:
         print('Trying to extract Scene and Well information if existing ...')
@@ -822,6 +824,16 @@ def get_metadata_czi(filename, dim2none=False,
                     print('Key not found in Metadata Dictionary:', e)
                     metadata['WellCounter'].append(Counter({'A1': 1}))
 
+                try:
+                    # get the SceneCenter Position
+                    sx = allscenes['CenterPosition'].split(',')[0]
+                    sy = allscenes['CenterPosition'].split(',')[1]
+                    metadata['SceneStageCenterX'].append(np.double(sx))
+                    metadata['SceneStageCenterY'].append(np.double(sy))
+                except KeyError as e:
+                    metadata['SceneStageCenterX'].append(0.0)
+                    metadata['SceneStageCenterY'].append(0.0)
+
             if metadata['SizeS'] > 1:
                 try:
                     well = allscenes[s]
@@ -860,6 +872,22 @@ def get_metadata_czi(filename, dim2none=False,
 
                 # count the content of the list, e.g. how many time a certain well was detected
                 metadata['WellCounter'] = Counter(metadata['Well_ArrayNames'])
+
+                # try:
+                if isinstance(allscenes, list):
+                    try:
+                        # get the SceneCenter Position
+                        sx = allscenes[s]['CenterPosition'].split(',')[0]
+                        sy = allscenes[s]['CenterPosition'].split(',')[1]
+                        metadata['SceneStageCenterX'].append(np.double(sx))
+                        metadata['SceneStageCenterY'].append(np.double(sy))
+                    except KeyError as e:
+                        print('Key not found in Metadata Dictionary:', e)
+                        metadata['SceneCenterX'].append(0.0)
+                        metadata['SceneCenterY'].append(0.0)
+                if not isinstance(allscenes, list):
+                    metadata['SceneStageCenterX'].append(0.0)
+                    metadata['SceneStageCenterY'].append(0.0)
 
             # count the number of different wells
             metadata['NumWells'] = len(metadata['WellCounter'].keys())
