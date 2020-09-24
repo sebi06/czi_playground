@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : imgfileutils.py
-# Version     : 1.3.1
+# Version     : 1.3.2
 # Author      : czsrh
-# Date        : 02.09.2020
+# Date        : 17.09.2020
 # Institution : Carl Zeiss Microscopy GmbH
 #
 # Copyright (c) 2020 Carl Zeiss AG, Germany. All Rights Reserved.
@@ -111,7 +111,8 @@ def create_metadata_dict():
                 # 'DimOrder BF Array': None,
                 # 'Axes_czifile': None,
                 # 'Shape_czifile': None,
-                'isRGB': False,
+                'czi_isRGB': None,
+                'czi_isMosaic': None,
                 'ObjNA': None,
                 'ObjMag': None,
                 'ObjID': None,
@@ -204,7 +205,8 @@ def get_metadata_ometiff(filename, series=0):
         try:
             # get OME-XML metadata as string the old way
             omexml_string = tif[0].image_description.decode('utf-8')
-        except TypeError as error:
+        except TypeError as e:
+            print(e)
             omexml_string = tif.ome_metadata
 
     # get the OME-XML using the apeer-ometiff-library
@@ -388,8 +390,6 @@ def get_metadata_czi(filename, dim2none=False,
         metadata['SizeT_aics'] = czi_aics.size_t
         metadata['SizeS_aics'] = czi_aics.size_s
     except:
-        e = sys.exc_info()[0]
-        print(e)
         metadata['Shape_aics'] = None
         metadata['SizeX_aics'] = None
         metadata['SizeY_aics'] = None
@@ -404,7 +404,7 @@ def get_metadata_czi(filename, dim2none=False,
     metadata['dims_aicspylibczi'] = aics_czi.dims_shape()[0]
     metadata['dimorder_aicspylibczi'] = aics_czi.dims
     metadata['size_aicspylibczi'] = aics_czi.size
-    metadata['czi_ismosaic'] = aics_czi.is_mosaic()
+    metadata['czi_isMosaic'] = aics_czi.is_mosaic()
 
     # determine pixel type for CZI array
     metadata['NumPy.dtype'] = czi.dtype
@@ -412,7 +412,7 @@ def get_metadata_czi(filename, dim2none=False,
     # check if the CZI image is an RGB image depending
     # on the last dimension entry of axes
     if czi.shape[-1] == 3:
-        metadata['isRGB'] = True
+        metadata['czi_isRGB'] = True
 
     try:
         metadata['PixelType'] = metadatadict_czi['ImageDocument']['Metadata']['Information']['Image']['PixelType']
@@ -1367,85 +1367,85 @@ def display_image(array, metadata, sliders,
 
         # add more dimension orders when needed
         if sliders == 'BTZCR':
-            if metadata['isRGB']:
+            if metadata['czi_isRGB']:
                 image = array[b - 1, t - 1, z - 1, c - 1, :, :, :]
             else:
                 image = array[b - 1, t - 1, z - 1, c - 1, :, :]
 
         if sliders == 'BTCZR':
-            if metadata['isRGB']:
+            if metadata['czi_isRGB']:
                 image = array[b - 1, t - 1, c - 1, z - 1, :, :, :]
             else:
                 image = array[b - 1, t - 1, c - 1, z - 1, :, :]
 
         if sliders == 'BSTZCR':
-            if metadata['isRGB']:
+            if metadata['czi_isRGB']:
                 image = array[b - 1, s - 1, t - 1, z - 1, c - 1, :, :, :]
             else:
                 image = array[b - 1, s - 1, t - 1, z - 1, c - 1, :, :]
 
         if sliders == 'BSTCZR':
-            if metadata['isRGB']:
+            if metadata['czi_isRGB']:
                 image = array[b - 1, s - 1, t - 1, c - 1, z - 1, :, :, :]
             else:
                 image = array[b - 1, s - 1, t - 1, c - 1, z - 1, :, :]
 
         if sliders == 'STZCR':
-            if metadata['isRGB']:
+            if metadata['czi_isRGB']:
                 image = array[s - 1, t - 1, z - 1, c - 1, :, :, :]
             else:
                 image = array[s - 1, t - 1, z - 1, c - 1, :, :]
 
         if sliders == 'STCZR':
-            if metadata['isRGB']:
+            if metadata['czi_isRGB']:
                 image = array[s - 1, t - 1, c - 1, z - 1, :, :, :]
             else:
                 image = array[s - 1, t - 1, c - 1, z - 1, :, :]
 
         if sliders == 'TZCR':
-            if metadata['isRGB']:
+            if metadata['czi_isRGB']:
                 image = array[t - 1, z - 1, c - 1, :, :, :]
             else:
                 image = array[t - 1, z - 1, c - 1, :, :]
 
         if sliders == 'TCZR':
-            if metadata['isRGB']:
+            if metadata['czi_isRGB']:
                 image = array[t - 1, c - 1, z - 1, :, :, :]
             else:
                 image = array[t - 1, c - 1, z - 1, :, :]
 
         if sliders == 'SCR':
-            if metadata['isRGB']:
+            if metadata['czi_isRGB']:
                 image = array[s - 1, c - 1, :, :, :]
             else:
                 image = array[s - 1, c - 1, :, :]
 
         if sliders == 'ZR':
-            if metadata['isRGB']:
+            if metadata['czi_isRGB']:
                 image = array[z - 1, :, :, :]
             else:
                 image = array[z - 1, :, :]
 
         if sliders == 'TR':
-            if metadata['isRGB']:
+            if metadata['czi_isRGB']:
                 image = array[t - 1, :, :, :]
             else:
                 image = array[t - 1, :, :]
 
         if sliders == 'CR':
-            if metadata['isRGB']:
+            if metadata['czi_isRGB']:
                 image = array[c - 1, :, :, :]
             else:
                 image = array[c - 1, :, :]
 
         if sliders == 'BSCR':
-            if metadata['isRGB']:
+            if metadata['czi_isRGB']:
                 image = array[b - 1, s - 1, c - 1, :, :, :]
             else:
                 image = array[b - 1, s - 1, c - 1, :, :]
 
         if sliders == 'BTCR':
-            if metadata['isRGB']:
+            if metadata['czi_isRGB']:
                 image = array[b - 1, t - 1, c - 1, :, :, :]
             else:
                 image = array[b - 1, t - 1, c - 1, :, :]

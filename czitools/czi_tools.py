@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : czi_tools.py
-# Version     : 0.0.1
+# Version     : 0.0.2
 # Author      : czsrh
-# Date        : 02.09.2020
+# Date        : 24.09.2020
 # Institution : Carl Zeiss Microscopy GmbH
 #
 # Copyright (c) 2020 Carl Zeiss AG, Germany. All Rights Reserved.
@@ -66,7 +66,7 @@ def get_czi_planetable(czifile):
 
     #pbar = progressbar.ProgressBar(max_value=total)
     # in case the CZI has the M-Dimension
-    if md['czi_ismosaic']:
+    if md['czi_isMosaic']:
 
         for s, m, t, z, c in product(range(md['SizeS']),
                                      range(md['SizeM']),
@@ -87,13 +87,26 @@ def get_czi_planetable(czifile):
                                             Z=z,
                                             C=c)
 
-            time = sb.xpath('//AcquisitionTime')[0].text
-            timestamp = dt.parse(time).timestamp()
-            # sb_exp = sb.xpath('//ExposureTime').text
-            # framesize = sb.xpath('//Frame')[0].text
-            xpos = np.double(sb.xpath('//StageXPosition')[0].text)
-            ypos = np.double(sb.xpath('//StageYPosition')[0].text)
-            zpos = np.double(sb.xpath('//FocusPosition')[0].text)
+            try:
+                time = sb.xpath('//AcquisitionTime')[0].text
+                timestamp = dt.parse(time).timestamp()
+            except IndexError as e:
+                timestamp = 0.0
+
+            try:
+                xpos = np.double(sb.xpath('//StageXPosition')[0].text)
+            except IndexError as e:
+                xpos = 0.0
+
+            try:
+                ypos = np.double(sb.xpath('//StageYPosition')[0].text)
+            except IndexError as e:
+                ypos = 0.0
+
+            try:
+                zpos = np.double(sb.xpath('//FocusPosition')[0].text)
+            except IndexError as e:
+                zpos = 0.0
 
             df_czi = df_czi.append({'Subblock': sbcount,
                                     'Scene': s,
@@ -111,9 +124,7 @@ def get_czi_planetable(czifile):
                                     'ywidth': info[3]},
                                    ignore_index=True)
 
-            # pbar.update(sbcount)
-
-    if not md['czi_ismosaic']:
+    if not md['czi_isMosaic']:
 
         """
         for s, t, z, c in it.product(range(md['SizeS']),
@@ -133,13 +144,26 @@ def get_czi_planetable(czifile):
             # read information from subblocks
             sb = czi.read_subblock_metadata(unified_xml=True, B=0, S=s, T=t, Z=z, C=c)
 
-            time = sb.xpath('//AcquisitionTime')[0].text
-            timestamp = dt.parse(time).timestamp()
-            # sb_exp = sb.xpath('//ExposureTime').text
-            #framesize = sb.xpath('//Frame')[0].text
-            xpos = np.double(sb.xpath('//StageXPosition')[0].text)
-            ypos = np.double(sb.xpath('//StageYPosition')[0].text)
-            zpos = np.double(sb.xpath('//FocusPosition')[0].text)
+            try:
+                time = sb.xpath('//AcquisitionTime')[0].text
+                timestamp = dt.parse(time).timestamp()
+            except IndexError as e:
+                timestamp = 0.0
+
+            try:
+                xpos = np.double(sb.xpath('//StageXPosition')[0].text)
+            except IndexError as e:
+                xpos = 0.0
+
+            try:
+                ypos = np.double(sb.xpath('//StageYPosition')[0].text)
+            except IndexError as e:
+                ypos = 0.0
+
+            try:
+                zpos = np.double(sb.xpath('//FocusPosition')[0].text)
+            except IndexError as e:
+                zpos = 0.0
 
             df_czi = df_czi.append({'Subblock': sbcount,
                                     'Scene': s,
@@ -156,10 +180,6 @@ def get_czi_planetable(czifile):
                                     'xwidth': info[2],
                                     'ywidth': info[3]},
                                    ignore_index=True)
-
-            # pbar.update(sbcount)
-
-    # pbar.close()
 
     # normalize timestamps
     df_czi = imf.norm_columns(df_czi, colname='Time [s]', mode='min')
