@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : imgfileutils.py
-# Version     : 1.3.2
+# Version     : 1.3.4
 # Author      : czsrh
-# Date        : 17.09.2020
+# Date        : 05.11.2020
 # Institution : Carl Zeiss Microscopy GmbH
 #
 # Copyright (c) 2020 Carl Zeiss AG, Germany. All Rights Reserved.
@@ -32,6 +32,7 @@ import pandas as pd
 import tifffile
 import pydash
 
+"""
 try:
     import javabridge as jv
     import bioformats
@@ -49,6 +50,7 @@ try:
     import napari
 except ModuleNotFoundError as error:
     print(error.__class__.__name__ + ": " + error.msg)
+"""
 
 
 def get_imgtype(imagefile):
@@ -247,11 +249,11 @@ def get_metadata_ometiff(filename, series=0):
 
     # get the scaling
     metadata['XScale'] = omemd.image(series).Pixels.PhysicalSizeX
-    metadata['XScaleUnit'] = omemd.image(series).Pixels.PhysicalSizeXUnit
+    # metadata['XScaleUnit'] = omemd.image(series).Pixels.PhysicalSizeXUnit
     metadata['YScale'] = omemd.image(series).Pixels.PhysicalSizeY
-    metadata['YScaleUnit'] = omemd.image(series).Pixels.PhysicalSizeYUnit
+    # metadata['YScaleUnit'] = omemd.image(series).Pixels.PhysicalSizeYUnit
     metadata['ZScale'] = omemd.image(series).Pixels.PhysicalSizeZ
-    metadata['ZScaleUnit'] = omemd.image(series).Pixels.PhysicalSizeZUnit
+    # metadata['ZScaleUnit'] = omemd.image(series).Pixels.PhysicalSizeZUnit
 
     # get all image IDs
     for i in range(omemd.get_image_count()):
@@ -260,7 +262,7 @@ def get_metadata_ometiff(filename, series=0):
     # get information about the instrument and objective
     try:
         metadata['InstrumentID'] = omemd.instrument(series).get_ID()
-    except KeyError as e:
+    except (KeyError, AttributeError) as e:
         print('Key not found:', e)
         metadata['InstrumentID'] = None
 
@@ -268,7 +270,7 @@ def get_metadata_ometiff(filename, series=0):
         metadata['DetectorModel'] = omemd.instrument(series).Detector.get_Model()
         metadata['DetectorID'] = omemd.instrument(series).Detector.get_ID()
         metadata['DetectorModel'] = omemd.instrument(series).Detector.get_Type()
-    except KeyError as e:
+    except (KeyError, AttributeError) as e:
         print('Key not found:', e)
         metadata['DetectorModel'] = None
         metadata['DetectorID'] = None
@@ -278,7 +280,7 @@ def get_metadata_ometiff(filename, series=0):
         metadata['ObjNA'] = omemd.instrument(series).Objective.get_LensNA()
         metadata['ObjID'] = omemd.instrument(series).Objective.get_ID()
         metadata['ObjMag'] = omemd.instrument(series).Objective.get_NominalMagnification()
-    except KeyError as e:
+    except (KeyError, AttributeError) as e:
         print('Key not found:', e)
         metadata['ObjNA'] = None
         metadata['ObjID'] = None
@@ -541,7 +543,7 @@ def get_metadata_czi(filename, dim2none=False,
     except Exception as e:
         # print('Exception:', e)
         if dim2none:
-            metadatada['SizeM'] = None
+            metadata['SizeM'] = None
         if not dim2none:
             metadata['SizeM'] = 1
 
@@ -550,7 +552,7 @@ def get_metadata_czi(filename, dim2none=False,
     except Exception as e:
         # print('Exception:', e)
         if dim2none:
-            metadatada['SizeB'] = None
+            metadata['SizeB'] = None
         if not dim2none:
             metadata['SizeB'] = 1
 
@@ -559,7 +561,7 @@ def get_metadata_czi(filename, dim2none=False,
     except Exception as e:
         # print('Exception:', e)
         if dim2none:
-            metadatada['SizeS'] = None
+            metadata['SizeS'] = None
         if not dim2none:
             metadata['SizeS'] = 1
 
@@ -568,7 +570,7 @@ def get_metadata_czi(filename, dim2none=False,
     except Exception as e:
         # print('Exception:', e)
         if dim2none:
-            metadatada['SizeH'] = None
+            metadata['SizeH'] = None
         if not dim2none:
             metadata['SizeH'] = 1
 
@@ -577,7 +579,7 @@ def get_metadata_czi(filename, dim2none=False,
     except Exception as e:
         # print('Exception:', e)
         if dim2none:
-            metadatada['SizeI'] = None
+            metadata['SizeI'] = None
         if not dim2none:
             metadata['SizeI'] = 1
 
@@ -586,7 +588,7 @@ def get_metadata_czi(filename, dim2none=False,
     except Exception as e:
         # print('Exception:', e)
         if dim2none:
-            metadatada['SizeV'] = None
+            metadata['SizeV'] = None
         if not dim2none:
             metadata['SizeV'] = 1
 
@@ -2136,6 +2138,7 @@ def write_ometiff_aicsimageio(savepath, imgarray, metadata,
         with ome_tiff_writer.OmeTiffWriter(savepath, overwrite_file=overwrite) as writer:
             writer.save(imgarray,
                         channel_names=channel_names,
+                        ome_xml=None,
                         image_name=os.path.basename((savepath)),
                         pixels_physical_size=pixels_physical_size,
                         channel_colors=None,
@@ -2345,3 +2348,85 @@ def update5dstack(image5d, image2d,
         image5d[c, z, t, :, :] = image2d
 
     return image5d
+
+
+def getdims_pylibczi(czi):
+
+    # Get the shape of the data, the coordinate pairs are (start index, size)
+    # [{'X': (0, 1900), 'Y': (0, 1300), 'Z': (0, 60), 'C': (0, 4), 'S': (0, 40), 'B': (0, 1)}]
+    # dimensions = czi.dims_shape()
+
+    dimsizes = {}
+    for d in range(len(czi.dims)):
+        # print(d)
+        dimsizes['Size' + czi.dims[d]] = czi.size[d]
+
+    return dimsizes
+
+
+def calc_normvar(img2d):
+    """Determine normalized focus value for a 2D image
+    - based on algorithm F - 11 "Normalized Variance"
+    - Taken from: Sun et al., 2004. MICROSCOPY RESEARCH AND TECHNIQUE 65, 139–149.
+    - Maximum value is best-focused, decreasing as defocus increases
+
+    :param img2d: 2D image
+    :type img2d: NumPy.Array
+    :return: normalized focus value for the 2D image
+    :rtype: float
+    """
+
+    mean = np.mean(img2d)
+    height = img2d.shape[0]
+    width = img2d.shape[1]
+
+    # subtract the mean and sum up the whole array
+    fi = (img2d - mean)**2
+    b = np.sum(fi)
+
+    # calculate the normalized variance value
+    normvar = b / (height * width * mean)
+
+    return normvar
+
+
+def get_scene_extend_czi(czi, sceneindex=0):
+    """Get the min / max extend of a given scene from a CZI mosaic image
+    at pyramid level = 0 (full resolution)
+
+    :param czi: CZI object for from aicspylibczi
+    :type czi: Zeiss CZI file object
+    :param sceneindex: indx of the scene, defaults to 0
+    :type sceneindex: int, optional
+    :return: tuple with (xmin, ymin, xmax, ymax) extend
+    :rtype: tuple
+    """
+
+    # get all bounding boxes
+    bboxes = czi.mosaic_scene_bounding_boxes(index=sceneindex)
+
+    # initialize values for scene extend
+    xmin = 0
+    ymin = 0
+    xmax = 0
+    ymax = 0
+
+    # interate over all bounding boxes for a given scene
+    for b in range(len(bboxes)):
+
+        # get the bounding box for a tile
+        box = bboxes[b]
+        # check if for extend
+        if box[0] < box[0]:
+            xmin = box[0]
+
+        if box[1] < ymin:
+            ymin = box[1]
+
+        if box[0] + box[2] > xmax:
+            xmax = box[0] + box[2]
+
+        if box[1] + box[3] > ymax:
+            ymax = box[1] + box[3]
+
+    return (xmin, ymin, xmax, ymax)
