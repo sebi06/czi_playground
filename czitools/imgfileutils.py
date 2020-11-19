@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : imgfileutils.py
-# Version     : 1.3.4
+# Version     : 1.4.0
 # Author      : czsrh
-# Date        : 05.11.2020
+# Date        : 18.11.2020
 # Institution : Carl Zeiss Microscopy GmbH
 #
 # Copyright (c) 2020 Carl Zeiss AG, Germany. All Rights Reserved.
@@ -32,7 +32,6 @@ import pandas as pd
 import tifffile
 import pydash
 
-"""
 try:
     import javabridge as jv
     import bioformats
@@ -42,15 +41,21 @@ except (ImportError, ModuleNotFoundError) as error:
     print('Python-BioFormats cannot be used')
 
 try:
-    import ipywidgets as widgets
-except ModuleNotFoundError as error:
-    print(error.__class__.__name__ + ": " + error.msg)
-
-try:
     import napari
 except ModuleNotFoundError as error:
     print(error.__class__.__name__ + ": " + error.msg)
-"""
+
+from PyQt5.QtWidgets import (
+    QHBoxLayout,
+    QFileDialog,
+    QDialogButtonBox,
+    QWidget,
+    QTableWidget,
+    QTableWidgetItem,
+)
+from PyQt5.QtCore import Qt
+from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtGui import QFont
 
 
 def get_imgtype(imagefile):
@@ -109,8 +114,8 @@ def create_metadata_dict():
                 'SizeB': 1,
                 'SizeM': 1,
                 'Sizes BF': None,
-                # 'DimOrder BF': None,
-                # 'DimOrder BF Array': None,
+                'DimOrder BF': None,
+                'DimOrder BF Array': None,
                 # 'Axes_czifile': None,
                 # 'Shape_czifile': None,
                 'czi_isRGB': None,
@@ -391,7 +396,7 @@ def get_metadata_czi(filename, dim2none=False,
         metadata['SizeZ_aics'] = czi_aics.size_t
         metadata['SizeT_aics'] = czi_aics.size_t
         metadata['SizeS_aics'] = czi_aics.size_s
-    except:
+    except KeyError as e:
         metadata['Shape_aics'] = None
         metadata['SizeX_aics'] = None
         metadata['SizeY_aics'] = None
@@ -488,7 +493,7 @@ def get_metadata_czi(filename, dim2none=False,
                                    ['Channels']['Channel']['Color'])
         except KeyError as e:
             print('Exception:', e)
-            channels_colors.append('80808000')
+            channels_colors.append('#80808000')
 
     # in case of two or more channels
     if metadata['SizeC'] > 1:
@@ -981,492 +986,6 @@ def md2dataframe(metadata, paramcol='Parameter', keycol='Value'):
     return mdframe
 
 
-def create_ipyviewer_ome_tiff(array, metadata):
-    """
-    Creates a simple interactive viewer inside a Jupyter Notebook.
-    Works with OME-TIFF files and the respective metadata
-
-    :param array: multidimensional array containing the pixel data
-    :type array: NumPy.Array
-    :param metadata: dictionary with the metainformation
-    :return: out - interactive widgetsfor jupyter notebook
-    :rtype: IPyWidgets Output
-    :return: ui - ui for interactive widgets
-    :rtype: IPyWidgets UI
-    """
-
-    # time slider
-    t = widgets.IntSlider(description='Time:',
-                          min=1,
-                          max=metadata['SizeT'],
-                          step=1,
-                          value=1,
-                          continuous_update=False)
-
-    # zplane lsider
-    z = widgets.IntSlider(description='Z-Plane:',
-                          min=1,
-                          max=metadata['SizeZ'],
-                          step=1,
-                          value=1,
-                          continuous_update=False)
-
-    # channel slider
-    c = widgets.IntSlider(description='Channel:',
-                          min=1,
-                          max=metadata['SizeC'],
-                          step=1,
-                          value=1)
-
-    # slider for contrast
-    r = widgets.IntRangeSlider(description='Display Range:',
-                               min=array.min(),
-                               max=array.max(),
-                               step=1,
-                               value=[array.min(), array.max()],
-                               continuous_update=False)
-
-    # disable slider that are not needed
-    if metadata['SizeT'] == 1:
-        t.disabled = True
-    if metadata['SizeZ'] == 1:
-        z.disabled = True
-    if metadata['SizeC'] == 1:
-        c.disabled = True
-
-    sliders = metadata['DimOrder BF Array'][:-2] + 'R'
-
-    # TODO: this section is not complete, because it does not contain all possible cases
-    # TODO: it is still under constrcution and can be done probably in a much smarter way
-
-    if sliders == 'CTZR':
-        ui = widgets.VBox([c, t, z, r])
-
-        def get_TZC_czi(c_ind, t_ind, z_ind, r):
-            display_image(array, metadata, sliders, c=c_ind, t=t_ind, z=z_ind, vmin=r[0], vmax=r[1])
-
-        out = widgets.interactive_output(get_TZC_czi, {'c_ind': c, 't_ind': t, 'z_ind': z, 'r': r})
-
-    if sliders == 'TZCR':
-        ui = widgets.VBox([t, z, c, r])
-
-        def get_TZC_czi(t_ind, z_ind, c_ind, r):
-            display_image(array, metadata, sliders, t=t_ind, z=z_ind, c=c_ind, vmin=r[0], vmax=r[1])
-
-        out = widgets.interactive_output(get_TZC_czi, {'t_ind': t, 'z_ind': z, 'c_ind': c, 'r': r})
-
-    if sliders == 'TCZR':
-        ui = widgets.VBox([t, c, z, r])
-
-        def get_TZC_czi(t_ind, c_ind, z_ind, r):
-            display_image(array, metadata, sliders, t=t_ind, c=t_ind, z=z_ind, vmin=r[0], vmax=r[1])
-
-        out = widgets.interactive_output(get_TZC_czi, {'t_ind': t, 'c_ind': c, 'z_ind': z, 'r': r})
-
-    if sliders == 'CZTR':
-        ui = widgets.VBox([c, z, t, r])
-
-        def get_TZC_czi(c_ind, z_ind, t_ind, r):
-            display_image(array, metadata, sliders, c=c_ind, z=z_ind, t=t_ind, vmin=r[0], vmax=r[1])
-
-        out = widgets.interactive_output(get_TZC_czi, {'c_ind': c, 'z_ind': z, 't_ind': t, 'r': r})
-
-    if sliders == 'ZTCR':
-        ui = widgets.VBox([z, t, c, r])
-
-        def get_TZC_czi(z_ind, t_ind, c_ind, r):
-            display_image(array, metadata, sliders, z=z_ind, t=t_ind, c=c_ind, vmin=r[0], vmax=r[1])
-
-        out = widgets.interactive_output(get_TZC_czi, {'z_ind': z, 't_ind': t, 'c_ind': c, 'r': r})
-
-    if sliders == 'ZCTR':
-        ui = widgets.VBox([z, c, t, r])
-
-        def get_TZC_czi(z_ind, c_ind, t_ind, r):
-            display_image(array, metadata, sliders, z=z_ind, c=c_ind, t=t_ind, vmin=r[0], vmax=r[1])
-
-        out = widgets.interactive_output(get_TZC_czi, {'z_ind': z, 'c_ind': c, 't_ind': t, 'r': r})
-
-    """
-    ui = widgets.VBox([t, z, c, r])
-
-    def get_TZC_ometiff(t, z, c, r):
-        display_image(array, metadata, 'TZCR', t=t, z=z, c=c, vmin=r[0], vmax=r[1])
-
-    out = widgets.interactive_output(get_TZC_ometiff, {'t': t, 'z': z, 'c': c, 'r': r})
-    """
-
-    return out, ui  # , t, z, c, r
-
-
-def create_ipyviewer_czi(cziarray, metadata):
-    """
-    Creates a simple interactive viewer inside a Jupyter Notebook.
-    Works with CZI files and the respective metadata
-
-    :param array: multidimensional array containing the pixel data
-    :type array: NumPy.Array
-    :param metadata: dictionary with the metainformation
-    :return: out - interactive widgetsfor jupyter notebook
-    :rtype: IPyWidgets Output
-    :return: ui - ui for interactive widgets
-    :rtype: IPyWidgets UI
-    """
-
-    dim_dict = metadata['DimOrder CZI']
-
-    useB = False
-    useS = False
-
-    if 'B' in dim_dict and dim_dict['B'] >= 0:
-        useB = True
-        b = widgets.IntSlider(description='Blocks:',
-                              min=1,
-                              max=metadata['SizeB'],
-                              step=1,
-                              value=1,
-                              continuous_update=False)
-
-    if 'S' in dim_dict and dim_dict['S'] >= 0:
-        useS = True
-        s = widgets.IntSlider(description='Scenes:',
-                              min=1,
-                              max=metadata['SizeS'],
-                              step=1,
-                              value=1,
-                              continuous_update=False)
-
-    t = widgets.IntSlider(description='Time:',
-                          min=1,
-                          max=metadata['SizeT'],
-                          step=1,
-                          value=1,
-                          continuous_update=False)
-
-    z = widgets.IntSlider(description='Z-Plane:',
-                          min=1,
-                          max=metadata['SizeZ'],
-                          step=1,
-                          value=1,
-                          continuous_update=False)
-
-    c = widgets.IntSlider(description='Channel:',
-                          min=1,
-                          max=metadata['SizeC'],
-                          step=1,
-                          value=1)
-
-    print(cziarray.min(), cziarray.max())
-
-    r = widgets.IntRangeSlider(description='Display Range:',
-                               min=cziarray.min(),
-                               max=cziarray.max(),
-                               step=1,
-                               value=[cziarray.min(), cziarray.max()],
-                               continuous_update=False)
-
-    # disable slider that are not needed
-    if metadata['SizeB'] == 1 and useB:
-        b.disabled = True
-    if metadata['SizeS'] == 1 and useS:
-        s.disabled = True
-    if metadata['SizeT'] == 1:
-        t.disabled = True
-    if metadata['SizeZ'] == 1:
-        z.disabled = True
-    if metadata['SizeC'] == 1:
-        c.disabled = True
-
-    sliders = metadata['Axes'][:-3] + 'R'
-
-    # TODO: this section is not complete, because it does not contain all possible cases
-    # TODO: it is still under constrcution and can be done probably in a much smarter way
-
-    if sliders == 'BTZCR':
-        ui = widgets.VBox([b, t, z, c, r])
-
-        def get_TZC_czi(b_ind, t_ind, z_ind, c_ind, r):
-            display_image(cziarray, metadata, sliders, b=b_ind, t=t_ind, z=z_ind, c=c_ind, vmin=r[0], vmax=r[1])
-
-        out = widgets.interactive_output(get_TZC_czi, {'b_ind': b, 't_ind': t, 'z_ind': z, 'c_ind': c, 'r': r})
-
-    if sliders == 'BTCZR':
-        ui = widgets.VBox([b, t, c, z, r])
-
-        def get_TZC_czi(b_ind, t_ind, c_ind, z_ind, r):
-            display_image(cziarray, metadata, sliders, b=b_ind, t=t_ind, c=c_ind, z=z_ind, vmin=r[0], vmax=r[1])
-
-        out = widgets.interactive_output(get_TZC_czi, {'b_ind': b, 't_ind': t, 'c_ind': c, 'z_ind': z, 'r': r})
-
-    if sliders == 'BSTZCR':
-        ui = widgets.VBox([b, s, t, z, c, r])
-
-        def get_TZC_czi(b_ind, s_ind, t_ind, z_ind, c_ind, r):
-            display_image(cziarray, metadata, sliders, b=b_ind, s=s_ind, t=t_ind, z=z_ind, c=c_ind, vmin=r[0], vmax=r[1])
-
-        out = widgets.interactive_output(get_TZC_czi, {'b_ind': b, 's_ind': s, 't_ind': t, 'z_ind': z, 'c_ind': c, 'r': r})
-
-    if sliders == 'BSCR':
-        ui = widgets.VBox([b, s, c, r])
-
-        def get_TZC_czi(b_ind, s_ind, c_ind, r):
-            display_image(cziarray, metadata, sliders, b=b_ind, s=s_ind, c=c_ind, vmin=r[0], vmax=r[1])
-
-        out = widgets.interactive_output(get_TZC_czi, {'b_ind': b, 's_ind': s, 'c_ind': c, 'r': r})
-
-    if sliders == 'BSTCZR':
-        ui = widgets.VBox([b, s, t, c, z, r])
-
-        def get_TZC_czi(b_ind, s_ind, t_ind, c_ind, z_ind, r):
-            display_image(cziarray, metadata, sliders, b=b_ind, s=s_ind, t=t_ind, c=c_ind, z=z_ind, vmin=r[0], vmax=r[1])
-
-        out = widgets.interactive_output(get_TZC_czi, {'b_ind': b, 's_ind': s, 't_ind': t, 'c_ind': c, 'z_ind': z, 'r': r})
-
-    if sliders == 'STZCR':
-        ui = widgets.VBox([s, t, z, c, r])
-
-        def get_TZC_czi(s_ind, t_ind, z_ind, c_ind, r):
-            display_image(cziarray, metadata, sliders, s=s_ind, t=t_ind, z=z_ind, c=c_ind, vmin=r[0], vmax=r[1])
-
-        out = widgets.interactive_output(get_TZC_czi, {'s_ind': s, 't_ind': t, 'z_ind': z, 'c_ind': c, 'r': r})
-
-    if sliders == 'STCZR':
-        ui = widgets.VBox([s, t, c, z, r])
-
-        def get_TZC_czi(s_ind, t_ind, c_ind, z_ind, r):
-            display_image(cziarray, metadata, sliders, s=s_ind, t=t_ind, c=c_ind, z=z_ind, vmin=r[0], vmax=r[1])
-
-        out = widgets.interactive_output(get_TZC_czi, {'s_ind': s, 't_ind': t, 'c_ind': c, 'z_ind': z, 'r': r})
-
-    if sliders == 'TZCR':
-        ui = widgets.VBox([t, z, c, r])
-
-        def get_TZC_czi(t_ind, z_ind, c_ind, r):
-            display_image(cziarray, metadata, sliders, t=t_ind, z=z_ind, c=c_ind, vmin=r[0], vmax=r[1])
-
-        out = widgets.interactive_output(get_TZC_czi, {'t_ind': t, 'z_ind': z, 'c_ind': c, 'r': r})
-
-    if sliders == 'TCZR':
-        ui = widgets.VBox([t, c, z, r])
-
-        def get_TZC_czi(t_ind, c_ind, z_ind, r):
-            display_image(cziarray, metadata, sliders, t=t_ind, c=c_ind, z=z_ind, vmin=r[0], vmax=r[1])
-
-        out = widgets.interactive_output(get_TZC_czi, {'t_ind': t, 'c_ind': c, 'z_ind': z, 'r': r})
-
-    if sliders == 'SCR':
-        ui = widgets.VBox([s, c, r])
-
-        def get_TZC_czi(s_ind, c_ind, r):
-            display_image(cziarray, metadata, sliders, s=s_ind, c=c_ind, vmin=r[0], vmax=r[1])
-
-        out = widgets.interactive_output(get_TZC_czi, {'s_ind': s, 'c_ind': c, 'r': r})
-
-    if sliders == 'ZR':
-        ui = widgets.VBox([z, r])
-
-        def get_TZC_czi(z_ind, r):
-            display_image(cziarray, metadata, sliders, z=z_ind, vmin=r[0], vmax=r[1])
-
-        out = widgets.interactive_output(get_TZC_czi, {'z_ind': z, 'r': r})
-
-    if sliders == 'TR':
-        ui = widgets.VBox([t, r])
-
-        def get_TZC_czi(t_ind, r):
-            display_image(cziarray, metadata, sliders, t=t_ind, vmin=r[0], vmax=r[1])
-
-        out = widgets.interactive_output(get_TZC_czi, {'t_ind': t, 'r': r})
-
-    if sliders == 'CR':
-        ui = widgets.VBox([c, r])
-
-        def get_TZC_czi(c_ind, r):
-            display_image(cziarray, metadata, sliders, c=c_ind, vmin=r[0], vmax=r[1])
-
-        out = widgets.interactive_output(get_TZC_czi, {'c_ind': c, 'r': r})
-
-    if sliders == 'BTCR':
-        ui = widgets.VBox([b, t, c, r])
-
-        def get_TZC_czi(b_ind, t_ind, c_ind, r):
-            display_image(cziarray, metadata, sliders, b=b_ind, t=t_ind, c=c_ind, vmin=r[0], vmax=r[1])
-
-        out = widgets.interactive_output(get_TZC_czi, {'b_ind': b, 't_ind': t, 'c_ind': c, 'r': r})
-
-    ############### Lightsheet data #################
-
-    if sliders == 'VIHRSCTZR':
-        ui = widgets.VBox([c, t, z, r])
-
-        def get_TZC_czi(c_ind, t_ind, z_ind, r):
-            display_image(cziarray, metadata, sliders, c=c_ind, t=t_ind, z=z_ind, vmin=r[0], vmax=r[1])
-
-        out = widgets.interactive_output(get_TZC_czi, {'c_ind': c, 't_ind': t, 'z_ind': z, 'r': r})
-
-    return out, ui
-
-
-def display_image(array, metadata, sliders,
-                  b=0,
-                  s=0,
-                  m=0,
-                  t=0,
-                  c=0,
-                  z=0,
-                  vmin=0,
-                  vmax=1000):
-    """Displays the CZI or OME-TIFF image using a simple interactive viewer
-    inside a Jupyter Notebook with dimension sliders.
-
-    :param array:  multidimensional array containing the pixel data
-    :type array: NumPy.Array
-    :param metadata: dictionary with the metainformation
-    :type metadata: dict
-    :param sliders: string specifying the required sliders
-    :type sliders: str
-    :param b: block index of plan to be displayed, defaults to 0
-    :type b: int, optional
-    :param s: scene index of plan to be displayed, defaults to 0
-    :type s: int, optional
-    :param m: tile index of plan to be displayed, defaults to 0
-    :type m: int, optional
-    :param t: time index of plan to be displayed, defaults to 0
-    :type t: int, optional
-    :param c: channel index of plan to be displayed, defaults to 0
-    :type c: int, optional
-    :param z: zplane index of plan to be displayed, defaults to 0
-    :type z: int, optional
-    :param vmin: minimum value for scaling, defaults to 0
-    :type vmin: int, optional
-    :param vmax: maximum value for scaling, defaults to 1000
-    :type vmax: int, optional
-    """
-
-    dim_dict = metadata['DimOrder CZI']
-
-    if metadata['ImageType'] == 'ometiff':
-
-        if sliders == 'TZCR':
-            image = array[t - 1, z - 1, c - 1, :, :]
-
-        if sliders == 'CTZR':
-            image = array[c - 1, t - 1, z - 1, :, :]
-
-        if sliders == 'TCZR':
-            image = array[t - 1, c - 1, z - 1, :, :]
-
-        if sliders == 'CZTR':
-            image = array[c - 1, z - 1, t - 1, :, :]
-
-        if sliders == 'ZTCR':
-            image = array[z - 1, t - 1, c - 1, :, :]
-
-        if sliders == 'ZCTR':
-            image = array[z - 1, c - 1, z - 1, :, :]
-
-    if metadata['ImageType'] == 'czi':
-
-        # add more dimension orders when needed
-        if sliders == 'BTZCR':
-            if metadata['czi_isRGB']:
-                image = array[b - 1, t - 1, z - 1, c - 1, :, :, :]
-            else:
-                image = array[b - 1, t - 1, z - 1, c - 1, :, :]
-
-        if sliders == 'BTCZR':
-            if metadata['czi_isRGB']:
-                image = array[b - 1, t - 1, c - 1, z - 1, :, :, :]
-            else:
-                image = array[b - 1, t - 1, c - 1, z - 1, :, :]
-
-        if sliders == 'BSTZCR':
-            if metadata['czi_isRGB']:
-                image = array[b - 1, s - 1, t - 1, z - 1, c - 1, :, :, :]
-            else:
-                image = array[b - 1, s - 1, t - 1, z - 1, c - 1, :, :]
-
-        if sliders == 'BSTCZR':
-            if metadata['czi_isRGB']:
-                image = array[b - 1, s - 1, t - 1, c - 1, z - 1, :, :, :]
-            else:
-                image = array[b - 1, s - 1, t - 1, c - 1, z - 1, :, :]
-
-        if sliders == 'STZCR':
-            if metadata['czi_isRGB']:
-                image = array[s - 1, t - 1, z - 1, c - 1, :, :, :]
-            else:
-                image = array[s - 1, t - 1, z - 1, c - 1, :, :]
-
-        if sliders == 'STCZR':
-            if metadata['czi_isRGB']:
-                image = array[s - 1, t - 1, c - 1, z - 1, :, :, :]
-            else:
-                image = array[s - 1, t - 1, c - 1, z - 1, :, :]
-
-        if sliders == 'TZCR':
-            if metadata['czi_isRGB']:
-                image = array[t - 1, z - 1, c - 1, :, :, :]
-            else:
-                image = array[t - 1, z - 1, c - 1, :, :]
-
-        if sliders == 'TCZR':
-            if metadata['czi_isRGB']:
-                image = array[t - 1, c - 1, z - 1, :, :, :]
-            else:
-                image = array[t - 1, c - 1, z - 1, :, :]
-
-        if sliders == 'SCR':
-            if metadata['czi_isRGB']:
-                image = array[s - 1, c - 1, :, :, :]
-            else:
-                image = array[s - 1, c - 1, :, :]
-
-        if sliders == 'ZR':
-            if metadata['czi_isRGB']:
-                image = array[z - 1, :, :, :]
-            else:
-                image = array[z - 1, :, :]
-
-        if sliders == 'TR':
-            if metadata['czi_isRGB']:
-                image = array[t - 1, :, :, :]
-            else:
-                image = array[t - 1, :, :]
-
-        if sliders == 'CR':
-            if metadata['czi_isRGB']:
-                image = array[c - 1, :, :, :]
-            else:
-                image = array[c - 1, :, :]
-
-        if sliders == 'BSCR':
-            if metadata['czi_isRGB']:
-                image = array[b - 1, s - 1, c - 1, :, :, :]
-            else:
-                image = array[b - 1, s - 1, c - 1, :, :]
-
-        if sliders == 'BTCR':
-            if metadata['czi_isRGB']:
-                image = array[b - 1, t - 1, c - 1, :, :, :]
-            else:
-                image = array[b - 1, t - 1, c - 1, :, :]
-
-        ####### lightsheet Data #############
-        if sliders == 'VIHRSCTZR':
-            # reduce dimensions
-            image = np.squeeze(array, axis=(0, 1, 2, 3, 4))
-            image = image[c - 1, t - 1, z - 1, :, :]
-
-    # display the labeled image
-    fig, ax = plt.subplots(figsize=(8, 8))
-    divider = make_axes_locatable(ax)
-    cax = divider.append_axes('right', size='5%', pad=0.05)
-    im = ax.imshow(image, vmin=vmin, vmax=vmax, interpolation='nearest', cmap=cm.gray)
-    fig.colorbar(im, cax=cax, orientation='vertical')
-    print('Min-Max (Current Plane):', image.min(), '-', image.max())
-
-
 def get_dimorder(dimstring):
     """Get the order of dimensions from dimension string
 
@@ -1598,20 +1117,47 @@ def get_scalefactor(metadata):
 
     try:
         # get the factor between XY scaling
-        scalefactors['xy'] = metadata['XScale'] / metadata['YScale']
+        scalefactors['xy'] = np.round(metadata['XScale'] / metadata['YScale'], 3)
         # get the scalefactor between XZ scaling
-        scalefactors['zx'] = metadata['ZScale'] / metadata['YScale']
+        scalefactors['zx'] = np.round(metadata['ZScale'] / metadata['YScale'], 3)
     except KeyError as e:
         print('Key not found: ', e, 'Using defaults = 1.0')
 
     return scalefactors
 
 
+def calc_scaling(data, corr_min=1.0,
+                 offset_min=0,
+                 corr_max=0.85,
+                 offset_max=0):
+    """[summary]
+
+    :param data: Calculate min / max scaling
+    :type data: Numpy.Array
+    :param corr_min: correction factor for minvalue, defaults to 1.0
+    :type corr_min: float, optional
+    :param offset_min: offset for min value, defaults to 0
+    :type offset_min: int, optional
+    :param corr_max: correction factor for max value, defaults to 0.85
+    :type corr_max: float, optional
+    :param offset_max: offset for max value, defaults to 0
+    :type offset_max: int, optional
+    :return: list with [minvalue, maxvalue]
+    :rtype: list
+    """
+
+    # get min-max values for initial scaling
+    minvalue = np.round((data.min() + offset_min) * corr_min)
+    maxvalue = np.round((data.max() + offset_max) * corr_max)
+    print('Scaling: ', minvalue, maxvalue)
+
+    return [minvalue, maxvalue]
+
+
 def show_napari(array, metadata,
                 blending='additive',
                 gamma=0.85,
-                verbose=True,
-                use_pylibczi=True,
+                add_mdtable=True,
                 rename_sliders=False):
     """Show the multidimensional array using the Napari viewer
 
@@ -1623,50 +1169,98 @@ def show_napari(array, metadata,
     :type blending: str, optional
     :param gamma: NapariViewer value for Gamma, defaults to 0.85
     :type gamma: float, optional
-    :param verbose: show additional output, defaults to True
-    :type verbose: bool, optional
-    :param use_pylibczi: specify if pylibczi was used to read the CZI file, defaults to True
-    :type use_pylibczi: bool, optional
     :param rename_sliders: name slider with correct labels output, defaults to False
     :type verbose: bool, optional
     """
 
-    def calc_scaling(data, corr_min=1.0,
-                     offset_min=0,
-                     corr_max=0.85,
-                     offset_max=0):
+    class TableWidget(QWidget):
 
-        # get min-max values for initial scaling
-        minvalue = np.round((data.min() + offset_min) * corr_min)
-        maxvalue = np.round((data.max() + offset_max) * corr_max)
-        print('Scaling: ', minvalue, maxvalue)
+        def __init__(self):
+            super(QWidget, self).__init__()
+            self.layout = QHBoxLayout(self)
+            self.mdtable = QTableWidget()
+            self.layout.addWidget(self.mdtable)
+            self.mdtable.setShowGrid(True)
+            self.mdtable.setHorizontalHeaderLabels(['Parameter', 'Value'])
+            header = self.mdtable.horizontalHeader()
+            header.setDefaultAlignment(Qt.AlignLeft)
+
+        def update_metadata(self, md):
+
+            row_count = len(md)
+            col_count = 2
+
+            self.mdtable.setColumnCount(col_count)
+            self.mdtable.setRowCount(row_count)
+
+            row = 0
+
+            for key, value in md.items():
+                newkey = QTableWidgetItem(key)
+                self.mdtable.setItem(row, 0, newkey)
+                newvalue = QTableWidgetItem(str(value))
+                self.mdtable.setItem(row, 1, newvalue)
+                row += 1
+
+            # fit columns to content
+            self.mdtable.resizeColumnsToContents()
+
+        def update_style(self):
+
+            fnt = QFont()
+            fnt.setPointSize(11)
+            fnt.setBold(True)
+            fnt.setFamily("Arial")
+
+            item1 = QtWidgets.QTableWidgetItem('Parameter')
+            item1.setForeground(QtGui.QColor(25, 25, 25))
+            item1.setFont(fnt)
+            self.mdtable.setHorizontalHeaderItem(0, item1)
+            item2 = QtWidgets.QTableWidgetItem('Value')
+            item2.setForeground(QtGui.QColor(25, 25, 25))
+            item2.setFont(fnt)
+            self.mdtable.setHorizontalHeaderItem(1, item2)
+
+    # create list for the napari layers
+    napari_layers = []
 
     with napari.gui_qt():
 
         # create scalefcator with all ones
         scalefactors = [1.0] * len(array.shape)
+        dimpos = get_dimpositions(metadata['Axes_aics'])
+
+        # get the scalefactors from the metadata
+        scalef = get_scalefactor(metadata)
+
+        # modify the tuple for the scales for napari
+        scalefactors[dimpos['Z']] = scalef['zx']
+
+        # remove C dimension from scalefactor
+        scalefactors_ch = scalefactors.copy()
+        del scalefactors_ch[dimpos['C']]
 
         # initialize the napari viewer
         print('Initializing Napari Viewer ...')
+
+        # create a viewer and add some images
         viewer = napari.Viewer()
 
-        if metadata['ImageType'] == 'ometiff':
+        # add widget for metadata
+        if add_mdtable:
 
-            # find position of dimensions
-            posZ = metadata['DimOrder BF Array'].find('Z')
-            posC = metadata['DimOrder BF Array'].find('C')
-            posT = metadata['DimOrder BF Array'].find('T')
+            # create widget for the metadata
+            mdbrowser = TableWidget()
 
-            # get the scalefactors from the metadata
-            scalef = get_scalefactor(metadata)
-            # modify the tuple for the scales for napari
-            scalefactors[posZ] = scalef['zx']
+            viewer.window.add_dock_widget(mdbrowser,
+                                          name='mdbrowser',
+                                          area='right')
 
-            if verbose:
-                print('Dim PosT : ', posT)
-                print('Dim PosC : ', posC)
-                print('Dim PosZ : ', posZ)
-                print('Scale Factors : ', scalefactors)
+            # add the metadata and adapt the table display
+            mdbrowser.update_metadata(metadata)
+            mdbrowser.update_style()
+
+        if metadata['SizeC'] > 1:
 
             # add all channels as layers
             for ch in range(metadata['SizeC']):
@@ -1674,127 +1268,72 @@ def show_napari(array, metadata,
                 try:
                     # get the channel name
                     chname = metadata['Channels'][ch]
-                except:
+                except KeyError as e:
+                    print(e)
                     # or use CH1 etc. as string for the name
                     chname = 'CH' + str(ch + 1)
 
-                # cutout channel
-                channel = array.take(ch, axis=posC)
-                print('Shape Channel : ', ch, channel.shape)
+                # cut out channel
+                # use dask if array is a dask.array
+                if isinstance(array, da.Array):
+                    print('Extract Channel using Dask.Array')
+                    channel = array.compute().take(ch, axis=dimpos['C'])
+                    new_dimstring = metadata['Axes_aics'].replace('C', '')
+
+                else:
+                    # use normal numpy if not
+                    print('Extract Channel NumPy.Array')
+                    channel = array.take(ch, axis=dimpos['C'])
+                    new_dimstring = metadata['Axes_aics'].replace('C', '')
 
                 # actually show the image array
-                print('Scaling Factors: ', scalefactors)
+                print('Adding Channel  : ', chname)
+                print('Shape Channel   : ', ch, channel.shape)
+                print('Scaling Factors : ', scalefactors_ch)
 
                 # get min-max values for initial scaling
-                clim = [channel.min(), np.round(channel.max() * 0.85)]
-                if verbose:
-                    print('Scaling: ', clim)
-                viewer.add_image(channel,
-                                 name=chname,
-                                 scale=scalefactors,
-                                 contrast_limits=clim,
-                                 blending=blending,
-                                 gamma=gamma)
+                clim = calc_scaling(channel,
+                                    corr_min=1.0,
+                                    offset_min=0,
+                                    corr_max=0.85,
+                                    offset_max=0)
 
-        if metadata['ImageType'] == 'czi':
+                # add channel to napari viewer
+                new_layer = viewer.add_image(channel,
+                                             name=chname,
+                                             scale=scalefactors_ch,
+                                             contrast_limits=clim,
+                                             blending=blending,
+                                             gamma=gamma)
 
-            if not use_pylibczi:
-                # use find position of dimensions
-                # posZ = metadata['Axes'].find('Z')
-                # posC = metadata['Axes'].find('C')
-                # posT = metadata['Axes'].find('T')
-                dimpos = get_dimpositions(metadata['Axes'])
+                napari_layers.append(new_layer)
 
-            if use_pylibczi:
-                # posZ = metadata['Axes_aics'].find('Z')
-                # posC = metadata['Axes_aics'].find('C')
-                # posT = metadata['Axes_aics'].find('T')
-                dimpos = get_dimpositions(metadata['Axes_aics'])
+        if metadata['SizeC'] == 1:
 
-            # get the scalefactors from the metadata
-            scalef = get_scalefactor(metadata)
-            # modify the tuple for the scales for napari
-            # temporary workaround for slider / floating point issue
-            # https://forum.image.sc/t/problem-with-dimension-slider-when-adding-array-as-new-layer-for-ome-tiff/39092/2?u=sebi06
-            scalef['zx'] = np.round(scalef['zx'], 3)
+            # just add one channel as a layer
+            try:
+                # get the channel name
+                chname = metadata['Channels'][0]
+            except KeyError:
+                # or use CH1 etc. as string for the name
+                chname = 'CH' + str(ch + 1)
 
-            # modify the tuple for the scales for napari
-            scalefactors[dimpos['Z']] = scalef['zx']
+            # actually show the image array
+            print('Adding Channel: ', chname)
+            print('Scaling Factors: ', scalefactors)
 
-            # remove C dimension from scalefactor
-            scalefactors_ch = scalefactors.copy()
-            del scalefactors_ch[dimpos['C']]
+            # get min-max values for initial scaling
+            clim = calc_scaling(array)
 
-            if metadata['SizeC'] > 1:
-                # add all channels as layers
-                for ch in range(metadata['SizeC']):
+            # add layer to Napari viewer
+            new_layer = viewer.add_image(array,
+                                         name=chname,
+                                         scale=scalefactors,
+                                         contrast_limits=clim,
+                                         blending=blending,
+                                         gamma=gamma)
 
-                    try:
-                        # get the channel name
-                        chname = metadata['Channels'][ch]
-                    except:
-                        # or use CH1 etc. as string for the name
-                        chname = 'CH' + str(ch + 1)
-
-                    # cut out channel
-                    # use dask if array is a dask.array
-                    if isinstance(array, da.Array):
-                        print('Extract Channel using Dask.Array')
-                        channel = array.compute().take(ch, axis=dimpos['C'])
-                        new_dimstring = metadata['Axes_aics'].replace('C', '')
-
-                    else:
-                        # use normal numpy if not
-                        print('Extract Channel NumPy.Array')
-                        channel = array.take(ch, axis=dimpos['C'])
-                        if not use_pylibczi:
-                            new_dimstring = metadata['Axes'].replace('C', '')
-                        if use_pylibczi:
-                            new_dimstring = metadata['Axes_aics'].replace('C', '')
-
-                    # actually show the image array
-                    print('Adding Channel  : ', chname)
-                    print('Shape Channel   : ', ch, channel.shape)
-                    print('Scaling Factors : ', scalefactors_ch)
-
-                    # get min-max values for initial scaling
-                    clim = calc_scaling(channel,
-                                        corr_min=1.0,
-                                        offset_min=0,
-                                        corr_max=0.85,
-                                        offset_max=0)
-
-                    viewer.add_image(channel,
-                                     name=chname,
-                                     scale=scalefactors,
-                                     contrast_limits=clim,
-                                     blending=blending,
-                                     gamma=gamma)
-
-            if metadata['SizeC'] == 1:
-
-                # just add one channel as a layer
-                try:
-                    # get the channel name
-                    chname = metadata['Channels'][0]
-                except:
-                    # or use CH1 etc. as string for the name
-                    chname = 'CH' + str(ch + 1)
-
-                # actually show the image array
-                print('Adding Channel: ', chname)
-                print('Scaling Factors: ', scalefactors)
-
-                # get min-max values for initial scaling
-                # clim = calc_scaling(array)
-
-                viewer.add_image(array,
-                                 name=chname,
-                                 scale=scalefactors,
-                                 # contrast_limits=clim,
-                                 blending=blending,
-                                 gamma=gamma,
-                                 is_pyramid=False)
+            napari_layers.append(new_layer)
 
         if rename_sliders:
 
@@ -1813,6 +1352,8 @@ def show_napari(array, metadata,
                     sliders[dimpos_viewer[s]] = s
             # apply the new labels to the viewer
             viewer.dims.axis_labels = sliders
+
+    return napari_layers
 
 
 def check_for_previewimage(czi):
@@ -2388,45 +1929,3 @@ def calc_normvar(img2d):
     normvar = b / (height * width * mean)
 
     return normvar
-
-
-def get_scene_extend_czi(czi, sceneindex=0):
-    """Get the min / max extend of a given scene from a CZI mosaic image
-    at pyramid level = 0 (full resolution)
-
-    :param czi: CZI object for from aicspylibczi
-    :type czi: Zeiss CZI file object
-    :param sceneindex: indx of the scene, defaults to 0
-    :type sceneindex: int, optional
-    :return: tuple with (xmin, ymin, xmax, ymax) extend
-    :rtype: tuple
-    """
-
-    # get all bounding boxes
-    bboxes = czi.mosaic_scene_bounding_boxes(index=sceneindex)
-
-    # initialize values for scene extend
-    xmin = 0
-    ymin = 0
-    xmax = 0
-    ymax = 0
-
-    # interate over all bounding boxes for a given scene
-    for b in range(len(bboxes)):
-
-        # get the bounding box for a tile
-        box = bboxes[b]
-        # check if for extend
-        if box[0] < box[0]:
-            xmin = box[0]
-
-        if box[1] < ymin:
-            ymin = box[1]
-
-        if box[0] + box[2] > xmax:
-            xmax = box[0] + box[2]
-
-        if box[1] + box[3] > ymax:
-            ymax = box[1] + box[3]
-
-    return (xmin, ymin, xmax, ymax)
