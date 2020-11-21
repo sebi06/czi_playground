@@ -46,14 +46,20 @@ except ModuleNotFoundError as error:
     print(error.__class__.__name__ + ": " + error.msg)
 
 from PyQt5.QtWidgets import (
+
     QHBoxLayout,
+    QVBoxLayout,
+    QFileSystemModel,
     QFileDialog,
+    QTreeView,
     QDialogButtonBox,
     QWidget,
     QTableWidget,
     QTableWidgetItem,
+    QAbstractItemView
+
 )
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QDir, QSortFilterProxyModel
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtGui import QFont
 
@@ -254,10 +260,13 @@ def get_metadata_ometiff(filename, series=0):
 
     # get the scaling
     metadata['XScale'] = omemd.image(series).Pixels.PhysicalSizeX
+    metadata['XScale'] = np.round(metadata['XScale'], 3)
     # metadata['XScaleUnit'] = omemd.image(series).Pixels.PhysicalSizeXUnit
     metadata['YScale'] = omemd.image(series).Pixels.PhysicalSizeY
+    metadata['YScale'] = np.round(metadata['YScale'], 3)
     # metadata['YScaleUnit'] = omemd.image(series).Pixels.PhysicalSizeYUnit
     metadata['ZScale'] = omemd.image(series).Pixels.PhysicalSizeZ
+    metadata['ZScale'] = np.round(metadata['ZScale'], 3)
     # metadata['ZScaleUnit'] = omemd.image(series).Pixels.PhysicalSizeZUnit
 
     # get all image IDs
@@ -602,8 +611,8 @@ def get_metadata_czi(filename, dim2none=False,
         # metadata['Scaling'] = metadatadict_czi['ImageDocument']['Metadata']['Scaling']
         metadata['XScale'] = float(metadatadict_czi['ImageDocument']['Metadata']['Scaling']['Items']['Distance'][0]['Value']) * 1000000
         metadata['YScale'] = float(metadatadict_czi['ImageDocument']['Metadata']['Scaling']['Items']['Distance'][1]['Value']) * 1000000
-        # metadata['XScale'] = np.round(metadata['XScale'], 3)
-        # metadata['YScale'] = np.round(metadata['YScale'], 3)
+        metadata['XScale'] = np.round(metadata['XScale'], 3)
+        metadata['YScale'] = np.round(metadata['YScale'], 3)
         try:
             metadata['XScaleUnit'] = metadatadict_czi['ImageDocument']['Metadata']['Scaling']['Items']['Distance'][0]['DefaultUnitFormat']
             metadata['YScaleUnit'] = metadatadict_czi['ImageDocument']['Metadata']['Scaling']['Items']['Distance'][1]['DefaultUnitFormat']
@@ -613,7 +622,10 @@ def get_metadata_czi(filename, dim2none=False,
             metadata['YScaleUnit'] = None
         try:
             metadata['ZScale'] = float(metadatadict_czi['ImageDocument']['Metadata']['Scaling']['Items']['Distance'][2]['Value']) * 1000000
-            # metadata['ZScale'] = np.round(metadata['ZScale'], 3)
+            metadata['ZScale'] = np.round(metadata['ZScale'], 3)
+            # additional check for faulty z-scaling
+            if metadata['ZScale'] == 0.0:
+                metadata['ZScale'] = 1.0
             try:
                 metadata['ZScaleUnit'] = metadatadict_czi['ImageDocument']['Metadata']['Scaling']['Items']['Distance'][2]['DefaultUnitFormat']
             except KeyError as e:
@@ -1173,54 +1185,6 @@ def show_napari(array, metadata,
     :type verbose: bool, optional
     """
 
-    class TableWidget(QWidget):
-
-        def __init__(self):
-            super(QWidget, self).__init__()
-            self.layout = QHBoxLayout(self)
-            self.mdtable = QTableWidget()
-            self.layout.addWidget(self.mdtable)
-            self.mdtable.setShowGrid(True)
-            self.mdtable.setHorizontalHeaderLabels(['Parameter', 'Value'])
-            header = self.mdtable.horizontalHeader()
-            header.setDefaultAlignment(Qt.AlignLeft)
-
-        def update_metadata(self, md):
-
-            row_count = len(md)
-            col_count = 2
-
-            self.mdtable.setColumnCount(col_count)
-            self.mdtable.setRowCount(row_count)
-
-            row = 0
-
-            for key, value in md.items():
-                newkey = QTableWidgetItem(key)
-                self.mdtable.setItem(row, 0, newkey)
-                newvalue = QTableWidgetItem(str(value))
-                self.mdtable.setItem(row, 1, newvalue)
-                row += 1
-
-            # fit columns to content
-            self.mdtable.resizeColumnsToContents()
-
-        def update_style(self):
-
-            fnt = QFont()
-            fnt.setPointSize(11)
-            fnt.setBold(True)
-            fnt.setFamily("Arial")
-
-            item1 = QtWidgets.QTableWidgetItem('Parameter')
-            item1.setForeground(QtGui.QColor(25, 25, 25))
-            item1.setFont(fnt)
-            self.mdtable.setHorizontalHeaderItem(0, item1)
-            item2 = QtWidgets.QTableWidgetItem('Value')
-            item2.setForeground(QtGui.QColor(25, 25, 25))
-            item2.setFont(fnt)
-            self.mdtable.setHorizontalHeaderItem(1, item2)
-
     # create list for the napari layers
     napari_layers = []
 
@@ -1276,13 +1240,13 @@ def show_napari(array, metadata,
                 # cut out channel
                 # use dask if array is a dask.array
                 if isinstance(array, da.Array):
-                    print('Extract Channel using Dask.Array')
+                    print('Extract Channel as Dask.Array')
                     channel = array.compute().take(ch, axis=dimpos['C'])
                     new_dimstring = metadata['Axes_aics'].replace('C', '')
 
                 else:
                     # use normal numpy if not
-                    print('Extract Channel NumPy.Array')
+                    print('Extract Channel as NumPy.Array')
                     channel = array.take(ch, axis=dimpos['C'])
                     new_dimstring = metadata['Axes_aics'].replace('C', '')
 
@@ -1929,3 +1893,54 @@ def calc_normvar(img2d):
     normvar = b / (height * width * mean)
 
     return normvar
+
+
+class TableWidget(QWidget):
+
+    def __init__(self):
+        super(QWidget, self).__init__()
+        self.layout = QHBoxLayout(self)
+        self.mdtable = QTableWidget()
+        self.layout.addWidget(self.mdtable)
+        self.mdtable.setShowGrid(True)
+        self.mdtable.setHorizontalHeaderLabels(['Parameter', 'Value'])
+        header = self.mdtable.horizontalHeader()
+        header.setDefaultAlignment(Qt.AlignLeft)
+
+    def update_metadata(self, metadata):
+
+        row_count = len(metadata)
+        col_count = 2
+        self.mdtable.setColumnCount(col_count)
+        self.mdtable.setRowCount(row_count)
+
+        row = 0
+
+        for key, value in metadata.items():
+            newkey = QTableWidgetItem(key)
+            self.mdtable.setItem(row, 0, newkey)
+            newvalue = QTableWidgetItem(str(value))
+            self.mdtable.setItem(row, 1, newvalue)
+            row += 1
+
+        # fit columns to content
+        self.mdtable.resizeColumnsToContents()
+
+    def update_style(self):
+
+        # define font
+        fnt = QFont()
+        fnt.setPointSize(11)
+        fnt.setBold(True)
+        fnt.setFamily('Arial')
+
+        # update both header items
+        item1 = QtWidgets.QTableWidgetItem('Parameter')
+        item1.setForeground(QtGui.QColor(25, 25, 25))
+        item1.setFont(fnt)
+        self.mdtable.setHorizontalHeaderItem(0, item1)
+
+        item2 = QtWidgets.QTableWidgetItem('Value')
+        item2.setForeground(QtGui.QColor(25, 25, 25))
+        item2.setFont(fnt)
+        self.mdtable.setHorizontalHeaderItem(1, item2)
