@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : imgfileutils.py
-# Version     : 1.4.0
+# Version     : 1.4.1
 # Author      : czsrh
-# Date        : 18.11.2020
+# Date        : 23.11.2020
 # Institution : Carl Zeiss Microscopy GmbH
 #
 # Copyright (c) 2020 Carl Zeiss AG, Germany. All Rights Reserved.
@@ -15,7 +15,7 @@ import czifile as zis
 from apeer_ometiff_library import omexmlClass
 import os
 from pathlib import Path
-from matplotlib import pyplot as plt, cm
+from matplotlib import pyplot as plt, cm, use
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import xmltodict
 import numpy as np
@@ -1170,7 +1170,8 @@ def show_napari(array, metadata,
                 blending='additive',
                 gamma=0.85,
                 add_mdtable=True,
-                rename_sliders=False):
+                rename_sliders=False,
+                use_BFdims=False):
     """Show the multidimensional array using the Napari viewer
 
     :param array: multidimensional NumPy.Array containing the pixeldata
@@ -1183,6 +1184,9 @@ def show_napari(array, metadata,
     :type gamma: float, optional
     :param rename_sliders: name slider with correct labels output, defaults to False
     :type verbose: bool, optional
+    :param use_BFdims: if True use the 5D dimension string from BioFormats or apeer-ometiff library
+    and if False use 6D dimension string from AICSImageIO, defaults to False
+    :type verbose: bool, optional
     """
 
     # create list for the napari layers
@@ -1192,14 +1196,19 @@ def show_napari(array, metadata,
 
         # create scalefcator with all ones
         scalefactors = [1.0] * len(array.shape)
-        dimpos = get_dimpositions(metadata['Axes_aics'])
+        if use_BFdims:
+            # use the dimension string from BioFormats 5D
+            dimpos = get_dimpositions(metadata['DimOrder BF Array'])
+
+        if not use_BFdims:
+            # use the dimension string from AICSImageIO 6D (default)
+            dimpos = get_dimpositions(metadata['Axes_aics'])
 
         # get the scalefactors from the metadata
         scalef = get_scalefactor(metadata)
 
         # modify the tuple for the scales for napari
         scalefactors[dimpos['Z']] = scalef['zx']
-
         # remove C dimension from scalefactor
         scalefactors_ch = scalefactors.copy()
         del scalefactors_ch[dimpos['C']]
@@ -1248,7 +1257,11 @@ def show_napari(array, metadata,
                     # use normal numpy if not
                     print('Extract Channel as NumPy.Array')
                     channel = array.take(ch, axis=dimpos['C'])
-                    new_dimstring = metadata['Axes_aics'].replace('C', '')
+                    if use_BFdims:
+                        new_dimstring = metadata['DimOrder BF Array'].replace('C', '')
+
+                    if not use_BFdims:
+                        new_dimstring = metadata['Axes_aics'].replace('C', '')
 
                 # actually show the image array
                 print('Adding Channel  : ', chname)
@@ -1391,12 +1404,10 @@ def writexml_ometiff(filename, xmlsuffix='_OMETIFF_MetaData.xml'):
         ext = '.ome.tif'
 
     with tifffile.TiffFile(filename) as tif:
-        # omexml_string = tif[0].image_description.decode('utf-8')
-        omexml_string = tif[0].image_description
+        omexml_string = tif.ome_metadata
 
     # get tree from string
-    # tree = ET.ElementTree(ET.fromstring(omexml_string.encode('utf-8')))
-    tree = ET.ElementTree(ET.fromstring(omexml_string))
+    tree = ET.ElementTree(ET.fromstring(omexml_string.encode('utf-8')))
 
     # change file name
     xmlfile = filename.replace(ext, xmlsuffix)
