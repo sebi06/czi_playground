@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : segmentation_tools.py
-# Version     : 0.2
+# Version     : 0.4
 # Author      : czsrh
-# Date        : 14.05.2020
+# Date        : 10.12.2020
 # Institution : Carl Zeiss Microscopy GmbH
 #
 # Copyright (c) 2020 Carl Zeiss AG, Germany. All Rights Reserved.
@@ -24,7 +24,8 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import matplotlib.patches as mpatches
 
-from czitools import imgfileutils as imf
+#from czitools import imgfileutils as imf
+import imgfileutils as imf
 
 from aicsimageio import AICSImage, imread
 
@@ -461,6 +462,7 @@ def load_cellpose_model(model_type='nuclei',
     # load cellpose model for cell nuclei using GPU or CPU
     print('Loading Cellpose Model ...')
 
+    """
     # try to get the device
     try:
         device = set_device()
@@ -472,16 +474,18 @@ def load_cellpose_model(model_type='nuclei',
         model = models.Cellpose(gpu=False,
                                 model_type='nuclei',
                                 net_avg=net_avg,
-                                batch_size=batch_size)
+                                )
 
     if device is not None:
         model = models.Cellpose(model_type=model_type,
                                 net_avg=net_avg,
-                                batch_size=batch_size,
-                                device=device)
+                                device=device
+                                )
+    """
 
-    # model = models.Cellpose(device=set_device(), model_type='nuclei')
-    # model = models.Cellpose(device=mxnet.gpu(), model_type='nuclei')
+    model = models.Cellpose(gpu=True,
+                            model_type='nuclei',
+                            net_avg=net_avg)
 
     return model
 
