@@ -436,28 +436,27 @@ def segment_nuclei_stardist(image2d, sdmodel,
     return mask2d
 
 
-def set_device():
-    """Check if GPU working, and if so use it
-
-    :return: device - CPU or GPU
-    :rtype: mxnet device
-    """
-    # check if GPU working, and if so use it
-    use_gpu = utils.use_gpu()
-    print('Use GPU: ', use_gpu)
-
-    if use_gpu:
-        device = mxnet.gpu()
-    else:
-        device = mxnet.cpu()
-
-    return device
+# def set_device():
+#     """Check if GPU working, and if so use it
+#
+#     :return: device - CPU or GPU
+#     :rtype: mxnet device
+#     """
+#     # check if GPU working, and if so use it
+#     use_gpu = utils.use_gpu()
+#     print('Use GPU: ', use_gpu)
+#
+#     if use_gpu:
+#         device = mxnet.gpu()
+#     else:
+#         device = mxnet.cpu()
+#
+#     return device
 
 
 def load_cellpose_model(model_type='nuclei',
-                        gpu=False,
-                        net_avg=True,
-                        batch_size=8):
+                        gpu=True,
+                        net_avg=True):
 
     # load cellpose model for cell nuclei using GPU or CPU
     print('Loading Cellpose Model ...')
@@ -483,8 +482,8 @@ def load_cellpose_model(model_type='nuclei',
                                 )
     """
 
-    model = models.Cellpose(gpu=True,
-                            model_type='nuclei',
+    model = models.Cellpose(gpu=gpu,
+                            model_type=model_type,
                             net_avg=net_avg)
 
     return model
