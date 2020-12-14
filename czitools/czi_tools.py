@@ -260,7 +260,7 @@ def get_scene_extend_czi(czi, sceneindex=0):
 
     :param czi: CZI object for from aicspylibczi
     :type czi: Zeiss CZI file object
-    :param sceneindex: indx of the scene, defaults to 0
+    :param sceneindex: index of the scene, defaults to 0
     :type sceneindex: int, optional
     :return: tuple with (xmin, ymin, xmax, ymax) extend
     :rtype: tuple
@@ -270,27 +270,23 @@ def get_scene_extend_czi(czi, sceneindex=0):
     bboxes = czi.mosaic_scene_bounding_boxes(index=sceneindex)
 
     # initialize values for scene extend
-    xmin = 0
-    ymin = 0
-    xmax = 0
-    ymax = 0
+    xmin = []
+    ymin = []
+    xmax = []
+    ymax = []
 
-    # interate over all bounding boxes for a given scene
     for b in range(len(bboxes)):
-
         # get the bounding box for a tile
         box = bboxes[b]
-        # check if for extend
-        if box[0] < box[0]:
-            xmin = box[0]
+        xmin.append(box[0])
+        ymin.append(box[1])
+        xmax.append(box[0] + box[2])
+        ymax.append(box[1] + box[3])
 
-        if box[1] < ymin:
-            ymin = box[1]
+    # get the overall min and max values for X and Y
+    XMIN = min(xmin)
+    YMIN = min(ymin)
+    XMAX = max(xmax)
+    YMAX = max(ymax)
 
-        if box[0] + box[2] > xmax:
-            xmax = box[0] + box[2]
-
-        if box[1] + box[3] > ymax:
-            ymax = box[1] + box[3]
-
-    return (xmin, ymin, xmax, ymax)
+    return (XMIN, YMIN, XMAX, YMAX)
