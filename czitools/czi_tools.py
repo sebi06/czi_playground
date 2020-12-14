@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : czi_tools.py
-# Version     : 0.0.2
+# Version     : 0.0.3
 # Author      : czsrh
-# Date        : 24.09.2020
+# Date        : 14.12.2020
 # Institution : Carl Zeiss Microscopy GmbH
 #
 # Copyright (c) 2020 Carl Zeiss AG, Germany. All Rights Reserved.
@@ -252,3 +252,45 @@ def filterplanetable(planetable, S=0, T=0, Z=0, C=0):
 
     # return filtered planetable
     return pt
+
+
+def get_scene_extend_czi(czi, sceneindex=0):
+    """Get the min / max extend of a given scene from a CZI mosaic image
+    at pyramid level = 0 (full resolution)
+
+    :param czi: CZI object for from aicspylibczi
+    :type czi: Zeiss CZI file object
+    :param sceneindex: indx of the scene, defaults to 0
+    :type sceneindex: int, optional
+    :return: tuple with (xmin, ymin, xmax, ymax) extend
+    :rtype: tuple
+    """
+
+    # get all bounding boxes
+    bboxes = czi.mosaic_scene_bounding_boxes(index=sceneindex)
+
+    # initialize values for scene extend
+    xmin = 0
+    ymin = 0
+    xmax = 0
+    ymax = 0
+
+    # interate over all bounding boxes for a given scene
+    for b in range(len(bboxes)):
+
+        # get the bounding box for a tile
+        box = bboxes[b]
+        # check if for extend
+        if box[0] < box[0]:
+            xmin = box[0]
+
+        if box[1] < ymin:
+            ymin = box[1]
+
+        if box[0] + box[2] > xmax:
+            xmax = box[0] + box[2]
+
+        if box[1] + box[3] > ymax:
+            ymax = box[1] + box[3]
+
+    return (xmin, ymin, xmax, ymax)
