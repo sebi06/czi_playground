@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : czi_tools.py
-# Version     : 0.0.2
+# Version     : 0.0.4
 # Author      : czsrh
-# Date        : 24.09.2020
+# Date        : 15.12.2020
 # Institution : Carl Zeiss Microscopy GmbH
 #
 # Copyright (c) 2020 Carl Zeiss AG, Germany. All Rights Reserved.
@@ -252,3 +252,121 @@ def filterplanetable(planetable, S=0, T=0, Z=0, C=0):
 
     # return filtered planetable
     return pt
+
+
+def get_bbox_scene(cziobject, sceneindex=0):
+    """Get the min / max extend of a given scene from a CZI mosaic image
+    at pyramid level = 0 (full resolution)
+
+    :param czi: CZI object for from aicspylibczi
+    :type czi: Zeiss CZI file object
+    :param sceneindex: index of the scene, defaults to 0
+    :type sceneindex: int, optional
+    :return: tuple with (XSTART, YSTART, WIDTH, HEIGHT) extend in pixels
+    :rtype: tuple
+    """
+
+    # get all bounding boxes
+    bboxes = cziobject.mosaic_scene_bounding_boxes(index=sceneindex)
+
+    # initialize lists for required values
+    xstart = []
+    ystart = []
+    tilewidth = []
+    tileheight = []
+
+    # loop over all tiles for the specified scene
+    for box in bboxes:
+
+        # get xstart, ystart amd tile widths and heights
+        xstart.append(box[0])
+        ystart.append(box[1])
+        tilewidth.append(box[2])
+        tileheight.append(box[3])
+
+    # get bounding box for the current scene
+    XSTART = min(xstart)
+    YSTART = min(ystart)
+
+    # do not forget to add the width and height of the last tile :-)
+    WIDTH = max(xstart) - XSTART + tilewidth[-1]
+    HEIGHT = max(ystart) - YSTART + tileheight[-1]
+
+    return XSTART, YSTART, WIDTH, HEIGHT
+
+
+def read_scene_bbox(cziobject, metadata,
+                    sceneindex=0,
+                    channel=0,
+                    timepoint=0,
+                    zplane=0,
+                    scalefactor=1.0):
+    """Read a specific scene from a CZI image file.
+
+    :param cziobject: The CziFile reader object from aicspylibczi
+    :type cziobject: CziFile
+    :param metadata: Image metadata dictionary from imgfileutils
+    :type metadata: dict
+    :param sceneindex: Index of scene, defaults to 0
+    :type sceneindex: int, optional
+    :param channel: Index of channel, defaults to 0
+    :type channel: int, optional
+    :param timepoint: Index of Timepoint, defaults to 0
+    :type timepoint: int, optional
+    :param zplane: Index of z-plane, defaults to 0
+    :type zplane: int, optional
+    :param scalefactor: scaling factor to read CZI image pyramid, defaults to 1.0
+    :type scalefactor: float, optional
+    :return: scene as a numpy array
+    :rtype: NumPy.Array
+    """
+    # set variables
+    scene = None
+    hasT = False
+    hasZ = False
+
+    # check if scalefactor has a reasonable value
+    if scalefactor < 0.01 or scalefactor > 1.0:
+        print('Scalefactor too small or too large. Will use 1.0 as fallback')
+        scalefactor = 1.0
+
+    # check if CZI has T or Z dimension
+    if 'T' in metadata['dims_aicspylibczi']:
+        hasT = True
+    if 'T' in metadata['dims_aicspylibczi']:
+        hasZ = True
+
+    # get the bounding box for the specified scene
+    xmin, ymin, width, height = get_bbox_scene(cziobject,
+                                               sceneindex=sceneindex)
+
+    # read the scene as numpy array using the correct function calls
+    if hasT is True and hasZ is True:
+        scene = cziobject.read_mosaic(region=(xmin, ymin, width, height),
+                                      scale_factor=scalefactor,
+                                      T=timepoint,
+                                      Z=zplane,
+                                      C=channel)
+
+    if hasT is True and hasZ is False:
+        scene = cziobject.read_mosaic(region=(xmin, ymin, width, height),
+                                      scale_factor=scalefactor,
+                                      T=timepoint,
+                                      C=channel)
+
+    if hasT is False and hasZ is True:
+        scene = cziobject.read_mosaic(region=(xmin, ymin, width, height),
+                                      scale_factor=scalefactor,
+                                      Z=zplane,
+                                      C=channel)
+
+    if hasT is False and hasZ is False:
+        scene = cziobject.read_mosaic(region=(xmin, ymin, width, height),
+                                      scale_factor=scalefactor,
+                                      C=channel)
+
+    # add new entries to metadata to adjust XY scale due to scaling factor
+    metadata['XScale Pyramid'] = metadata['XScale'] * 1 / scalefactor
+    metadata['YScale Pyramid'] = metadata['YScale'] * 1 / scalefactor
+
+    return scene, (xmin, ymin, width, height), metadata
