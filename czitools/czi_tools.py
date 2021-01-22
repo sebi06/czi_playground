@@ -2,12 +2,12 @@
 
 #################################################################
 # File        : czi_tools.py
-# Version     : 0.0.4
+# Version     : 0.0.5
 # Author      : czsrh
-# Date        : 15.12.2020
+# Date        : 22.01.2021
 # Institution : Carl Zeiss Microscopy GmbH
 #
-# Copyright (c) 2020 Carl Zeiss AG, Germany. All Rights Reserved.
+# Copyright (c) 2021 Carl Zeiss AG, Germany. All Rights Reserved.
 #################################################################
 
 import os
@@ -34,10 +34,10 @@ def define_czi_planetable():
                                'T',
                                'Z',
                                'C',
-                               'X [micron]',
-                               'Y [micron]',
-                               'Z [micron]',
-                               'Time [s]',
+                               'X[micron]',
+                               'Y[micron]',
+                               'Z[micron]',
+                               'Time[s]',
                                'xstart',
                                'ystart',
                                'xwidth',
@@ -114,10 +114,10 @@ def get_czi_planetable(czifile):
                                     'T': t,
                                     'Z': z,
                                     'C': c,
-                                    'X [micron]': xpos,
-                                    'Y [micron]': ypos,
-                                    'Z [micron]': zpos,
-                                    'Time [s]': timestamp,
+                                    'X[micron]': xpos,
+                                    'Y[micron]': ypos,
+                                    'Z[micron]': zpos,
+                                    'Time[s]': timestamp,
                                     'xstart': info[0],
                                     'ystart': info[1],
                                     'xwidth': info[2],
@@ -171,10 +171,10 @@ def get_czi_planetable(czifile):
                                     'T': t,
                                     'Z': z,
                                     'C': c,
-                                    'X [micron]': xpos,
-                                    'Y [micron]': ypos,
-                                    'Z [micron]': zpos,
-                                    'Time [s]': timestamp,
+                                    'X[micron]': xpos,
+                                    'Y[micron]': ypos,
+                                    'Z[micron]': zpos,
+                                    'Time[s]': timestamp,
                                     'xstart': info[0],
                                     'ystart': info[1],
                                     'xwidth': info[2],
@@ -182,7 +182,7 @@ def get_czi_planetable(czifile):
                                    ignore_index=True)
 
     # normalize timestamps
-    df_czi = imf.norm_columns(df_czi, colname='Time [s]', mode='min')
+    df_czi = imf.norm_columns(df_czi, colname='Time[s]', mode='min')
 
     # cast data  types
     df_czi = df_czi.astype({'Subblock': 'int32',
@@ -239,10 +239,10 @@ def filterplanetable(planetable, S=0, T=0, Z=0, C=0):
     pt = planetable[planetable['T'] == T]
 
     # filter resulting planetable pt for a specific z-plane
-    if Z > planetable['Z [micron]'].max():
+    if Z > planetable['Z[micron]'].max():
         print('Z-Plane Index was invalid. Using Z = 0.')
         zplane = 0
-    pt = pt[pt['Z [micron]'] == Z]
+    pt = pt[pt['Z[micron]'] == Z]
 
     # filter planetable for specific channel
     if C > planetable['C'].max():
