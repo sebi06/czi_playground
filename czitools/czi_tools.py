@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : czi_tools.py
-# Version     : 0.0.5
+# Version     : 0.0.6
 # Author      : czsrh
-# Date        : 22.01.2021
+# Date        : 24.01.2021
 # Institution : Carl Zeiss Microscopy GmbH
 #
 # Copyright (c) 2021 Carl Zeiss AG, Germany. All Rights Reserved.
@@ -239,10 +239,16 @@ def filterplanetable(planetable, S=0, T=0, Z=0, C=0):
     pt = planetable[planetable['T'] == T]
 
     # filter resulting planetable pt for a specific z-plane
-    if Z > planetable['Z[micron]'].max():
-        print('Z-Plane Index was invalid. Using Z = 0.')
-        zplane = 0
-    pt = pt[pt['Z[micron]'] == Z]
+    try:
+        if Z > planetable['Z[micron]'].max():
+            print('Z-Plane Index was invalid. Using Z = 0.')
+            zplane = 0
+            pt = pt[pt['Z[micron]'] == Z]
+    except KeyError as e:
+        if Z > planetable['Z [micron]'].max():
+            print('Z-Plane Index was invalid. Using Z = 0.')
+            zplane = 0
+            pt = pt[pt['Z [micron]'] == Z]
 
     # filter planetable for specific channel
     if C > planetable['C'].max():
