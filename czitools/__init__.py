@@ -1,3 +1,7 @@
+# __init__.py
+# version of the czitools package
+__version__ = "0.0.1"
+
 from .imgfileutils import get_imgtype, get_metadata, get_metadata_ometiff
 from .imgfileutils import create_metadata_dict, get_metadata_czi, get_additional_metadata_czi
 from .imgfileutils import get_dimorder
