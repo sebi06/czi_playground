@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : czi_tools.py
-# Version     : 0.0.6
+# Version     : 0.0.8
 # Author      : czsrh
-# Date        : 24.01.2021
+# Date        : 16.02.2021
 # Institution : Carl Zeiss Microscopy GmbH
 #
 # Copyright (c) 2021 Carl Zeiss AG, Germany. All Rights Reserved.
@@ -13,11 +13,11 @@
 import os
 from aicsimageio import AICSImage, imread, imread_dask
 import aicspylibczi
-import imgfileutils as imf
+from numpy.core.fromnumeric import _size_dispatcher
+import imgfile_tools as imf
 import itertools as it
 from tqdm import tqdm, trange
 from tqdm.contrib.itertools import product
-import nested_dict as nd
 import pandas as pd
 import numpy as np
 from datetime import datetime
@@ -61,10 +61,10 @@ def get_czi_planetable(czifile):
     sbcount = -1
 
     # create progressbar
-    #total = md['SizeS'] * md['SizeM'] * md['SizeT'] * md['SizeZ'] * md['SizeC']
-    #pbar = tqdm(total=total)
+    # total = md['SizeS'] * md['SizeM'] * md['SizeT'] * md['SizeZ'] * md['SizeC']
+    # pbar = tqdm(total=total)
 
-    #pbar = progressbar.ProgressBar(max_value=total)
+    # pbar = progressbar.ProgressBar(max_value=total)
     # in case the CZI has the M-Dimension
     if md['czi_isMosaic']:
 
@@ -309,23 +309,23 @@ def read_scene_bbox(cziobject, metadata,
                     scalefactor=1.0):
     """Read a specific scene from a CZI image file.
 
-    :param cziobject: The CziFile reader object from aicspylibczi
-    :type cziobject: CziFile
-    :param metadata: Image metadata dictionary from imgfileutils
-    :type metadata: dict
-    :param sceneindex: Index of scene, defaults to 0
-    :type sceneindex: int, optional
-    :param channel: Index of channel, defaults to 0
-    :type channel: int, optional
-    :param timepoint: Index of Timepoint, defaults to 0
-    :type timepoint: int, optional
-    :param zplane: Index of z-plane, defaults to 0
-    :type zplane: int, optional
-    :param scalefactor: scaling factor to read CZI image pyramid, defaults to 1.0
-    :type scalefactor: float, optional
-    :return: scene as a numpy array
-    :rtype: NumPy.Array
-    """
+: param cziobject: The CziFile reader object from aicspylibczi
+: type cziobject: CziFile
+: param metadata: Image metadata dictionary from imgfileutils
+: type metadata: dict
+: param sceneindex: Index of scene, defaults to 0
+: type sceneindex: int, optional
+: param channel: Index of channel, defaults to 0
+: type channel: int, optional
+: param timepoint: Index of Timepoint, defaults to 0
+: type timepoint: int, optional
+: param zplane: Index of z - plane, defaults to 0
+: type zplane: int, optional
+: param scalefactor: scaling factor to read CZI image pyramid, defaults to 1.0
+: type scalefactor: float, optional
+: return: scene as a numpy array
+: rtype: NumPy.Array
+"""
     # set variables
     scene = None
     hasT = False
@@ -339,7 +339,7 @@ def read_scene_bbox(cziobject, metadata,
     # check if CZI has T or Z dimension
     if 'T' in metadata['dims_aicspylibczi']:
         hasT = True
-    if 'T' in metadata['dims_aicspylibczi']:
+    if 'Z' in metadata['dims_aicspylibczi']:
         hasZ = True
 
     # get the bounding box for the specified scene
@@ -376,3 +376,160 @@ def read_scene_bbox(cziobject, metadata,
     metadata['YScale Pyramid'] = metadata['YScale'] * 1 / scalefactor
 
     return scene, (xmin, ymin, width, height), metadata
+
+
+def getbboxes_allscenes(czi, md, numscenes=1):
+
+    all_bboxes = []
+    for s in range(numscenes):
+        sc = CZIScene(czi, md, sceneindex=s)
+        all_bboxes.append(sc)
+
+    return all_bboxes
+
+
+class CZIScene:
+    def __init__(self, czi, md, sceneindex):
+
+        x, y, w, h = get_bbox_scene(czi, sceneindex)
+        self.xstart = x
+        self.ystart = y
+        self.width = w
+        self.height = h
+        self.index = sceneindex
+        self.hasT = False
+        self.hasZ = False
+        self.sizeT = None
+        self.sizeZ = None
+        self.sizeC = czi.dims_shape()[0]['C'][1]
+
+        # check if the scene has T or Z slices
+        dims_aicspylibczi = czi.dims_shape()[0]
+        if 'T' in dims_aicspylibczi:
+            self.hasT = True
+            self.sizeT = czi.dims_shape()[0]['T'][1]
+
+        if 'Z' in dims_aicspylibczi:
+            self.hasZ = True
+            self.sizeZ = czi.dims_shape()[0]['Z'][1]
+
+        # determine the shape of the scene
+        shape_single_scene = [1]
+        posdict = {'S': 'SizeS', 'T': 'SizeT', 'C': 'SizeC', 'Z': 'SizeZ'}
+
+        # find key based upon value
+        for v in range(1, 4):
+            # get the corresponding dim_id, e.g. 'S'
+            dim_id = imf.get_key(md['dimpos_aics'], v)
+            # get the correspong string to access the size of tht dimension
+            dimstr = posdict[dim_id]
+            # append size for this dimension to list containing the shape
+            shape_single_scene.append(md[dimstr])
+
+        # add width and height of scene to the required shape list
+        shape_single_scene.append(self.height)
+        shape_single_scene.append(self.width)
+
+        self.shape_scene = shape_single_scene
+
+        # determine required dtype
+        self.dtype_scene_array = md['NumPy.dtype']
+
+        # position for dimension for scene array
+        self.posC = md['dimpos_aics']['C']
+        self.posZ = md['dimpos_aics']['Z']
+        self.posT = md['dimpos_aics']['T']
+
+
+def get_shape_allscenes(czi, md):
+
+    shape_single_scenes = []
+
+    # loop over all scenes
+    for s in range(md['SizeS']):
+
+        # get info for a single scene
+        single_scene = CZIScene(czi, md, s)
+
+        # add shape info to the list for shape of all single scenes
+        print('Adding shape for scene: ', s)
+        shape_single_scenes.append(single_scene.shape_scene)
+
+    # check if all calculated scene sizes have the same shape
+    same_shape = all(elem == shape_single_scenes[0] for elem in shape_single_scenes)
+
+    # create required array shape in case all scenes are equal
+    array_size_all_scenes = None
+    if same_shape:
+        array_size_all_scenes = shape_single_scenes[0].copy()
+        array_size_all_scenes[md['dimpos_aics']['S']] = md['SizeS']
+
+    return array_size_all_scenes, shape_single_scenes, same_shape
+
+
+def read_czi_scene(czi, scene, metadata, scalefactor=1.0):
+
+    # create the required array for this scene
+    scene_array = np.empty(scene.shape_scene, dtype=metadata['NumPy.dtype'])
+
+    # check if scalefactor has a reasonable value
+    if scalefactor < 0.01 or scalefactor > 1.0:
+        print('Scalefactor too small or too large. Will use 1.0 as fallback')
+        scalefactor = 1.0
+
+    # read the scene as numpy array using the correct function calls
+    # unfortunately a CZI not always has all dimensions.
+    # Current status:
+    # 1: hasT = True + hasZ = True          - OK
+    # 2: hasT = False + hasT = False        - OK
+    # 3: hasT = True + hasT = False         - NOK
+    # 4: hasT = False + hasT = False        - NOK
+
+    # in case T and Z dimension are found
+    if scene.hasT is True and scene.hasZ is True:
+
+        # create an array for the scene
+        for t, z, c in it.product(range(scene.sizeT),
+                                  range(scene.sizeZ),
+                                  range(scene.sizeC)):
+
+            scene_array_tzc = czi.read_mosaic(region=(scene.xstart,
+                                                      scene.ystart,
+                                                      scene.width,
+                                                      scene.height),
+                                              scale_factor=scalefactor,
+                                              T=t,
+                                              Z=z,
+                                              C=c)
+
+            if scene.posT == 1:
+                if scene.posZ == 2:
+                    # STZCYX
+                    scene_array[:, t, z, c, :, :] = scene_array_tzc
+                if scene.posZ == 3:
+                    # STCZYX
+                    scene_array[:, t, c, z, :, :] = scene_array_tzc
+
+    # in case no T and Z dimension are found
+    if scene.hasT is False and scene.hasZ is False:
+
+        # create an array for the scene
+        for c in range(czi.dims_shape()[0]['C'][1]):
+
+            scene_array_c = czi.read_mosaic(region=(scene.xstart,
+                                                    scene.ystart,
+                                                    scene.width,
+                                                    scene.height),
+                                            scale_factor=scalefactor,
+                                            C=c)
+            if scene.posC == 1:
+                # SCTZYX
+                scene_array[:, c, 0, 0, :, :] = scene_array_c
+            if scene.posC == 2:
+                # STCZYX
+                scene_array[:, 0, c, 0, :, :] = scene_array_c
+            if scene.posC == 3:
+                # STZCYX
+                scene_array[:, 0, 0, c, :, :] = scene_array_c
+
+    return scene_array

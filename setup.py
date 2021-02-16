@@ -112,8 +112,9 @@ setup(name=NAME,
       author_email=EMAIL,
       python_requires=REQUIRES_PYTHON,
       url=URL,
-      # packages=['czitools'],
-      packages=find_packages(exclude=["tests", "*.tests", "*.tests.*", "tests.*"]),
+      #packages=['czitools',],
+      packages=find_packages(),
+      #packages=find_packages(exclude=["tests", "*.tests", "*.tests.*", "tests.*"]),
       # If your package is a single module, use this instead of 'packages':
       # py_modules=['mypackage'],
 
@@ -122,6 +123,7 @@ setup(name=NAME,
       # },
       install_requires=REQUIRED,
       extras_require=EXTRAS,
+      zip_safe=False,
       include_package_data=True,
       license='BSD 3-Clause License',
       classifiers=[
@@ -131,8 +133,9 @@ setup(name=NAME,
           'License :: OSI Approved :: BSD License',
           'Programming Language :: Python :: 3.7',
       ],
-      # $ setup.py publish support.
-      cmdclass={
-          'upload': UploadCommand,
-      },
+
+      ## $ setup.py publish support.
+      #cmdclass={
+      #    'upload': UploadCommand,
+      #},
       )
