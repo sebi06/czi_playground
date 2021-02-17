@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
 #################################################################
-# File        : czi_tools.py
-# Version     : 0.0.8
+# File        : czifile_tools.py
+# Version     : 0.0.9
 # Author      : czsrh
 # Date        : 16.02.2021
 # Institution : Carl Zeiss Microscopy GmbH
