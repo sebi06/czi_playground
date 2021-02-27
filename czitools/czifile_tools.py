@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : czifile_tools.py
-# Version     : 0.1.0
+# Version     : 0.1.1
 # Author      : czsrh
-# Date        : 17.02.2021
+# Date        : 27.02.2021
 # Institution : Carl Zeiss Microscopy GmbH
 #
 # Copyright (c) 2021 Carl Zeiss AG, Germany. All Rights Reserved.
@@ -24,6 +24,7 @@ from datetime import datetime
 import dateutil.parser as dt
 from lxml import etree
 import progressbar
+import zarr
 
 
 def define_czi_planetable():
@@ -467,10 +468,17 @@ def get_shape_allscenes(czi, md):
     return array_size_all_scenes, shape_single_scenes, same_shape
 
 
-def read_czi_scene(czi, scene, metadata, scalefactor=1.0):
+def read_czi_scene(czi, scene, metadata, scalefactor=1.0, array_type='zarr'):
 
-    # create the required array for this scene
-    scene_array = np.empty(scene.shape_scene, dtype=metadata['NumPy.dtype'])
+    if array_type == 'numpy':
+        # create the required array for this scene as numoy array
+        scene_array = np.empty(scene.shape_scene, dtype=metadata['NumPy.dtype'])
+
+    if array_type == "zarr":
+        # create the required array for this scene as numoy array
+        scene_array = zarr.create(tuple(scene.shape_scene),
+                                  dtype=metadata['NumPy.dtype'],
+                                  chunks=True)
 
     # check if scalefactor has a reasonable value
     if scalefactor < 0.01 or scalefactor > 1.0:
@@ -505,10 +513,14 @@ def read_czi_scene(czi, scene, metadata, scalefactor=1.0):
             if scene.posT == 1:
                 if scene.posZ == 2:
                     # STZCYX
-                    scene_array[:, t, z, c, :, :] = scene_array_tzc
+                    #scene_array[:, t, z, c, :, :] = scene_array_tzc
+                    #scene_array[:, t, z, c, :, :] = scene_array_tzc[:, 0, 0]
+                    scene_array[0, t, z, c, :, :] = scene_array_tzc[0, 0, 0, :, :]
                 if scene.posZ == 3:
                     # STCZYX
-                    scene_array[:, t, c, z, :, :] = scene_array_tzc
+                    #scene_array[:, t, c, z, :, :] = scene_array_tzc
+                    #scene_array[:, t, c, z, :, :] = scene_array_tzc[:, 0, 0]
+                    scene_array[0, t, c, z, :, :] = scene_array_tzc[0, 0, 0, :, :]
 
     # in case no T and Z dimension are found
     if scene.hasT is False and scene.hasZ is False:
@@ -524,12 +536,25 @@ def read_czi_scene(czi, scene, metadata, scalefactor=1.0):
                                             C=c)
             if scene.posC == 1:
                 # SCTZYX
-                scene_array[:, c, 0, 0, :, :] = scene_array_c
+                #scene_array[:, c, 0, 0, :, :] = scene_array_c
+                scene_array[0, c, 0, 0, :, :] = scene_array_c[0, :, :]
             if scene.posC == 2:
                 # STCZYX
-                scene_array[:, 0, c, 0, :, :] = scene_array_c
+                #scene_array[:, 0, c, 0, :, :] = scene_array_c
+                scene_array[0, 0, c, 0, :, :] = scene_array_c[0, :, :]
             if scene.posC == 3:
                 # STZCYX
-                scene_array[:, 0, 0, c, :, :] = scene_array_c
+                #scene_array[:, 0, 0, c, :, :] = scene_array_c
+                scene_array[0, 0, 0, c, :, :] = scene_array_c[0, :, :]
+
+            # if scene.posC == 1:
+            #    # SCTZYX
+            #    scene_array[:, c, 0:1, 0:1, ...] = scene_array_c
+            # if scene.posC == 2:
+            #    # STCZYX
+            #    scene_array[:, 0:1, c, 0:1, ...] = scene_array_c
+            # if scene.posC == 3:
+            #    # STZCYX
+            #    scene_array[:, 0:1, 0:1, c, ...] = scene_array_c
 
     return scene_array
