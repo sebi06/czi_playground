@@ -15,7 +15,7 @@ from __future__ import annotations
 from aicspylibczi import CziFile
 from tqdm.contrib.itertools import product
 import numpy as np
-from czifiletools import czi_metadata as czimd
+from czitools import czi_metadata as czimd
 from typing import List, Dict, Tuple, Optional, Type, Any, Union
 from nptyping import Int, UInt, Float
 

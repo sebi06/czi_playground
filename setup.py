@@ -13,7 +13,7 @@ from shutil import rmtree
 from setuptools import find_packages, setup, Command
 
 # Package meta-data.
-NAME = 'czifiletools'
+NAME = 'czitools'
 DESCRIPTION = 'Read CZI related metadata'
 URL = 'https://github.com/sebi06/czifiletools'
 EMAIL = 'sebrhode @ gmail.com'
@@ -114,7 +114,7 @@ setup(name=NAME,
       author_email=EMAIL,
       python_requires=REQUIRES_PYTHON,
       url=URL,
-      # packages=['czifiletools',],
+      # packages=['czitools',],
       packages=find_packages(),
       #packages=find_packages(exclude=["tests", "*.tests", "*.tests.*", "tests.*"]),
       # If your package is a single module, use this instead of 'packages':

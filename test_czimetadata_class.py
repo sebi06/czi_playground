@@ -1,22 +1,17 @@
-from czifiletools import czi_metadata as czimd
-from czifiletools import czi_read as czird
+from czitools import czi_metadata as czimd
+from czitools import czi_read as czird
 import napari
-from czifiletools import napari_czitools as nap
+from czitools import napari_czitools as nap
 from aicspylibczi import CziFile
+from czitools import utils
 
-filename = r"D:\Testdata_Zeiss\CZI_Testfiles\CellDivision_T=10_Z=15_CH=2_DCV_small.czi"
-#filename = r"D:\Testdata_Zeiss\CZI_Testfiles\CellDivision_T=10_Z=15_CH=2_DCV_small.czi"
-#filename = r'd:\Testdata_Zeiss\CZI_Testfiles\S=2_3x3_T=3_CH=2.czi'
-#filename = r"/datadisk1/tuxedo/testpictures/Testdata_Zeiss/celldivision/CellDivision_T=15_Z=20_CH=2_DCV.czi"
-#filename = r"d:\Testdata_Zeiss\CZI_Testfiles\testwell96.czi"
-#filename = r"/datadisk1/tuxedo/testpictures/Testdata_Zeiss/wellplate/testwell96.czi"
-#filename = r"D:\Testdata_Zeiss\CZI_Testfiles\S=1_HE_Slide_RGB_small.czi"
-#filename = r"D:\Testdata_Zeiss\CZI_Testfiles\OverviewScan_M=9_CH=3.czi"
-#filename = r"d:\Testdata_Zeiss\CZI_Testfiles\DTScan_ID4.czi"
-#filename = r"d:\Testdata_Zeiss\CZI_Testfiles\OverviewScan.czi"
-#filename = r"D:\Testdata_Zeiss\CZI_Testfiles\OverViewScan_2x3_1brain.czi"
-#filename = r"D:\Testdata_Zeiss\CZI_Testfiles\OverViewScan_2x3_1brain2.czi"
-#filename= r"C:\Users\m1srh\Downloads\strange.czi"
+defaultdir = r"D:\Testdata_Zeiss\CZI_Testfiles"
+filename = utils.openfile(directory=defaultdir,
+                          title="Open CZI Image File",
+                          ftypename="CZI Files",
+                          extension="*.czi")
+print(filename)
+
 
 mdata = czimd.CziMetadata(filename)
 mdict = czimd.create_metadata_dict(mdata)

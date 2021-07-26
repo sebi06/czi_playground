@@ -1,4 +1,4 @@
-from czifiletools import pylibCZIrw_tools as cztrw
+from czitools import pylibCZIrw_tools as cztrw
 from pylibCZIrw import czi as pyczi
 #from pylibCZIrw import Rectangle
 from matplotlib import pyplot as plt
