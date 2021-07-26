@@ -13,30 +13,32 @@ from shutil import rmtree
 from setuptools import find_packages, setup, Command
 
 # Package meta-data.
-NAME = 'czitools'
-DESCRIPTION = 'Read and analyze CZI (and OME-TIFF) files'
-URL = 'https://github.com/sebi06/czitools'
+NAME = 'czifiletools'
+DESCRIPTION = 'Read CZI related metadata'
+URL = 'https://github.com/sebi06/czifiletools'
 EMAIL = 'sebrhode @ gmail.com'
 AUTHOR = 'Sebastian Rhode'
-REQUIRES_PYTHON = '>=3.7.0'
+REQUIRES_PYTHON = '>=3.8.0'
 VERSION = '0.0.1'
 
 # What packages are required for this module to be executed?
 REQUIRED = [
-    'numpy>=1.18.4',
-    'scikit-image>=0.18.1',
-    'aicsimageio>=3.3.4',
-    'aicspylibczi>=2.8.0',
-    'czifile>=2019.7.2',
+    'setuptools>=52.0.0',
     'xmltodict>=0.12.0',
-    'lxml>=4.5.0',
-    'openpyxl>=3.0.3',
-    'progressbar2>=3.51.3',
-    'MightyMosaic>=1.2.3',
-    'napari>=0.4.4',
-    'napari-aicsimageio>=0.2.0',
-    'apeer-ometiff-library>=1.7.2',
-    'pydash>=4.8.0',
+    'pandas>=1.2.5',
+    'numpy>=1.20.3',
+    'python-dateutil>=2.8.2',
+    'pydash>=5.0.2',
+    'aicspylibczi>=3.0.2',
+    'tqdm>=4.61.2',
+    'napari>=0.4.10',
+    'zarr>=2.6.1',
+    #'dask>=2021.7.0',
+    'pyqt5>=5.15.4',
+    #'aicsimageio>=4.0.5',
+    #'pylibczirw>=0.1.14',
+    'matplotlib>=3.3.4',
+    'lxml>=4.6.3'
 ]
 
 # What packages are optional?
@@ -112,7 +114,7 @@ setup(name=NAME,
       author_email=EMAIL,
       python_requires=REQUIRES_PYTHON,
       url=URL,
-      #packages=['czitools',],
+      # packages=['czifiletools',],
       packages=find_packages(),
       #packages=find_packages(exclude=["tests", "*.tests", "*.tests.*", "tests.*"]),
       # If your package is a single module, use this instead of 'packages':
@@ -131,11 +133,11 @@ setup(name=NAME,
           'Intended Audience :: Science/Research',
           'Topic :: Scientific/Engineering',
           'License :: OSI Approved :: BSD License',
-          'Programming Language :: Python :: 3.7',
+          'Programming Language :: Python :: 3.8',
       ],
 
-      ## $ setup.py publish support.
-      #cmdclass={
+      # $ setup.py publish support.
+      # cmdclass={
       #    'upload': UploadCommand,
-      #},
+      # },
       )
