@@ -15,7 +15,7 @@ from setuptools import find_packages, setup, Command
 # Package meta-data.
 NAME = 'czitools'
 DESCRIPTION = 'Read CZI related metadata'
-URL = 'https://github.com/sebi06/czifiletools'
+URL = 'https://github.com/sebi06/czitools'
 EMAIL = 'sebrhode @ gmail.com'
 AUTHOR = 'Sebastian Rhode'
 REQUIRES_PYTHON = '>=3.8.0'
@@ -33,12 +33,13 @@ REQUIRED = [
     'tqdm>=4.61.2',
     'napari>=0.4.10',
     'zarr>=2.6.1',
-    #'dask>=2021.7.0',
+    'dask>=2021.7.0',
     'pyqt5>=5.15.4',
-    #'aicsimageio>=4.0.5',
-    #'pylibczirw>=0.1.14',
+    'aicsimageio>=4.0.5',
+    #'pylibczirw>=0.1.15',
     'matplotlib>=3.3.4',
-    'lxml>=4.6.3'
+    'lxml>=4.6.3',
+    'nptyping>=1.4.2'
 ]
 
 # What packages are optional?
