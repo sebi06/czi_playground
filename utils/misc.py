@@ -1,6 +1,19 @@
+# -*- coding: utf-8 -*-
+
+#################################################################
+# File        : misc.py
+# Version     : 0.0.1
+# Author      : sebi06
+# Date        : 28.07.2021
+#
+# Disclaimer: The code is purely experimental. Feel free to
+# use it at your own risk.
+#
+#################################################################
+
+from __future__ import annotations
 from tkinter import filedialog
 from tkinter import *
-from czitools import czi_metadata as czimd
 import zarr
 import pandas as pd
 import dask
@@ -8,7 +21,6 @@ import dask.array as da
 import numpy as np
 import time
 from typing import List, Dict, Tuple, Optional, Type, Any, Union
-from nptyping import Int, UInt, Float
 
 
 def openfile(directory: str,
@@ -25,12 +37,12 @@ def openfile(directory: str,
     if input_path is not None:
         return input_path.name
     if input_path is None:
-        return None
+        return ''
 
 
 def slicedim(array: Union[np.ndarray, dask.array.Array, zarr.Array],
-             dimindex: Int,
-             posdim: Int) -> np.ndarray:
+             dimindex: int,
+             posdim: int) -> np.ndarray:
     """slice out a specific channel without (!) dropping the dimension
     of the array to conserve the dimorder string
     this should work for Numpy.Array, Dask and ZARR ...
@@ -58,9 +70,9 @@ def slicedim(array: Union[np.ndarray, dask.array.Array, zarr.Array],
 
 def calc_scaling(data: np.ndarray,
                  corr_min: float = 1.0,
-                 offset_min: Int = 0,
-                 corr_max: Float = 0.85,
-                 offset_max: Int = 0) -> Tuple[Int, Int]:
+                 offset_min: int = 0,
+                 corr_max: float = 0.85,
+                 offset_max: int = 0) -> Tuple[int, int]:
     """Calculate the scaling for better display
 
     :param data: Calculate min / max scaling
@@ -96,10 +108,12 @@ def calc_scaling(data: np.ndarray,
     print('Scaling:', minvalue, maxvalue)
     print('Calculation of Min-Max [s] : ', end - start)
 
-    return [minvalue, maxvalue]
+    return minvalue, maxvalue
 
 
-def md2dataframe(md_dict: Dict, paramcol: str = 'Parameter', keycol: str = 'Value') -> pd.DataFrame:
+def md2dataframe(md_dict: Dict,
+                 paramcol: str = 'Parameter',
+                 keycol: str = 'Value') -> pd.DataFrame:
     """Convert the metadata dictionary to a Pandas DataFrame.
 
     :param metadata: MeteData dictionary

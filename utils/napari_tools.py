@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : napari_tools.py
-# Version     : 0.0.5
+# Version     : 0.0.7
 # Author      : sebi06
-# Date        : 19.07.2021
+# Date        : 28.07.2021
 #
 # Disclaimer: This code is purely experimental. Feel free to
 # use it at your own risk.
@@ -16,7 +16,7 @@ from __future__ import annotations
 try:
     import napari
 except ModuleNotFoundError as error:
-    print(error.__class__.__name__ + ": " + error.msg)
+    print(error.__class__.__name__ + ": " + error.name)
 
 from PyQt5.QtWidgets import (
 
@@ -45,18 +45,17 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtGui import QFont
 from czitools import czi_metadata as czimd
 from utils import misc as utils
-import zarr
-import dask
-import dask.array as da
+#import zarr
+#import dask
+#import dask.array as da
 import numpy as np
-import time
+#import time
 from typing import List, Dict, Tuple, Optional, Type, Any, Union
-from nptyping import Int, UInt, Float
 
 
 class TableWidget(QWidget):
 
-    def __init__(self) -> TableWidget:
+    def __init__(self) -> None:
 
         super(QWidget, self).__init__()
 
@@ -68,7 +67,7 @@ class TableWidget(QWidget):
         header = self.mdtable.horizontalHeader()
         header.setDefaultAlignment(Qt.AlignLeft)
 
-    def update_metadata(self, md_dict: Dict) -> TableWidget:
+    def update_metadata(self, md_dict: Dict) -> None:
 
         # number of rows is set to number of metadata entries
         row_count = len(md_dict)
@@ -89,7 +88,7 @@ class TableWidget(QWidget):
         # fit columns to content
         self.mdtable.resizeColumnsToContents()
 
-    def update_style(self) -> TableWidget:
+    def update_style(self) -> None:
 
         # define font size and type
         fnt = QFont()
@@ -110,13 +109,13 @@ class TableWidget(QWidget):
         self.mdtable.setHorizontalHeaderItem(1, item2)
 
 
-def showviewer(viewer: Any, array: np.ndarray, metadata: czimd.CziMetadata,
-               blending: str = 'additive',
-               calc_contrast: bool = False,
-               auto_contrast: bool = False,
-               gamma: Int = 0.85,
-               add_mdtable: bool = True,
-               rename_sliders: bool = False):
+def show(viewer: Any, array: np.ndarray, metadata: czimd.CziMetadata,
+         blending: str = 'additive',
+         calc_contrast: bool = False,
+         auto_contrast: bool = False,
+         gamma: float = 0.85,
+         add_mdtable: bool = True,
+         name_sliders: bool = False) -> List:
 
     # create list for the napari layers
     napari_layers = []
@@ -142,7 +141,7 @@ def showviewer(viewer: Any, array: np.ndarray, metadata: czimd.CziMetadata,
                                       area='right')
 
         # add the metadata and adapt the table display
-        mdbrowser.update_metadata(czimd.create_metadata_dict(metadata))
+        mdbrowser.update_metadata(czimd.create_mdict_complete(metadata))
         mdbrowser.update_style()
 
     # add all channels as layers
@@ -175,7 +174,7 @@ def showviewer(viewer: Any, array: np.ndarray, metadata: czimd.CziMetadata,
         if calc_contrast:
             # really calculate the min and max values - might be slow
             sc = utils.calc_scaling(channel, corr_max=0.5)
-            print('Display Scaling', sc)
+            print('Calculated Display Scaling', sc)
 
             # add channel to napari viewer
             new_layer = viewer.add_image(channel,
@@ -200,6 +199,14 @@ def showviewer(viewer: Any, array: np.ndarray, metadata: czimd.CziMetadata,
                 lower = np.round(metadata.channelinfo.clims[ch][0] * metadata.maxrange, 0)
                 higher = np.round(metadata.channelinfo.clims[ch][1] * metadata.maxrange, 0)
 
+                # simple validity check
+                if lower >= higher:
+                    print("Fancy Display Scaling detected. Use Defaults")
+                    lower = 0
+                    higher = np.round(metadata.maxrange * 0.25, 0)
+
+                print("Display Scaling from CZI for CH:", ch, "Min-Max", lower, higher)
+
                 # add channel to napari viewer
                 new_layer = viewer.add_image(channel,
                                              name=chname,
@@ -210,7 +217,7 @@ def showviewer(viewer: Any, array: np.ndarray, metadata: czimd.CziMetadata,
 
         napari_layers.append(new_layer)
 
-    if rename_sliders:
+    if name_sliders:
 
         print('Rename Sliders based on the Dimension String ....')
 

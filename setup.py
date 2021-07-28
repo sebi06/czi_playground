@@ -38,8 +38,7 @@ REQUIRED = [
     'aicsimageio>=4.0.5',
     #'pylibczirw>=0.1.15',
     'matplotlib>=3.3.4',
-    'lxml>=4.6.3',
-    'nptyping>=1.4.2'
+    'lxml>=4.6.3'
 ]
 
 # What packages are optional?

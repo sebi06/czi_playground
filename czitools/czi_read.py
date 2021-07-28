@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : czi_read.py
-# Version     : 0.0.1
+# Version     : 0.0.2
 # Author      : sebi06
-# Date        : 19.07.2021
+# Date        : 28.07.2021
 #
 # Disclaimer: This code is purely experimental. Feel free to
 # use it at your own risk.
@@ -17,7 +17,6 @@ from tqdm.contrib.itertools import product
 import numpy as np
 from czitools import czi_metadata as czimd
 from typing import List, Dict, Tuple, Optional, Type, Any, Union
-from nptyping import Int, UInt, Float
 
 
 def readczi(filename: str) -> np.ndarray:

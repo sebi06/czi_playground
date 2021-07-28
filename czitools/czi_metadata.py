@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : czi_metadata.py
-# Version     : 0.0.5
+# Version     : 0.0.7
 # Author      : sebi06
-# Date        : 23.07.2021
+# Date        : 28.07.2021
 #
 # Disclaimer: The code is purely experimental. Feel free to
 # use it at your own risk.
@@ -24,12 +24,12 @@ import numpy as np
 import dateutil.parser as dt
 import pydash
 from typing import List, Dict, Tuple, Optional, Type, Any, Union
-from nptyping import Int, UInt, Float
+#from nptyping import Int, UInt, Float
 
 
 class CziMetadata:
 
-    def __init__(self, filename: str, dim2none: bool = True) -> CziMetadata:
+    def __init__(self, filename: str, dim2none: bool = True) -> None:
 
         # get the general CZI object using aicspylibczi
         aicsczi = CziFile(filename)
@@ -147,7 +147,7 @@ class CziMetadata:
 
 class CziDimensions:
     """
-    Information CZI Dimension Characters:
+    Information official CZI Dimension Characters:
     - 'X':'Width'
     - 'Y':'Height'
     - 'C':'Channel'
@@ -162,7 +162,7 @@ class CziDimensions:
     - 'V':'View'         # e.g. for SPIM
     """
 
-    def __init__(self, filename: str, dim2none: bool = True) -> CziDimensions:
+    def __init__(self, filename: str, dim2none: bool = True) -> None:
 
         # get the metadata as a dictionary
         md_dict = CziMetadata.get_metadict(filename)
@@ -272,7 +272,7 @@ class CziDimensions:
 
 
 class CziBoundingBox:
-    def __init__(self, filename: str, isMosaic: bool = False) -> CziBoundingBox:
+    def __init__(self, filename: str, isMosaic: bool = False) -> None:
 
         aicsczi = CziFile(filename)
 
@@ -284,7 +284,7 @@ class CziBoundingBox:
 
 
 class CziChannelInfo:
-    def __init__(self, filename: str) -> CziChannelInfo:
+    def __init__(self, filename: str) -> None:
 
         # get the metadata as a dictionary
         md_dict = CziMetadata.get_metadict(filename)
@@ -423,7 +423,7 @@ class CziChannelInfo:
 
 
 class CziScaling:
-    def __init__(self, filename: str, dim2none: bool = True) -> CziScaling:
+    def __init__(self, filename: str, dim2none: bool = True) -> None:
 
         # get the metadata as a dictionary
         md_dict = CziMetadata.get_metadict(filename)
@@ -455,7 +455,7 @@ class CziScaling:
                 self.ZUnit = md_dict['ImageDocument']['Metadata']['Scaling']['Items']['Distance'][2]['DefaultUnitFormat']
             except (IndexError, KeyError, TypeError) as e:
                 print('Error extracting Z ScaleUnit :', e)
-                self.ZUnit = self.XScaleUnit
+                self.ZUnit = self.XUnit
         except (IndexError, KeyError, TypeError) as e:
             print('Error extracting Z Scale  :', e)
             if dim2none:
@@ -463,8 +463,8 @@ class CziScaling:
                 self.ZUnit = None
             if not dim2none:
                 # set to isotropic scaling if it was single plane only
-                self.Z = self.XScale
-                self.ZUnit = self.XScaleUnit
+                self.Z = self.X
+                self.ZUnit = self.XUnit
 
         # convert scale unit to avoid encoding problems
         if self.XUnit == 'µm':
@@ -480,7 +480,9 @@ class CziScaling:
                                           scalez=self.Z)
 
     @staticmethod
-    def get_scale_ratio(scalex: Float = 1.0, scaley: Float = 1.0, scalez: Float = 1.0) -> Dict:
+    def get_scale_ratio(scalex: float = 1.0,
+                        scaley: float = 1.0,
+                        scalez: float = 1.0) -> Dict:
 
         # set default scale factor to 1.0
         scale_ratio = {'xy': 1.0,
@@ -498,7 +500,7 @@ class CziScaling:
 
 
 class CziInfo:
-    def __init__(self, filename: str) -> CziInfo:
+    def __init__(self, filename: str) -> None:
 
         # get directory and filename etc.
         self.dirname = os.path.dirname(filename)
@@ -524,7 +526,7 @@ class CziInfo:
 
 
 class CziObjectives:
-    def __init__(self, filename: str) -> CziObjectives:
+    def __init__(self, filename: str) -> None:
 
         # get the metadata as a dictionary
         md_dict = CziMetadata.get_metadict(filename)
@@ -662,7 +664,7 @@ class CziObjectives:
 
 
 class CziDetector:
-    def __init__(self, filename: str) -> CziDetector:
+    def __init__(self, filename: str) -> None:
 
         # get the metadata as a dictionary
         md_dict = CziMetadata.get_metadict(filename)
@@ -760,7 +762,7 @@ class CziDetector:
 
 
 class CziMicroscope:
-    def __init__(self, filename: str) -> CziMicroscope:
+    def __init__(self, filename: str) -> None:
 
         # get the metadata as a dictionary
         md_dict = CziMetadata.get_metadict(filename)
@@ -793,7 +795,7 @@ class CziMicroscope:
 
 
 class CziSampleInfo:
-    def __init__(self, filename: str) -> CziSampleInfo:
+    def __init__(self, filename: str) -> None:
 
         # get the metadata as a dictionary
         md_dict = CziMetadata.get_metadict(filename)
@@ -955,7 +957,7 @@ class CziSampleInfo:
 
 
 class CziScene:
-    def __init__(self, czi: CziFile, sceneindex: Int) -> CziScene:
+    def __init__(self, czi: CziFile, sceneindex: int) -> None:
 
         if not czi.is_mosaic():
             self.bbox = czi.get_all_scene_bounding_boxes()[sceneindex]
@@ -1302,40 +1304,40 @@ def norm_columns(df: pd.DataFrame,
 
 
 def filter_planetable(planetable: pd.DataFrame,
-                      S: Int = 0,
-                      T: Int = 0,
-                      Z:Int = 0,
-                      C:Int = 0) -> pd.DataFrame:
+                      s: int = 0,
+                      t: int = 0,
+                      z: int = 0,
+                      c: int = 0) -> pd.DataFrame:
 
     # filter planetable for specific scene
-    if S > planetable['Scene'].max():
+    if s > planetable['Scene'].max():
         print('Scene Index was invalid. Using Scene = 0.')
-        S = 0
-    pt = planetable[planetable['Scene'] == S]
+        s = 0
+    pt = planetable[planetable['Scene'] == s]
 
     # filter planetable for specific timepoint
-    if T > planetable['T'].max():
+    if t > planetable['T'].max():
         print('Time Index was invalid. Using T = 0.')
-        T = 0
-    pt = planetable[planetable['T'] == T]
+        t = 0
+    pt = planetable[planetable['T'] == t]
 
     # filter resulting planetable pt for a specific z-plane
     try:
-        if Z > planetable['Z[micron]'].max():
+        if z > planetable['Z[micron]'].max():
             print('Z-Plane Index was invalid. Using Z = 0.')
             zplane = 0
-            pt = pt[pt['Z[micron]'] == Z]
+            pt = pt[pt['Z[micron]'] == z]
     except KeyError as e:
-        if Z > planetable['Z [micron]'].max():
+        if z > planetable['Z [micron]'].max():
             print('Z-Plane Index was invalid. Using Z = 0.')
             zplane = 0
-            pt = pt[pt['Z [micron]'] == Z]
+            pt = pt[pt['Z [micron]'] == z]
 
     # filter planetable for specific channel
-    if C > planetable['C'].max():
+    if c > planetable['C'].max():
         print('Channel Index was invalid. Using C = 0.')
-        C = 0
-    pt = planetable[planetable['C'] == C]
+        c = 0
+    pt = planetable[planetable['C'] == c]
 
     # return filtered planetable
     return pt
@@ -1366,10 +1368,21 @@ def save_planetable(df: pd.DataFrame,
     return csvfile
 
 
-def create_mdict_complete(filename: str, sort: bool=True) -> Dict:
+def create_mdict_complete(metadata: Union[str, CziMetadata], sort: bool = True) -> Dict:
+    """
+    Created a metadata dictionary. Accepts a filename of a CZI file or
+    a CziMetadata class
 
-    # get the metadata as a dictionary
-    metadata = CziMetadata(filename)
+    Args:
+        metadata: filename or CziMetadata class
+        sort: sort the dictionary
+
+    Returns: dictionary with the metadata
+
+    """
+    if isinstance(metadata, str):
+        # get the metadata as a dictionary from filename
+        metadata = CziMetadata(metadata)
 
     # create a dictionary with the metadata
     md_dict = {'Directory': metadata.info.dirname,
@@ -1476,7 +1489,7 @@ def writexml_czi(filename: str, xmlsuffix: str = '_CZI_MetaData.xml') -> str:
     return xmlfile
 
 
-def addzeros(number: Int) -> str:
+def addzeros(number: int) -> str:
     """Convert a number into a string and add leading zeros.
     Typically used to construct filenames with equal lengths.
 
