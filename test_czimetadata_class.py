@@ -1,9 +1,8 @@
 from czitools import czi_metadata as czimd
 from czitools import czi_read as czird
 import napari
-from czitools import napari_czitools as nap
 from aicspylibczi import CziFile
-from czitools import utils
+from utils import utils, napari as nap
 
 defaultdir = r"D:\Testdata_Zeiss\CZI_Testfiles"
 filename = utils.openfile(directory=defaultdir,

@@ -44,6 +44,7 @@ from PyQt5.QtCore import pyqtSlot
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtGui import QFont
 from czitools import czi_metadata as czimd
+from utils import utils as utils
 import zarr
 import dask
 import dask.array as da
@@ -109,13 +110,13 @@ class TableWidget(QWidget):
         self.mdtable.setHorizontalHeaderItem(1, item2)
 
 
-def show_napari(viewer: Any, array: np.ndarray, metadata: czimd.CziMetadata,
-                blending: str = 'additive',
-                calc_contrast: bool = False,
-                auto_contrast: bool = False,
-                gamma: Int = 0.85,
-                add_mdtable: bool = True,
-                rename_sliders: bool = False):
+def showviewer(viewer: Any, array: np.ndarray, metadata: czimd.CziMetadata,
+               blending: str = 'additive',
+               calc_contrast: bool = False,
+               auto_contrast: bool = False,
+               gamma: Int = 0.85,
+               add_mdtable: bool = True,
+               rename_sliders: bool = False):
 
     # create list for the napari layers
     napari_layers = []
@@ -162,7 +163,7 @@ def show_napari(viewer: Any, array: np.ndarray, metadata: czimd.CziMetadata,
 
         # cut out channel
         if metadata.dims.SizeC is not None:
-            channel = slicedim(array, ch, metadata.dim_order['C'])
+            channel = utils.slicedim(array, ch, metadata.dim_order['C'])
         if metadata.dims.SizeC is None:
             channel = array
 
@@ -173,7 +174,7 @@ def show_napari(viewer: Any, array: np.ndarray, metadata: czimd.CziMetadata,
 
         if calc_contrast:
             # really calculate the min and max values - might be slow
-            sc = calc_scaling(channel, corr_max=0.5)
+            sc = utils.calc_scaling(channel, corr_max=0.5)
             print('Display Scaling', sc)
 
             # add channel to napari viewer
@@ -214,14 +215,14 @@ def show_napari(viewer: Any, array: np.ndarray, metadata: czimd.CziMetadata,
         print('Rename Sliders based on the Dimension String ....')
 
         # get the label of the sliders (as a tuple) ad rename it
-        sliderlabels = napari_rename_sliders(viewer.dims.axis_labels, metadata.dim_order)
+        sliderlabels = rename_sliders(viewer.dims.axis_labels, metadata.dim_order)
 
         viewer.dims.axis_labels = sliderlabels
 
     return napari_layers
 
 
-def napari_rename_sliders(sliders: Tuple, dim_order: Dict) -> Tuple:
+def rename_sliders(sliders: Tuple, dim_order: Dict) -> Tuple:
 
     # update the labels with the correct dimension strings
     slidernames = ['B', 'H', 'V', 'M', 'S', 'T', 'Z']
@@ -243,73 +244,3 @@ def napari_rename_sliders(sliders: Tuple, dim_order: Dict) -> Tuple:
 
     return sliders
 
-
-def slicedim(array: Union[np.ndarry, dask.array, zarr.Array],
-             dimindex: Int,
-             posdim: Int) -> np.ndarray:
-    """slice out a specific channel without (!) dropping the dimension
-    of the array to conserve the dimorder string
-    this should work for Numpy.Array, Dask and ZARR ...
-
-    if posdim == 0:
-        array_sliced = array[dimindex:dimindex + 1, ...]
-    if posdim == 1:
-        array_sliced = array[:, dimindex:dimindex + 1, ...]
-    if posdim == 2:
-        array_sliced = array[:, :, dimindex:dimindex + 1, ...]
-    if posdim == 3:
-        array_sliced = array[:, :, :, dimindex:dimindex + 1, ...]
-    if posdim == 4:
-        array_sliced = array[:, :, :, :, dimindex:dimindex + 1, ...]
-    if posdim == 5:
-        array_sliced = array[:, :, :, :, :, dimindex:dimindex + 1, ...]
-    """
-
-    idl_all = [slice(None, None, None)] * (len(array.shape) - 2)
-    idl_all[posdim] = slice(dimindex, dimindex + 1, None)
-    array_sliced = array[tuple(idl_all)]
-
-    return array_sliced
-
-
-def calc_scaling(data: np.ndarray,
-                 corr_min: float = 1.0,
-                 offset_min: Int = 0,
-                 corr_max: Float = 0.85,
-                 offset_max: Int = 0) -> List[Int, Int]:
-    """Calculate the scaling for better display
-
-    :param data: Calculate min / max scaling
-    :type data: Numpy.Array or dask.array or zarr.array
-    :param corr_min: correction factor for minvalue, defaults to 1.0
-    :type corr_min: float, optional
-    :param offset_min: offset for min value, defaults to 0
-    :type offset_min: int, optional
-    :param corr_max: correction factor for max value, defaults to 0.85
-    :type corr_max: float, optional
-    :param offset_max: offset for max value, defaults to 0
-    :type offset_max: int, optional
-    :return: list with [minvalue, maxvalue]
-    :rtype: list
-    """
-
-    start = time.time()
-
-    # get min-max values for initial scaling
-    if isinstance(data, zarr.Array):
-        minvalue, maxvalue = np.min(data), np.max(data)
-    elif isinstance(data, da.Array):
-        # use dask.compute only once since this is faster
-        minvalue, maxvalue = da.compute(data.min(), data.max())
-    else:
-        minvalue, maxvalue = np.min(data, initial=0), np.max(data, initial=0)
-
-    end = time.time()
-
-    minvalue = np.round((minvalue + offset_min) * corr_min, 0)
-    maxvalue = np.round((maxvalue + offset_max) * corr_max, 0)
-
-    print('Scaling:', minvalue, maxvalue)
-    print('Calculation of Min-Max [s] : ', end - start)
-
-    return [minvalue, maxvalue]
