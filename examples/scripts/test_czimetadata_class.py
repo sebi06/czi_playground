@@ -71,10 +71,15 @@ pt, csvfile = czimd.get_planetable(filename,
 
 print(pt[:5])
 
-# read some pixel data
+# get info from a specific scene
 aicsczi = CziFile(filename)
-all_scenes = czird.readczi(filename)
 scene = czimd.CziScene(aicsczi, 0)
+print("Scene XY-Width-Height :", scene.xstart, scene.ystart, scene.width, scene.height)
+print("Scene DimString :", scene.single_scene_dimstr)
+print("Scene Shape :", scene.shape_single_scene)
+
+# read pixel data
+all_scenes = czird.readczi(filename)
 
 # show array inside napari viewer
 viewer = napari.Viewer()
