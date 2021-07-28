@@ -44,7 +44,7 @@ from PyQt5.QtCore import pyqtSlot
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtGui import QFont
 from czitools import czi_metadata as czimd
-from utils import utils as utils
+from utils import misc as utils
 import zarr
 import dask
 import dask.array as da

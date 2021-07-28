@@ -2,6 +2,7 @@ from tkinter import filedialog
 from tkinter import *
 from czitools import czi_metadata as czimd
 import zarr
+import pandas as pd
 import dask
 import dask.array as da
 import numpy as np
@@ -13,21 +14,21 @@ from nptyping import Int, UInt, Float
 def openfile(directory: str,
              title: str = "Open CZI Image File",
              ftypename: str = "CZI Files",
-             extension: str="*.czi") -> str:
+             extension: str = "*.czi") -> str:
 
     # request input and output image path from user
     root = Tk()
     root.withdraw()
     input_path = filedialog.askopenfile(title=title,
                                         initialdir=directory,
-                                        filetypes = [(ftypename, extension)])
+                                        filetypes=[(ftypename, extension)])
     if input_path is not None:
         return input_path.name
     if input_path is None:
         return None
 
 
-def slicedim(array: Union[np.ndarry, dask.array, zarr.Array],
+def slicedim(array: Union[np.ndarray, dask.array.Array, zarr.Array],
              dimindex: Int,
              posdim: Int) -> np.ndarray:
     """slice out a specific channel without (!) dropping the dimension
@@ -59,7 +60,7 @@ def calc_scaling(data: np.ndarray,
                  corr_min: float = 1.0,
                  offset_min: Int = 0,
                  corr_max: Float = 0.85,
-                 offset_max: Int = 0) -> List[Int, Int]:
+                 offset_max: Int = 0) -> Tuple[Int, Int]:
     """Calculate the scaling for better display
 
     :param data: Calculate min / max scaling
@@ -96,3 +97,25 @@ def calc_scaling(data: np.ndarray,
     print('Calculation of Min-Max [s] : ', end - start)
 
     return [minvalue, maxvalue]
+
+
+def md2dataframe(md_dict: Dict, paramcol: str = 'Parameter', keycol: str = 'Value') -> pd.DataFrame:
+    """Convert the metadata dictionary to a Pandas DataFrame.
+
+    :param metadata: MeteData dictionary
+    :type metadata: dict
+    :param paramcol: Name of Columns for the MetaData Parameters, defaults to 'Parameter'
+    :type paramcol: str, optional
+    :param keycol: Name of Columns for the MetaData Values, defaults to 'Value'
+    :type keycol: str, optional
+    :return: Pandas DataFrame containing all the metadata
+    :rtype: Pandas.DataFrame
+    """
+    mdframe = pd.DataFrame(columns=[paramcol, keycol])
+
+    for k in md_dict.keys():
+        d = {'Parameter': k, 'Value': md_dict[k]}
+        df = pd.DataFrame([d], index=[0])
+        mdframe = pd.concat([mdframe, df], ignore_index=True)
+
+    return mdframe

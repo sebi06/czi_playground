@@ -31,14 +31,14 @@ class CziMetadata:
 
     def __init__(self, filename: str, dim2none: bool = True) -> CziMetadata:
 
-        # get metadata dictionary using aicspylibczi
-        # aicsczi: Type[CziFile]
+        # get the general CZI object using aicspylibczi
         aicsczi = CziFile(filename)
-        xmlstr = ET.tostring(aicsczi.meta)
-        md_dict = xmltodict.parse(xmlstr)
+
+        # get metadata dictionary using aicspylibczi
+        md_dict = self.get_metadict(filename)
 
         # get directory, filename, SW version and acquisition data
-        self.info = CziFileInfo(filename, md_dict)
+        self.info = CziInfo(filename)
 
         # check if CZI is a RGB file
         if 'A' in aicsczi.dims:
@@ -46,7 +46,7 @@ class CziMetadata:
         else:
             self.isRGB = False
 
-        # get additional data by using pylibczi directly
+        # get additional data by using aicspylibczi directly
         self.aicsczi_dims = aicsczi.dims
         self.aicsczi_dims_shape = aicsczi.get_dims_shape()
         self.aicsczi_size = aicsczi.size
@@ -62,29 +62,29 @@ class CziMetadata:
         self.npdtype, self.maxrange = self.get_dtype_fromstring(self.pixeltype_aics)
 
         # get the dimensions and order
-        self.dims = CziDimensions(md_dict, dim2none=dim2none)
+        self.dims = CziDimensions(filename, dim2none=dim2none)
         self.dim_order, self.dim_index, self.dim_valid = self.get_dimorder(aicsczi.dims)
 
         # get the bounding boxes
-        self.bbox = CziBoundingBox(aicsczi, isMosaic=self.isMosaic)
+        self.bbox = CziBoundingBox(filename, isMosaic=self.isMosaic)
 
         # get information about channels
-        self.channelinfo = CziChannelInfo(md_dict)
+        self.channelinfo = CziChannelInfo(filename)
 
         # get scaling info
-        self.scale = CziScaling(md_dict, dim2none=dim2none)
+        self.scale = CziScaling(filename, dim2none=dim2none)
 
         # get objetive information
-        self.objective = CziObjectives(md_dict)
+        self.objective = CziObjectives(filename)
 
         # get detector information
-        self.detector = CziDetector(md_dict)
+        self.detector = CziDetector(filename)
 
         # get detector information
-        self.microscope = CziMicroscope(md_dict)
+        self.microscope = CziMicroscope(filename)
 
         # get information about sample carrier and wells etc.
-        self.sample = CziSampleInfo(md_dict)
+        self.sample = CziSampleInfo(filename)
 
     # can be also used without creating an instance of the class
     @staticmethod
@@ -135,6 +135,15 @@ class CziMetadata:
 
         return dims_dict, dimindex_list, numvalid_dims
 
+    @staticmethod
+    def get_metadict(filename: str) -> Dict:
+
+        aicsczi = CziFile(filename)
+        xmlstr = ET.tostring(aicsczi.meta)
+        md_dict = xmltodict.parse(xmlstr)
+
+        return md_dict
+
 
 class CziDimensions:
     """
@@ -153,7 +162,10 @@ class CziDimensions:
     - 'V':'View'         # e.g. for SPIM
     """
 
-    def __init__(self, md_dict: Dict, dim2none: bool = True) -> CziDimensions:
+    def __init__(self, filename: str, dim2none: bool = True) -> CziDimensions:
+
+        # get the metadata as a dictionary
+        md_dict = CziMetadata.get_metadict(filename)
 
         # get the dimensions
         self.SizeX = np.int(md_dict['ImageDocument']['Metadata']['Information']['Image']['SizeX'])
@@ -260,7 +272,10 @@ class CziDimensions:
 
 
 class CziBoundingBox:
-    def __init__(self, aicsczi: CziFile, isMosaic: bool = False) -> CziBoundingBox:
+    def __init__(self, filename: str, isMosaic: bool = False) -> CziBoundingBox:
+
+        aicsczi = CziFile(filename)
+
         self.all_scenes = aicsczi.get_all_scene_bounding_boxes()
         if isMosaic:
             self.all_mosaic_scenes = aicsczi.get_all_mosaic_scene_bounding_boxes()
@@ -269,7 +284,10 @@ class CziBoundingBox:
 
 
 class CziChannelInfo:
-    def __init__(self, md_dict: Dict) -> CziChannelInfo:
+    def __init__(self, filename: str) -> CziChannelInfo:
+
+        # get the metadata as a dictionary
+        md_dict = CziMetadata.get_metadict(filename)
 
         # create empty lists for channel related information
         channels = []
@@ -405,7 +423,10 @@ class CziChannelInfo:
 
 
 class CziScaling:
-    def __init__(self, md_dict: Dict, dim2none: bool = True) -> CziScaling:
+    def __init__(self, filename: str, dim2none: bool = True) -> CziScaling:
+
+        # get the metadata as a dictionary
+        md_dict = CziMetadata.get_metadict(filename)
 
         # get the XY scaling information
         try:
@@ -476,12 +497,15 @@ class CziScaling:
         return scale_ratio
 
 
-class CziFileInfo:
-    def __init__(self, filename: str, md_dict: Dict) -> CziFileInfo:
+class CziInfo:
+    def __init__(self, filename: str) -> CziInfo:
 
         # get directory and filename etc.
         self.dirname = os.path.dirname(filename)
         self.filename = os.path.basename(filename)
+
+        # get the metadata as a dictionary
+        md_dict = CziMetadata.get_metadict(filename)
 
         # get acquisition data and SW version
         try:
@@ -500,7 +524,10 @@ class CziFileInfo:
 
 
 class CziObjectives:
-    def __init__(self, md_dict: Dict) -> CziObjectives:
+    def __init__(self, filename: str) -> CziObjectives:
+
+        # get the metadata as a dictionary
+        md_dict = CziMetadata.get_metadict(filename)
 
         self.NA = []
         self.mag = []
@@ -635,7 +662,10 @@ class CziObjectives:
 
 
 class CziDetector:
-    def __init__(self, md_dict: Dict) -> CziDetector:
+    def __init__(self, filename: str) -> CziDetector:
+
+        # get the metadata as a dictionary
+        md_dict = CziMetadata.get_metadict(filename)
 
         # get detector information
         self.model = []
@@ -730,7 +760,10 @@ class CziDetector:
 
 
 class CziMicroscope:
-    def __init__(self, md_dict: Dict) -> CziMicroscope:
+    def __init__(self, filename: str) -> CziMicroscope:
+
+        # get the metadata as a dictionary
+        md_dict = CziMetadata.get_metadict(filename)
 
         self.ID = None
         self.Name = None
@@ -760,7 +793,10 @@ class CziMicroscope:
 
 
 class CziSampleInfo:
-    def __init__(self, md_dict: Dict) -> CziSampleInfo:
+    def __init__(self, filename: str) -> CziSampleInfo:
+
+        # get the metadata as a dictionary
+        md_dict = CziMetadata.get_metadict(filename)
 
         # check for well information
         self.well_array_names = []
@@ -1330,7 +1366,10 @@ def save_planetable(df: pd.DataFrame,
     return csvfile
 
 
-def create_metadata_dict(metadata: CziMetadata) -> Dict:
+def create_mdict_complete(filename: str) -> Dict:
+
+    # get the metadata as a dictionary
+    metadata = CziMetadata(filename)
 
     # create a dictionary with the metadata
     md_dict = {'Directory': metadata.info.dirname,
@@ -1407,28 +1446,6 @@ def sort_dict_by_key(unsorted_dict: Dict) -> Dict:
         sorted_dict.update({key: unsorted_dict[key]})
 
     return sorted_dict
-
-
-def md2dataframe(md_dict: Dict, paramcol: str = 'Parameter', keycol: str = 'Value') -> pd.DataFrame:
-    """Convert the metadata dictionary to a Pandas DataFrame.
-
-    :param metadata: MeteData dictionary
-    :type metadata: dict
-    :param paramcol: Name of Columns for the MetaData Parameters, defaults to 'Parameter'
-    :type paramcol: str, optional
-    :param keycol: Name of Columns for the MetaData Values, defaults to 'Value'
-    :type keycol: str, optional
-    :return: Pandas DataFrame containing all the metadata
-    :rtype: Pandas.DataFrame
-    """
-    mdframe = pd.DataFrame(columns=[paramcol, keycol])
-
-    for k in md_dict.keys():
-        d = {'Parameter': k, 'Value': md_dict[k]}
-        df = pd.DataFrame([d], index=[0])
-        mdframe = pd.concat([mdframe, df], ignore_index=True)
-
-    return mdframe
 
 
 def writexml_czi(filename: str, xmlsuffix: str = '_CZI_MetaData.xml') -> str:
