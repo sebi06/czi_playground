@@ -26,7 +26,7 @@ czi_sample = czimd.CziSampleInfo(filename)
 mdata = czimd.CziMetadata(filename)
 
 # get the metadata as a dictionary
-mdict = czimd.create_mdict_complete(filename)
+mdict = czimd.create_mdict_complete(filename, sort=False)
 for k,v in mdict.items():
     print(k, ' : ', v)
 

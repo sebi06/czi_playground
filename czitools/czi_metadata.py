@@ -1366,66 +1366,66 @@ def save_planetable(df: pd.DataFrame,
     return csvfile
 
 
-def create_mdict_complete(filename: str) -> Dict:
+def create_mdict_complete(filename: str, sort: bool=True) -> Dict:
 
     # get the metadata as a dictionary
     metadata = CziMetadata(filename)
 
     # create a dictionary with the metadata
     md_dict = {'Directory': metadata.info.dirname,
-             'Filename': metadata.info.filename,
-             'AcqDate': metadata.info.acquisition_date,
-             'SW-Name': metadata.info.software_name,
-             'SW-Version': metadata.info.software_version,
-             'czi_dims': metadata.aicsczi_dims,
-             'czi_dims_shape': metadata.aicsczi_dims_shape,
-             'czi_size': metadata.aicsczi_size,
-             'dim_order': metadata.dim_order,
-             'dim_index': metadata.dim_index,
-             'dim_valid': metadata.dim_valid,
-             'SizeX': metadata.dims.SizeX,
-             'SizeY': metadata.dims.SizeY,
-             'SizeZ': metadata.dims.SizeZ,
-             'SizeC': metadata.dims.SizeC,
-             'SizeT': metadata.dims.SizeT,
-             'SizeS': metadata.dims.SizeS,
-             'SizeB': metadata.dims.SizeB,
-             'SizeM': metadata.dims.SizeM,
-             'SizeH': metadata.dims.SizeH,
-             'SizeI': metadata.dims.SizeI,
-             'isRGB': metadata.isRGB,
-             'isMosaic': metadata.isMosaic,
-             'ObjNA': metadata.objective.NA,
-             'ObjMag': metadata.objective.mag,
-             'ObjID': metadata.objective.ID,
-             'ObjName': metadata.objective.name,
-             'ObjImmersion': metadata.objective.immersion,
-             'TubelensMag': metadata.objective.tubelensmag,
-             'ObjNominalMag': metadata.objective.nominalmag,
-             'XScale': metadata.scale.X,
-             'YScale': metadata.scale.Y,
-             'ZScale': metadata.scale.Z,
-             'XScaleUnit': metadata.scale.XUnit,
-             'YScaleUnit': metadata.scale.YUnit,
-             'ZScaleUnit': metadata.scale.ZUnit,
-             'scale_ratio': metadata.scale.ratio,
-             'DetectorModel': metadata.detector.model,
-             'DetectorName': metadata.detector.name,
-             'DetectorID': metadata.detector.ID,
-             'DetectorType': metadata.detector.modeltype,
-             'InstrumentID': metadata.detector.instrumentID,
-             'ChannelsNames': metadata.channelinfo.names,
-             'ChannelShortNames': metadata.channelinfo.shortnames,
-             'ChannelColors': metadata.channelinfo.colors,
-             'bbox_all_scenes': metadata.bbox.all_scenes,
-             'WellArrayNames': metadata.sample.well_array_names,
-             'WellIndicies': metadata.sample.well_indices,
-             'WellPositionNames': metadata.sample.well_position_names,
-             'WellRowID': metadata.sample.well_rowID,
-             'WellColumnID': metadata.sample.well_colID,
-             'WellCounter': metadata.sample.well_counter,
-             'SceneCenterStageX': metadata.sample.scene_stageX,
-             'SceneCenterStageY': metadata.sample.scene_stageX
+               'Filename': metadata.info.filename,
+               'AcqDate': metadata.info.acquisition_date,
+               'SW-Name': metadata.info.software_name,
+               'SW-Version': metadata.info.software_version,
+               'czi_dims': metadata.aicsczi_dims,
+               'czi_dims_shape': metadata.aicsczi_dims_shape,
+               'czi_size': metadata.aicsczi_size,
+               'dim_order': metadata.dim_order,
+               'dim_index': metadata.dim_index,
+               'dim_valid': metadata.dim_valid,
+               'SizeX': metadata.dims.SizeX,
+               'SizeY': metadata.dims.SizeY,
+               'SizeZ': metadata.dims.SizeZ,
+               'SizeC': metadata.dims.SizeC,
+               'SizeT': metadata.dims.SizeT,
+               'SizeS': metadata.dims.SizeS,
+               'SizeB': metadata.dims.SizeB,
+               'SizeM': metadata.dims.SizeM,
+               'SizeH': metadata.dims.SizeH,
+               'SizeI': metadata.dims.SizeI,
+               'isRGB': metadata.isRGB,
+               'isMosaic': metadata.isMosaic,
+               'ObjNA': metadata.objective.NA,
+               'ObjMag': metadata.objective.mag,
+               'ObjID': metadata.objective.ID,
+               'ObjName': metadata.objective.name,
+               'ObjImmersion': metadata.objective.immersion,
+               'TubelensMag': metadata.objective.tubelensmag,
+               'ObjNominalMag': metadata.objective.nominalmag,
+               'XScale': metadata.scale.X,
+               'YScale': metadata.scale.Y,
+               'ZScale': metadata.scale.Z,
+               'XScaleUnit': metadata.scale.XUnit,
+               'YScaleUnit': metadata.scale.YUnit,
+               'ZScaleUnit': metadata.scale.ZUnit,
+               'scale_ratio': metadata.scale.ratio,
+               'DetectorModel': metadata.detector.model,
+               'DetectorName': metadata.detector.name,
+               'DetectorID': metadata.detector.ID,
+               'DetectorType': metadata.detector.modeltype,
+               'InstrumentID': metadata.detector.instrumentID,
+               'ChannelsNames': metadata.channelinfo.names,
+               'ChannelShortNames': metadata.channelinfo.shortnames,
+               'ChannelColors': metadata.channelinfo.colors,
+               'bbox_all_scenes': metadata.bbox.all_scenes,
+               'WellArrayNames': metadata.sample.well_array_names,
+               'WellIndicies': metadata.sample.well_indices,
+               'WellPositionNames': metadata.sample.well_position_names,
+               'WellRowID': metadata.sample.well_rowID,
+               'WellColumnID': metadata.sample.well_colID,
+               'WellCounter': metadata.sample.well_counter,
+               'SceneCenterStageX': metadata.sample.scene_stageX,
+               'SceneCenterStageY': metadata.sample.scene_stageX
              }
 
     # check if mosaic
@@ -1434,9 +1434,10 @@ def create_mdict_complete(filename: str) -> Dict:
         md_dict['bbox_all_mosaic_tiles'] = metadata.bbox.all_mosaic_tiles
         md_dict['bbox_all_tiles'] = metadata.bbox.all_tiles
 
-    ordered_dict = sort_dict_by_key(md_dict)
-
-    return ordered_dict
+    if sort:
+        return sort_dict_by_key(md_dict)
+    if not sort:
+        return md_dict
 
 
 def sort_dict_by_key(unsorted_dict: Dict) -> Dict:
