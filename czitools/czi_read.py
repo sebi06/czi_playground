@@ -76,7 +76,7 @@ def readczi(filename: str) -> np.ndarray:
         scene = czimd.CziScene(aicsczi, sceneindex=0)
         shape_all = scene.shape_single_scene
         shape_all[scene.posS] = md.dims.SizeS
-        print('Shape all Scenes : ', shape_all)
+        print('Shape all Scenes (scale=1.0): ', shape_all)
         print('DimString all Scenes : ', scene.single_scene_dimstr)
 
         # create empty array to hold all scenes
@@ -88,9 +88,11 @@ def readczi(filename: str) -> np.ndarray:
 
             # create a slice object for all_scenes array
             if not scene.isRGB:
-                idl_all = [slice(None, None, None)] * (len(all_scenes.shape) - 2)
+                #idl_all = [slice(None, None, None)] * (len(all_scenes.shape) - 2)
+                idl_all = [slice(None, None, None)] * (len(shape_all) - 2)
             if scene.isRGB:
-                idl_all = [slice(None, None, None)] * (len(all_scenes.shape) - 3)
+                #idl_all = [slice(None, None, None)] * (len(all_scenes.shape) - 3)
+                idl_all = [slice(None, None, None)] * (len(shape_all) - 3)
 
             # update the entry with the current S index
             idl_all[scene.posS] = s
