@@ -134,8 +134,8 @@ def show(viewer: Any, array: np.ndarray, metadata: czimd.CziMetadata,
     """
 
     # check if contrast mode
-    if not contrast in ["calc", "napari_auto", "from_czi"]:
-        print(contrast, "is not valid contrast method. Use "from_czi" instead.")
+    if contrast not in ["calc", "napari_auto", "from_czi"]:
+        print(contrast, "is not valid contrast method. Use from_czi instead.")
         contrast = "from_czi"
 
     # create empty list for the napari layers
@@ -278,4 +278,3 @@ def rename_sliders(sliders: Tuple, dim_order: Dict) -> Tuple:
             print("No", s, "Dimension found")
 
     return sliders
-
