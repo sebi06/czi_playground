@@ -1450,7 +1450,7 @@ def create_mdict_complete(metadata: Union[str, CziMetadata], sort: bool = True) 
         md_dict['XScale sf'] = metadata.scale.X_sf
         md_dict['YScale sf'] = metadata.scale.Y_sf
         md_dict['ratio sf'] = metadata.scale.ratio_sf
-        md_dict['scalefactorXY'] = metadata.scale.scalefactor
+        md_dict['scalefactorXY'] = metadata.scale.scalefactorXY
 
     # check if mosaic
     if metadata.isMosaic:
