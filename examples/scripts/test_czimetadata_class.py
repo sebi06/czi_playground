@@ -79,7 +79,7 @@ print("Scene DimString :", scene.single_scene_dimstr)
 print("Scene Shape :", scene.shape_single_scene)
 
 # read pixel data
-all_scenes = czird.readczi(filename)
+all_scenes = czird.read(filename)
 
 # show array inside napari viewer
 viewer = napari.Viewer()

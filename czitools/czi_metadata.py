@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : czi_metadata.py
-# Version     : 0.0.7
+# Version     : 0.0.8
 # Author      : sebi06
-# Date        : 28.07.2021
+# Date        : 04.08.2021
 #
 # Disclaimer: The code is purely experimental. Feel free to
 # use it at your own risk.
@@ -1398,6 +1398,8 @@ def create_mdict_complete(metadata: Union[str, CziMetadata], sort: bool = True) 
                'dim_valid': metadata.dim_valid,
                'SizeX': metadata.dims.SizeX,
                'SizeY': metadata.dims.SizeY,
+               'SizeX': metadata.dims.SizeX,
+               'SizeY': metadata.dims.SizeY,
                'SizeZ': metadata.dims.SizeZ,
                'SizeC': metadata.dims.SizeC,
                'SizeT': metadata.dims.SizeT,
@@ -1440,6 +1442,15 @@ def create_mdict_complete(metadata: Union[str, CziMetadata], sort: bool = True) 
                'SceneCenterStageX': metadata.sample.scene_stageX,
                'SceneCenterStageY': metadata.sample.scene_stageX
              }
+
+    # check fro extra entries when reading mosaic file with a scale factor
+    if hasattr(metadata.dims, "SizeX_sf"):
+        md_dict['SizeX sf'] = metadata.dims.SizeX_sf
+        md_dict['SizeY sf'] = metadata.dims.SizeY_sf
+        md_dict['XScale sf'] = metadata.scale.X_sf
+        md_dict['YScale sf'] = metadata.scale.Y_sf
+        md_dict['ratio sf'] = metadata.scale.ratio_sf
+        md_dict['scalefactorXY'] = metadata.scale.scalefactor
 
     # check if mosaic
     if metadata.isMosaic:
