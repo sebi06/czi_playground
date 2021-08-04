@@ -20,6 +20,12 @@ from typing import List, Dict, Tuple, Optional, Type, Any, Union
 
 
 def read(filename: str) -> Tuple[np.ndarray, czimd.CziMetadata]:
+    """Read the pixel data of an CZI image file. Scaling factor
+    of 1.0 will be used.
+
+    :param filename: filename of the CZI to be read
+    :return: CZI pixel data and the CziMetadata class
+    """
 
     # get the CZI metadata
     md = czimd.CziMetadata(filename)
@@ -43,6 +49,10 @@ def read(filename: str) -> Tuple[np.ndarray, czimd.CziMetadata]:
 
 
 def read_nonmosaic(filename: str) -> Tuple[Union[np.ndarray, None], czimd.CziMetadata]:
+    """Read CZI pixel data from non-mosaic image data
+    :param filename: filename of the CZI file to be read
+    :return: CZI pixel data and the CziMetadata class
+    """
 
     # get the CZI metadata
     md = czimd.CziMetadata(filename)
@@ -63,8 +73,8 @@ def read_nonmosaic(filename: str) -> Tuple[Union[np.ndarray, None], czimd.CziMet
     if scene.hasS:
         shape_all[scene.posS] = md.dims.SizeS
 
-    print('Shape all Scenes : ', shape_all)
-    print('DimString all Scenes : ', scene.single_scene_dimstr)
+    print("Shape all Scenes : ", shape_all)
+    print("DimString all Scenes : ", scene.single_scene_dimstr)
 
     # create an empty array with the correct dimensions
     all_scenes = np.empty(aicsczi.size, dtype=md.npdtype)
@@ -83,9 +93,9 @@ def read_nonmosaic(filename: str) -> Tuple[Union[np.ndarray, None], czimd.CziMet
         # create th index lists containing the slice objects
         if scene.hasS:
             idl_scene = [slice(None, None, None)] * (len(all_scenes.shape) - 2)
-            idl_scene[aicsczi.dims.index('S')] = 0
+            idl_scene[aicsczi.dims.index("S")] = 0
             idl_all = [slice(None, None, None)] * (len(all_scenes.shape) - 2)
-            idl_all[aicsczi.dims.index('S')] = s
+            idl_all[aicsczi.dims.index("S")] = s
 
             # cast current stack into the stack for all scenes
             all_scenes[tuple(idl_all)] = current_scene[tuple(idl_scene)]
@@ -94,12 +104,24 @@ def read_nonmosaic(filename: str) -> Tuple[Union[np.ndarray, None], czimd.CziMet
         if not scene.hasS:
             all_scenes = current_scene
 
-    print('Shape all scenes (no mosaic)', all_scenes.shape)
+    print("Shape all scenes (no mosaic)", all_scenes.shape)
 
     return all_scenes, md
 
 
 def read_mosaic(filename: str, scale: float=1.0) -> Tuple[Union[np.ndarray, None], czimd.CziMetadata]:
+    """Read the pixel data of an CZI image file with an option scale factor
+    to read the image with lower resolution and array size
+
+    :param filename: filename of the CZI mosaic file to be read
+    :param scale: scaling factor when reading the mosaic.
+    :return: CZI pixel data and the updated CziMetadata class
+    """
+
+    # do not allow scale > 1.0
+    if scale > 1.0:
+        print("Scale factor > 1.0 is not recommended. Using scale = 1.0.")
+        scale = 1.0
 
     # get the CZI metadata
     md = czimd.CziMetadata(filename)
@@ -116,8 +138,8 @@ def read_mosaic(filename: str, scale: float=1.0) -> Tuple[Union[np.ndarray, None
     scene = czimd.CziScene(aicsczi, sceneindex=0)
     shape_all = scene.shape_single_scene
     shape_all[scene.posS] = md.dims.SizeS
-    print('Shape all Scenes (scale=1.0): ', shape_all)
-    print('DimString all Scenes : ', scene.single_scene_dimstr)
+    print("Shape all Scenes (scale=1.0): ", shape_all)
+    print("DimString all Scenes : ", scene.single_scene_dimstr)
 
     # create empty array to hold all scenes
     all_scenes = np.empty(shape_all, dtype=md.npdtype)
@@ -158,10 +180,10 @@ def read_mosaic(filename: str, scale: float=1.0) -> Tuple[Union[np.ndarray, None
                                                        Z=z,
                                                        C=c)
 
-                print('Shape Single Scene (Scalefactor: ', scale, ': ', scene_array_htzc.shape)
+                print("Shape Single Scene (Scalefactor: ", scale, ": ", scene_array_htzc.shape)
 
                 # check if all_scenes array must be resized due to scaling
-                if scale != 1.0 and not resize_done:
+                if scale < 1.0 and not resize_done:
 
                     shape_all[-1] = scene_array_htzc.shape[-1]
                     shape_all[-2] = scene_array_htzc.shape[-2]
@@ -193,10 +215,10 @@ def read_mosaic(filename: str, scale: float=1.0) -> Tuple[Union[np.ndarray, None
                                                     scale_factor=scale,
                                                     C=c)
 
-                print('Shape Single Scene (Scalefactor: ', scale, ': ', scene_array_c.shape)
+                print("Shape Single Scene (Scalefactor: ", scale, ": ", scene_array_c.shape)
 
                 # check if all_scenes array must be resized due to scaling
-                if scale != 1.0 and not resize_done:
+                if scale < 1.0 and not resize_done:
                     #new_shape = shape_all
                     shape_all[-1] = scene_array_c.shape[-1]
                     shape_all[-2] = scene_array_c.shape[-2]
@@ -219,6 +241,14 @@ def adaptmd_scale(metadata: czimd.CziMetadata,
                   newx: int,
                   newy: int,
                   scale: float=1.0) -> czimd.CziMetadata:
+    """ Adapt some metadata due to reading the CZI using a scaling factor.
+
+    :param metadata: CziMetadata class to be modified
+    :param newx: new size of X dimension [pixel]
+    :param newy: new size of Y dimension [pixel]
+    :param scale: scale factor used to read the CZI image
+    :return: updated CziMetadata class
+    """
 
     # adapt the size entry
     setattr(metadata.dims, "SizeX_sf", newx)

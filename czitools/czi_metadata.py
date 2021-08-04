@@ -24,7 +24,6 @@ import numpy as np
 import dateutil.parser as dt
 import pydash
 from typing import List, Dict, Tuple, Optional, Type, Any, Union
-#from nptyping import Int, UInt, Float
 
 
 class CziMetadata:
@@ -41,7 +40,7 @@ class CziMetadata:
         self.info = CziInfo(filename)
 
         # check if CZI is a RGB file
-        if 'A' in aicsczi.dims:
+        if "A" in aicsczi.dims:
             self.isRGB = True
         else:
             self.isRGB = False
@@ -53,7 +52,7 @@ class CziMetadata:
         self.isMosaic = aicsczi.is_mosaic()
 
         # determine pixel type for CZI array by reading XML metadata
-        self.pixeltype = md_dict['ImageDocument']['Metadata']['Information']['Image']['PixelType']
+        self.pixeltype = md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["PixelType"]
 
         # determine pixel type for CZI array using aicspylibczi
         self.pixeltype_aics = aicsczi.pixel_type
@@ -92,16 +91,16 @@ class CziMetadata:
 
         dytpe = None
 
-        if pixeltype == 'gray16' or pixeltype == 'Gray16':
+        if pixeltype == "gray16" or pixeltype == "Gray16":
             dtype = np.dtype(np.uint16)
             maxvalue = 65535
-        if pixeltype == 'gray8' or pixeltype == 'Gray8':
+        if pixeltype == "gray8" or pixeltype == "Gray8":
             dtype = np.dtype(np.uint8)
             maxvalue = 255
-        if pixeltype == 'bgr48' or pixeltype == 'Bgr48':
+        if pixeltype == "bgr48" or pixeltype == "Bgr48":
             dtype = np.dtype(np.uint16)
             maxvalue = 65535
-        if pixeltype == 'bgr24' or pixeltype == 'Bgr24':
+        if pixeltype == "bgr24" or pixeltype == "Bgr24":
             dtype = np.dtype(np.uint8)
             maxvalue = 255
 
@@ -122,7 +121,7 @@ class CziMetadata:
         """
 
         dimindex_list = []
-        dims = ['R', 'I', 'M', 'H', 'V', 'B', 'S', 'T', 'C', 'Z', 'Y', 'X', 'A']
+        dims = ["R", "I", "M", "H", "V", "B", "S", "T", "C", "Z", "Y", "X", "A"]
         dims_dict = {}
 
         # loop over all dimensions and find the index
@@ -148,18 +147,18 @@ class CziMetadata:
 class CziDimensions:
     """
     Information official CZI Dimension Characters:
-    - 'X':'Width'
-    - 'Y':'Height'
-    - 'C':'Channel'
-    - 'Z':'Slice'        # depth
-    - 'T':'Time'
-    - 'R':'Rotation'
-    - 'S':'Scene'        # contiguous regions of interest in a mosaic image
-    - 'I':'Illumination' # direction
-    - 'B':'Block'        # acquisition
-    - 'M':'Mosaic'       # index of tile for compositing a scene
-    - 'H':'Phase'        # e.g. Airy detector fibers
-    - 'V':'View'         # e.g. for SPIM
+    - "X":"Width"
+    - "Y":"Height"
+    - "C":"Channel"
+    - "Z":"Slice"        # depth
+    - "T":"Time"
+    - "R":"Rotation"
+    - "S":"Scene"        # contiguous regions of interest in a mosaic image
+    - "I":"Illumination" # direction
+    - "B":"Block"        # acquisition
+    - "M":"Mosaic"       # index of tile for compositing a scene
+    - "H":"Phase"        # e.g. Airy detector fibers
+    - "V":"View"         # e.g. for SPIM
     """
 
     def __init__(self, filename: str, dim2none: bool = True) -> None:
@@ -168,12 +167,12 @@ class CziDimensions:
         md_dict = CziMetadata.get_metadict(filename)
 
         # get the dimensions
-        self.SizeX = np.int(md_dict['ImageDocument']['Metadata']['Information']['Image']['SizeX'])
-        self.SizeY = np.int(md_dict['ImageDocument']['Metadata']['Information']['Image']['SizeY'])
+        self.SizeX = np.int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeX"])
+        self.SizeY = np.int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeY"])
 
         # check C-Dimension
         try:
-            self.SizeC = np.int(md_dict['ImageDocument']['Metadata']['Information']['Image']['SizeC'])
+            self.SizeC = np.int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeC"])
             self.hasC = True
         except KeyError as e:
             self.hasC = False
@@ -184,7 +183,7 @@ class CziDimensions:
 
         # check Z-Dimension
         try:
-            self.SizeZ = np.int(md_dict['ImageDocument']['Metadata']['Information']['Image']['SizeZ'])
+            self.SizeZ = np.int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeZ"])
             self.hasZ = True
         except KeyError as e:
             self.hasZ = False
@@ -195,7 +194,7 @@ class CziDimensions:
 
         # check T-Dimension
         try:
-            self.SizeT = np.int(md_dict['ImageDocument']['Metadata']['Information']['Image']['SizeT'])
+            self.SizeT = np.int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeT"])
             self.hasT = True
         except KeyError as e:
             self.hasT = False
@@ -206,7 +205,7 @@ class CziDimensions:
 
         # check M-Dimension
         try:
-            self.SizeM = np.int(md_dict['ImageDocument']['Metadata']['Information']['Image']['SizeM'])
+            self.SizeM = np.int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeM"])
             self.hasM = True
         except KeyError as e:
             self.hasM = False
@@ -217,7 +216,7 @@ class CziDimensions:
 
         # check B-Dimension
         try:
-            self.SizeB = np.int(md_dict['ImageDocument']['Metadata']['Information']['Image']['SizeB'])
+            self.SizeB = np.int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeB"])
             self.hasB = True
         except KeyError as e:
             self.hasB = False
@@ -228,7 +227,7 @@ class CziDimensions:
 
         # check S-Dimension
         try:
-            self.SizeS = np.int(md_dict['ImageDocument']['Metadata']['Information']['Image']['SizeS'])
+            self.SizeS = np.int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeS"])
             self.hasS = True
         except KeyError as e:
             self.hasS = False
@@ -239,7 +238,7 @@ class CziDimensions:
 
         # check H-Dimension
         try:
-            self.SizeH = np.int(md_dict['ImageDocument']['Metadata']['Information']['Image']['SizeH'])
+            self.SizeH = np.int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeH"])
             self.hasH = True
         except KeyError as e:
             self.hasH = False
@@ -250,7 +249,7 @@ class CziDimensions:
 
         # check I-Dimension
         try:
-            self.SizeI = np.int(md_dict['ImageDocument']['Metadata']['Information']['Image']['SizeH'])
+            self.SizeI = np.int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeH"])
             self.hasI = True
         except KeyError as e:
             self.hasI = False
@@ -261,7 +260,7 @@ class CziDimensions:
 
         # check R-Dimension
         try:
-            self.SizeR = np.int(md_dict['ImageDocument']['Metadata']['Information']['Image']['SizeR'])
+            self.SizeR = np.int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeR"])
             self.hasR = True
         except KeyError as e:
             self.hasR = False
@@ -297,7 +296,7 @@ class CziChannelInfo:
         channels_gamma = []
 
         try:
-            sizeC = np.int(md_dict['ImageDocument']['Metadata']['Information']['Image']['SizeC'])
+            sizeC = np.int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeC"])
         except KeyError as e:
             sizeC = 1
 
@@ -306,42 +305,42 @@ class CziChannelInfo:
             # get name for dye
             try:
                 channels.append(
-                    md_dict['ImageDocument']['Metadata']['DisplaySetting']['Channels']['Channel']['ShortName'])
+                    md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"]["ShortName"])
             except KeyError as e:
-                print('Channel shortname not found :', e)
+                print("Channel shortname not found :", e)
                 try:
-                    channels.append(md_dict['ImageDocument']['Metadata']['DisplaySetting']['Channels']['Channel']['DyeName'])
+                    channels.append(md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"]["DyeName"])
                 except KeyError as e:
-                    print('Channel dye not found :', e)
-                    channels.append('Dye-CH1')
+                    print("Channel dye not found :", e)
+                    channels.append("Dye-CH1")
 
             # get channel name
             try:
                 channels_names.append(
-                    md_dict['ImageDocument']['Metadata']['DisplaySetting']['Channels']['Channel']['Name'])
+                    md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"]["Name"])
             except KeyError as e:
                 try:
                     channels_names.append(
-                        md_dict['ImageDocument']['Metadata']['DisplaySetting']['Channels']['Channel']['@Name'])
+                        md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"]["@Name"])
                 except KeyError as e:
-                    print('Channel name found :', e)
-                    channels_names.append('CH1')
+                    print("Channel name found :", e)
+                    channels_names.append("CH1")
 
             # get channel color
             try:
                 channels_colors.append(
-                    md_dict['ImageDocument']['Metadata']['DisplaySetting']['Channels']['Channel']['Color'])
+                    md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"]["Color"])
             except KeyError as e:
-                print('Channel color not found :', e)
-                channels_colors.append('#80808000')
+                print("Channel color not found :", e)
+                channels_colors.append("#80808000")
 
             # get contrast setting fro DisplaySetting
             try:
-                low = np.float(md_dict['ImageDocument']['Metadata']['DisplaySetting']['Channels']['Channel']['Low'])
+                low = np.float(md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"]["Low"])
             except KeyError as e:
                 low = 0.1
             try:
-                high = np.float(md_dict['ImageDocument']['Metadata']['DisplaySetting']['Channels']['Channel']['High'])
+                high = np.float(md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"]["High"])
             except KeyError as e:
                 high = 0.5
 
@@ -350,7 +349,7 @@ class CziChannelInfo:
             # get the gamma values
             try:
                 channels_gamma.append(
-                    np.float(md_dict['ImageDocument']['Metadata']['DisplaySetting']['Channels']['Channel']['Gamma']))
+                    np.float(md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"]["Gamma"]))
             except KeyError as e:
                 channels_gamma.append(0.85)
 
@@ -361,47 +360,47 @@ class CziChannelInfo:
                 # get name for dyes
                 try:
                     channels.append(
-                        md_dict['ImageDocument']['Metadata']['DisplaySetting']['Channels']['Channel'][ch]['ShortName'])
+                        md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"][ch]["ShortName"])
                 except KeyError as e:
-                    print('Channel shortname not found :', e)
+                    print("Channel shortname not found :", e)
                     try:
                         channels.append(
-                            md_dict['ImageDocument']['Metadata']['DisplaySetting']['Channels']['Channel'][ch][
-                                'DyeName'])
+                            md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"][ch][
+                                "DyeName"])
                     except KeyError as e:
-                        print('Channel dye not found :', e)
-                        channels.append('Dye-CH' + str(ch))
+                        print("Channel dye not found :", e)
+                        channels.append("Dye-CH" + str(ch))
 
                 # get channel names
                 try:
                     channels_names.append(
-                        md_dict['ImageDocument']['Metadata']['DisplaySetting']['Channels']['Channel'][ch]['Name'])
+                        md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"][ch]["Name"])
                 except KeyError as e:
                     try:
                         channels_names.append(
-                            md_dict['ImageDocument']['Metadata']['DisplaySetting']['Channels']['Channel'][ch]['@Name'])
+                            md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"][ch]["@Name"])
                     except KeyError as e:
-                        print('Channel name not found :', e)
-                        channels_names.append('CH' + str(ch))
+                        print("Channel name not found :", e)
+                        channels_names.append("CH" + str(ch))
 
                 # get channel colors
                 try:
                     channels_colors.append(
-                        md_dict['ImageDocument']['Metadata']['DisplaySetting']['Channels']['Channel'][ch]['Color'])
+                        md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"][ch]["Color"])
                 except KeyError as e:
-                    print('Channel color not found :', e)
+                    print("Channel color not found :", e)
                     # use grayscale instead
-                    channels_colors.append('80808000')
+                    channels_colors.append("80808000")
 
                 # get contrast setting fro DisplaySetting
                 try:
                     low = np.float(
-                        md_dict['ImageDocument']['Metadata']['DisplaySetting']['Channels']['Channel'][ch]['Low'])
+                        md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"][ch]["Low"])
                 except KeyError as e:
                     low = 0.0
                 try:
                     high = np.float(
-                        md_dict['ImageDocument']['Metadata']['DisplaySetting']['Channels']['Channel'][ch]['High'])
+                        md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"][ch]["High"])
                 except KeyError as e:
                     high = 0.5
 
@@ -410,7 +409,7 @@ class CziChannelInfo:
                 # get the gamma values
                 try:
                     channels_gamma.append(np.float(
-                        md_dict['ImageDocument']['Metadata']['DisplaySetting']['Channels']['Channel'][ch]['Gamma']))
+                        md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"][ch]["Gamma"]))
                 except KeyError as e:
                     channels_gamma.append(0.85)
 
@@ -430,34 +429,34 @@ class CziScaling:
 
         # get the XY scaling information
         try:
-            self.X = float(md_dict['ImageDocument']['Metadata']['Scaling']['Items']['Distance'][0]['Value']) * 1000000
-            self.Y = float(md_dict['ImageDocument']['Metadata']['Scaling']['Items']['Distance'][1]['Value']) * 1000000
+            self.X = float(md_dict["ImageDocument"]["Metadata"]["Scaling"]["Items"]["Distance"][0]["Value"]) * 1000000
+            self.Y = float(md_dict["ImageDocument"]["Metadata"]["Scaling"]["Items"]["Distance"][1]["Value"]) * 1000000
             self.X = np.round(self.X, 3)
             self.Y = np.round(self.Y, 3)
             try:
-                self.XUnit = md_dict['ImageDocument']['Metadata']['Scaling']['Items']['Distance'][0]['DefaultUnitFormat']
-                self.YUnit = md_dict['ImageDocument']['Metadata']['Scaling']['Items']['Distance'][1]['DefaultUnitFormat']
+                self.XUnit = md_dict["ImageDocument"]["Metadata"]["Scaling"]["Items"]["Distance"][0]["DefaultUnitFormat"]
+                self.YUnit = md_dict["ImageDocument"]["Metadata"]["Scaling"]["Items"]["Distance"][1]["DefaultUnitFormat"]
             except (KeyError, TypeError) as e:
-                print('Error extracting XY ScaleUnit :', e)
+                print("Error extracting XY ScaleUnit :", e)
                 self.XUnit = None
                 self.YUnit = None
         except (KeyError, TypeError) as e:
-            print('Error extracting XY Scale  :', e)
+            print("Error extracting XY Scale  :", e)
 
         # get the Z scaling information
         try:
-            self.Z = float(md_dict['ImageDocument']['Metadata']['Scaling']['Items']['Distance'][2]['Value']) * 1000000
+            self.Z = float(md_dict["ImageDocument"]["Metadata"]["Scaling"]["Items"]["Distance"][2]["Value"]) * 1000000
             self.Z = np.round(self.Z, 3)
             # additional check for faulty z-scaling
             if self.Z == 0.0:
                 self.Z = 1.0
             try:
-                self.ZUnit = md_dict['ImageDocument']['Metadata']['Scaling']['Items']['Distance'][2]['DefaultUnitFormat']
+                self.ZUnit = md_dict["ImageDocument"]["Metadata"]["Scaling"]["Items"]["Distance"][2]["DefaultUnitFormat"]
             except (IndexError, KeyError, TypeError) as e:
-                print('Error extracting Z ScaleUnit :', e)
+                print("Error extracting Z ScaleUnit :", e)
                 self.ZUnit = self.XUnit
         except (IndexError, KeyError, TypeError) as e:
-            print('Error extracting Z Scale  :', e)
+            print("Error extracting Z Scale  :", e)
             if dim2none:
                 self.Z = None
                 self.ZUnit = None
@@ -467,12 +466,12 @@ class CziScaling:
                 self.ZUnit = self.XUnit
 
         # convert scale unit to avoid encoding problems
-        if self.XUnit == 'µm':
-            self.XUnit = 'micron'
-        if self.YUnit == 'µm':
-            self.YUnit = 'micron'
-        if self.ZUnit == 'µm':
-            self.ZUnit = 'micron'
+        if self.XUnit == "µm":
+            self.XUnit = "micron"
+        if self.YUnit == "µm":
+            self.YUnit = "micron"
+        if self.ZUnit == "µm":
+            self.ZUnit = "micron"
 
         # get scaling ratio
         self.ratio = self.get_scale_ratio(scalex=self.X,
@@ -485,16 +484,16 @@ class CziScaling:
                         scalez: float = 1.0) -> Dict:
 
         # set default scale factor to 1.0
-        scale_ratio = {'xy': 1.0,
-                       'zx': 1.0
+        scale_ratio = {"xy": 1.0,
+                       "zx": 1.0
                        }
         try:
             # get the factor between XY scaling
-            scale_ratio['xy'] = np.round(scalex / scaley, 3)
+            scale_ratio["xy"] = np.round(scalex / scaley, 3)
             # get the scalefactor between XZ scaling
-            scale_ratio['zx'] = np.round(scalez / scalex, 3)
+            scale_ratio["zx"] = np.round(scalez / scalex, 3)
         except TypeError as e:
-            print(e, 'Using defaults = 1.0')
+            print(e, "Using defaults = 1.0")
 
         return scale_ratio
 
@@ -511,17 +510,17 @@ class CziInfo:
 
         # get acquisition data and SW version
         try:
-            self.software_name = md_dict['ImageDocument']['Metadata']['Information']['Application']['Name']
-            self.software_version = md_dict['ImageDocument']['Metadata']['Information']['Application']['Version']
+            self.software_name = md_dict["ImageDocument"]["Metadata"]["Information"]["Application"]["Name"]
+            self.software_version = md_dict["ImageDocument"]["Metadata"]["Information"]["Application"]["Version"]
         except KeyError as e:
-            print('Key not found:', e)
+            print("Key not found:", e)
             self.software_name = None
             self.software_version = None
 
         try:
-            self.acquisition_date = md_dict['ImageDocument']['Metadata']['Information']['Image']['AcquisitionDateAndTime']
+            self.acquisition_date = md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["AcquisitionDateAndTime"]
         except KeyError as e:
-            print('Key not found:', e)
+            print("Key not found:", e)
             self.acquisition_date = None
 
 
@@ -540,9 +539,9 @@ class CziObjectives:
         self.nominalmag = []
 
         # check if Instrument metadata actually exist
-        if pydash.objects.has(md_dict, ['ImageDocument', 'Metadata', 'Information', 'Instrument', 'Objectives']):
+        if pydash.objects.has(md_dict, ["ImageDocument", "Metadata", "Information", "Instrument", "Objectives"]):
             # get objective data
-            if isinstance(md_dict['ImageDocument']['Metadata']['Information']['Instrument']['Objectives']['Objective'], list):
+            if isinstance(md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Objectives"]["Objective"], list):
                 num_obj = len(md_dict['ImageDocument']['Metadata']['Information']['Instrument']['Objectives']['Objective'])
             else:
                 num_obj = 1
@@ -1353,11 +1352,11 @@ def save_planetable(df: pd.DataFrame,
     :type df: pd.DataFrame
     :param filename: filename of the CSV to be written
     :type filename: str
-    :param separator: seperator for the CSV file, defaults to ','
+    :param separator: separator for the CSV file, defaults to ','
     :type separator: str, optional
     :param index: option write the index into the CSV file, defaults to True
     :type index: bool, optional
-    :return: filename of the csvfile that was written
+    :return: filename of the CSV
     :rtype: str
     """
     csvfile = os.path.splitext(filename)[0] + '_planetable.csv'
@@ -1396,8 +1395,6 @@ def create_mdict_complete(metadata: Union[str, CziMetadata], sort: bool = True) 
                'dim_order': metadata.dim_order,
                'dim_index': metadata.dim_index,
                'dim_valid': metadata.dim_valid,
-               'SizeX': metadata.dims.SizeX,
-               'SizeY': metadata.dims.SizeY,
                'SizeX': metadata.dims.SizeX,
                'SizeY': metadata.dims.SizeY,
                'SizeZ': metadata.dims.SizeZ,
@@ -1474,7 +1471,7 @@ def sort_dict_by_key(unsorted_dict: Dict) -> Dict:
 
 
 def writexml_czi(filename: str, xmlsuffix: str = '_CZI_MetaData.xml') -> str:
-    """Write XML imformation of CZI to disk
+    """Write XML information of CZI to disk
 
     :param filename: CZI image filename
     :type filename: str
@@ -1524,7 +1521,7 @@ def addzeros(number: int) -> str:
 
 def get_fname_woext(filepath: str) -> str:
     """Get the complete path of a file without the extension
-    It alos will works for extensions like c:\myfile.abc.xyz
+    It also will works for extensions like c:\myfile.abc.xyz
     The output will be: c:\myfile
 
     :param filepath: complete fiepath
@@ -1540,7 +1537,7 @@ def get_fname_woext(filepath: str) -> str:
     for s in sufs:
         real_extension = real_extension + s
 
-    # remover real extension from filepath
+    # remove real extension from filepath
     filepath_woext = filepath.replace(real_extension, '')
 
     return filepath_woext

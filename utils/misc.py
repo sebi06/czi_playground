@@ -27,6 +27,15 @@ def openfile(directory: str,
              title: str = "Open CZI Image File",
              ftypename: str = "CZI Files",
              extension: str = "*.czi") -> str:
+    """ Open a simple Tk dialog to select a file.
+
+    :param directory: default directory
+    :param title: title of the dialog window
+    :param ftypename: name of allowed file type
+    :param extension: extension of allowed file type
+    :return: filepath object for the selected
+    """
+
 
     # request input and output image path from user
     root = Tk()
@@ -37,29 +46,34 @@ def openfile(directory: str,
     if input_path is not None:
         return input_path.name
     if input_path is None:
-        return ''
+        return ""
 
 
 def slicedim(array: Union[np.ndarray, dask.array.Array, zarr.Array],
              dimindex: int,
              posdim: int) -> np.ndarray:
-    """slice out a specific channel without (!) dropping the dimension
+    """Slice out a specific dimension without (!) dropping the dimension
     of the array to conserve the dimorder string
     this should work for Numpy.Array, Dask and ZARR ...
 
-    if posdim == 0:
-        array_sliced = array[dimindex:dimindex + 1, ...]
-    if posdim == 1:
-        array_sliced = array[:, dimindex:dimindex + 1, ...]
-    if posdim == 2:
-        array_sliced = array[:, :, dimindex:dimindex + 1, ...]
-    if posdim == 3:
-        array_sliced = array[:, :, :, dimindex:dimindex + 1, ...]
-    if posdim == 4:
-        array_sliced = array[:, :, :, :, dimindex:dimindex + 1, ...]
-    if posdim == 5:
-        array_sliced = array[:, :, :, :, :, dimindex:dimindex + 1, ...]
+    :param array: input array
+    :param dimindex: index of the slice dimension to be kept
+    :param posdim: position of the dimension to be sliced
+    :return: sliced array
     """
+
+    #if posdim == 0:
+    #    array_sliced = array[dimindex:dimindex + 1, ...]
+    #if posdim == 1:
+    #    array_sliced = array[:, dimindex:dimindex + 1, ...]
+    #if posdim == 2:
+    #    array_sliced = array[:, :, dimindex:dimindex + 1, ...]
+    #if posdim == 3:
+    #    array_sliced = array[:, :, :, dimindex:dimindex + 1, ...]
+    #if posdim == 4:
+    #    array_sliced = array[:, :, :, :, dimindex:dimindex + 1, ...]
+    #if posdim == 5:
+    #    array_sliced = array[:, :, :, :, :, dimindex:dimindex + 1, ...]
 
     idl_all = [slice(None, None, None)] * (len(array.shape) - 2)
     idl_all[posdim] = slice(dimindex, dimindex + 1, None)
@@ -105,22 +119,22 @@ def calc_scaling(data: np.ndarray,
     minvalue = np.round((minvalue + offset_min) * corr_min, 0)
     maxvalue = np.round((maxvalue + offset_max) * corr_max, 0)
 
-    print('Scaling:', minvalue, maxvalue)
-    print('Calculation of Min-Max [s] : ', end - start)
+    print("Scaling:", minvalue, maxvalue)
+    print("Calculation of Min-Max [s] : ", end - start)
 
     return minvalue, maxvalue
 
 
 def md2dataframe(md_dict: Dict,
-                 paramcol: str = 'Parameter',
-                 keycol: str = 'Value') -> pd.DataFrame:
+                 paramcol: str = "Parameter",
+                 keycol: str = "Value") -> pd.DataFrame:
     """Convert the metadata dictionary to a Pandas DataFrame.
 
     :param metadata: MeteData dictionary
     :type metadata: dict
-    :param paramcol: Name of Columns for the MetaData Parameters, defaults to 'Parameter'
+    :param paramcol: Name of Columns for the MetaData Parameters, defaults to "Parameter"
     :type paramcol: str, optional
-    :param keycol: Name of Columns for the MetaData Values, defaults to 'Value'
+    :param keycol: Name of Columns for the MetaData Values, defaults to "Value"
     :type keycol: str, optional
     :return: Pandas DataFrame containing all the metadata
     :rtype: Pandas.DataFrame
@@ -128,7 +142,7 @@ def md2dataframe(md_dict: Dict,
     mdframe = pd.DataFrame(columns=[paramcol, keycol])
 
     for k in md_dict.keys():
-        d = {'Parameter': k, 'Value': md_dict[k]}
+        d = {"Parameter": k, "Value": md_dict[k]}
         df = pd.DataFrame([d], index=[0])
         mdframe = pd.concat([mdframe, df], ignore_index=True)
 

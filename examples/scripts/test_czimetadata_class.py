@@ -53,7 +53,7 @@ mdata = czimd.CziMetadata(filename)
 # get the metadata as a dictionary
 mdict = czimd.create_mdict_complete(filename, sort=False)
 for k,v in mdict.items():
-    print(k, ' : ', v)
+    print(k, " : ", v)
 
 # and convert to pd.DataFrame
 df_md = misc.md2dataframe(mdict)
@@ -66,7 +66,7 @@ xmlfile = czimd.writexml_czi(filename)
 pt, csvfile = czimd.get_planetable(filename,
                                    norm_time=True,
                                    savetable=True,
-                                   separator=',',
+                                   separator=",",
                                    index=True)
 
 print(pt[:5])
@@ -84,7 +84,7 @@ all_scenes = czird.read(filename)
 # show array inside napari viewer
 viewer = napari.Viewer()
 layers = napari_tools.show(viewer, all_scenes, mdata,
-                           blending='additive',
+                           blending="additive",
                            calc_contrast=False,
                            auto_contrast=True,
                            gamma=0.85,
