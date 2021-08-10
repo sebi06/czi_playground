@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : czi_metadata.py
-# Version     : 0.0.8
+# Version     : 0.0.9
 # Author      : sebi06
-# Date        : 04.08.2021
+# Date        : 10.08.2021
 #
 # Disclaimer: The code is purely experimental. Feel free to
 # use it at your own risk.
@@ -541,10 +541,13 @@ class CziObjectives:
         # check if Instrument metadata actually exist
         if pydash.objects.has(md_dict, ["ImageDocument", "Metadata", "Information", "Instrument", "Objectives"]):
             # get objective data
-            if isinstance(md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Objectives"]["Objective"], list):
-                num_obj = len(md_dict['ImageDocument']['Metadata']['Information']['Instrument']['Objectives']['Objective'])
-            else:
-                num_obj = 1
+            try:
+                if isinstance(md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Objectives"]["Objective"], list):
+                    num_obj = len(md_dict['ImageDocument']['Metadata']['Information']['Instrument']['Objectives']['Objective'])
+                else:
+                    num_obj = 1
+            except KeyError as e:
+                num_obj = 0 # no objective found
 
             # if there is only one objective found
             if num_obj == 1:
