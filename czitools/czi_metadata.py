@@ -2,7 +2,7 @@
 
 #################################################################
 # File        : czi_metadata.py
-# Version     : 0.1.0
+# Version     : 0.1.1
 # Author      : sebi06
 # Date        : 11.08.2021
 #
@@ -84,6 +84,9 @@ class CziMetadata:
 
         # get information about sample carrier and wells etc.
         self.sample = CziSampleInfo(filename)
+
+        # get additional metainformation
+        self.add_metadata = CziAddMetaData(filename)
 
     # can be also used without creating an instance of the class
     @staticmethod
@@ -908,6 +911,43 @@ class CziSampleInfo:
 
         except (KeyError, TypeError) as e:
             print('No valid Scene or Well information found:', e)
+
+
+class CziAddMetaData:
+    def __init__(self, filename: str) -> None:
+
+        # get the metadata as a dictionary
+        md_dict = CziMetadata.get_metadict(filename)
+
+        try:
+            self.experiment = md_dict['ImageDocument']['Metadata']['Experiment']
+        except KeyError as e:
+            print('Key not found :', e)
+            self.experiment = None
+
+        try:
+            self.hardwaresetting = md_dict['ImageDocument']['Metadata']['HardwareSetting']
+        except KeyError as e:
+            print('Key not found :', e)
+            self.hardwaresetting = None
+
+        try:
+            self.customattributes = md_dict['ImageDocument']['Metadata']['CustomAttributes']
+        except KeyError as e:
+            print('Key not found :', e)
+            self.customattributes = None
+
+        try:
+            self.displaysetting = md_dict['ImageDocument']['Metadata']['DisplaySetting']
+        except KeyError as e:
+            print('Key not found :', e)
+            self.displaysetting = None
+
+        try:
+            self.layers = md_dict['ImageDocument']['Metadata']['Layers']
+        except KeyError as e:
+            print('Key not found :', e)
+            self.layers = None
 
 
 class CziScene:

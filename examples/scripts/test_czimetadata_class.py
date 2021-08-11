@@ -2,7 +2,7 @@
 
 #################################################################
 # File        : test_czimetadata_class.py
-# Version     : 0.0.2
+# Version     : 0.0.3
 # Author      : sebi06
 # Date        : 11.08.2021
 #
@@ -46,6 +46,7 @@ czi_objectives = czimd.CziObjectives(filename)
 czi_detectors = czimd.CziDetector(filename)
 czi_microscope = czimd.CziMicroscope(filename)
 czi_sample = czimd.CziSampleInfo(filename)
+czi_addmd = czimd.CziAddMetaData(filename)
 
 # get the complete metadata at once as one big class
 mdata = czimd.CziMetadata(filename)
