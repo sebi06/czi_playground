@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : test_czimetadata_class.py
-# Version     : 0.0.1
+# Version     : 0.0.2
 # Author      : sebi06
-# Date        : 28.07.2021
+# Date        : 11.08.2021
 #
 # Disclaimer: This code is purely experimental. Feel free to
 # use it at your own risk.
@@ -29,7 +29,7 @@ filename = misc.openfile(directory=defaultdir,
 print(filename)
 
 # get only specific metadata
-czi_dimensions = czimd.CziDimensions(filename, dim2none=True)
+czi_dimensions = czimd.CziDimensions(filename)
 print("SizeS: ", czi_dimensions.SizeS)
 print("SizeT: ", czi_dimensions.SizeT)
 print("SizeZ: ", czi_dimensions.SizeZ)
@@ -38,7 +38,7 @@ print("SizeY: ", czi_dimensions.SizeY)
 print("SizeX: ", czi_dimensions.SizeX)
 
 # and get more info
-czi_scaling = czimd.CziScaling(filename, dim2none=True)
+czi_scaling = czimd.CziScaling(filename)
 czi_channels = czimd.CziChannelInfo(filename)
 czi_bbox = czimd.CziBoundingBox(filename)
 czi_info = czimd.CziInfo(filename)

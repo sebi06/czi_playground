@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : czi_metadata.py
-# Version     : 0.0.9
+# Version     : 0.1.0
 # Author      : sebi06
-# Date        : 10.08.2021
+# Date        : 11.08.2021
 #
 # Disclaimer: The code is purely experimental. Feel free to
 # use it at your own risk.
@@ -28,7 +28,7 @@ from typing import List, Dict, Tuple, Optional, Type, Any, Union
 
 class CziMetadata:
 
-    def __init__(self, filename: str, dim2none: bool = True) -> None:
+    def __init__(self, filename: str) -> None:
 
         # get the general CZI object using aicspylibczi
         aicsczi = CziFile(filename)
@@ -61,7 +61,7 @@ class CziMetadata:
         self.npdtype, self.maxrange = self.get_dtype_fromstring(self.pixeltype_aics)
 
         # get the dimensions and order
-        self.dims = CziDimensions(filename, dim2none=dim2none)
+        self.dims = CziDimensions(filename)
         self.dim_order, self.dim_index, self.dim_valid = self.get_dimorder(aicsczi.dims)
 
         # get the bounding boxes
@@ -71,7 +71,7 @@ class CziMetadata:
         self.channelinfo = CziChannelInfo(filename)
 
         # get scaling info
-        self.scale = CziScaling(filename, dim2none=dim2none)
+        self.scale = CziScaling(filename)
 
         # get objetive information
         self.objective = CziObjectives(filename)
@@ -161,7 +161,7 @@ class CziDimensions:
     - "V":"View"         # e.g. for SPIM
     """
 
-    def __init__(self, filename: str, dim2none: bool = True) -> None:
+    def __init__(self, filename: str) -> None:
 
         # get the metadata as a dictionary
         md_dict = CziMetadata.get_metadict(filename)
@@ -173,101 +173,56 @@ class CziDimensions:
         # check C-Dimension
         try:
             self.SizeC = np.int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeC"])
-            self.hasC = True
         except KeyError as e:
-            self.hasC = False
-            if dim2none:
-                self.SizeC = None
-            if not dim2none:
-                self.SizeC = 1
+            self.SizeC = None
 
         # check Z-Dimension
         try:
             self.SizeZ = np.int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeZ"])
-            self.hasZ = True
         except KeyError as e:
-            self.hasZ = False
-            if dim2none:
-                self.SizeZ = None
-            if not dim2none:
-                self.SizeZ = 1
+            self.SizeZ = None
 
         # check T-Dimension
         try:
             self.SizeT = np.int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeT"])
-            self.hasT = True
         except KeyError as e:
-            self.hasT = False
-            if dim2none:
-                self.SizeT = None
-            if not dim2none:
-                self.SizeT = 1
+            self.SizeT = None
 
         # check M-Dimension
         try:
             self.SizeM = np.int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeM"])
-            self.hasM = True
         except KeyError as e:
-            self.hasM = False
-            if dim2none:
-                self.SizeM = None
-            if not dim2none:
-                self.SizeM = 1
+            self.SizeM = None
 
         # check B-Dimension
         try:
             self.SizeB = np.int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeB"])
-            self.hasB = True
         except KeyError as e:
-            self.hasB = False
-            if dim2none:
-                self.SizeB = None
-            if not dim2none:
-                self.SizeB = 1
+            self.SizeB = None
 
         # check S-Dimension
         try:
             self.SizeS = np.int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeS"])
-            self.hasS = True
         except KeyError as e:
-            self.hasS = False
-            if dim2none:
-                self.SizeS = None
-            if not dim2none:
-                self.SizeS = 1
+            self.SizeS = None
 
         # check H-Dimension
         try:
             self.SizeH = np.int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeH"])
-            self.hasH = True
         except KeyError as e:
-            self.hasH = False
-            if dim2none:
-                self.SizeH = None
-            if not dim2none:
-                self.SizeH = 1
+            self.SizeH = None
 
         # check I-Dimension
         try:
             self.SizeI = np.int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeH"])
-            self.hasI = True
         except KeyError as e:
-            self.hasI = False
-            if dim2none:
-                self.SizeI = None
-            if not dim2none:
-                self.SizeI = 1
+            self.SizeI = None
 
         # check R-Dimension
         try:
             self.SizeR = np.int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeR"])
-            self.hasR = True
         except KeyError as e:
-            self.hasR = False
-            if dim2none:
-                self.SizeR = None
-            if not dim2none:
-                self.SizeR = 1
+            self.SizeR = None
 
 
 class CziBoundingBox:
@@ -298,6 +253,7 @@ class CziChannelInfo:
         try:
             sizeC = np.int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeC"])
         except KeyError as e:
+            # enforce C = 1
             sizeC = 1
 
         # in case of only one channel
@@ -422,7 +378,7 @@ class CziChannelInfo:
 
 
 class CziScaling:
-    def __init__(self, filename: str, dim2none: bool = True) -> None:
+    def __init__(self, filename: str) -> None:
 
         # get the metadata as a dictionary
         md_dict = CziMetadata.get_metadict(filename)
@@ -457,13 +413,9 @@ class CziScaling:
                 self.ZUnit = self.XUnit
         except (IndexError, KeyError, TypeError) as e:
             print("Error extracting Z Scale  :", e)
-            if dim2none:
-                self.Z = None
-                self.ZUnit = None
-            if not dim2none:
-                # set to isotropic scaling if it was single plane only
-                self.Z = self.X
-                self.ZUnit = self.XUnit
+            # set to isotropic scaling if it was single plane only
+            self.Z = self.X
+            self.ZUnit = self.XUnit
 
         # convert scale unit to avoid encoding problems
         if self.XUnit == "µm":
@@ -547,7 +499,7 @@ class CziObjectives:
                 else:
                     num_obj = 1
             except KeyError as e:
-                num_obj = 0 # no objective found
+                num_obj = 0  # no objective found
 
             # if there is only one objective found
             if num_obj == 1:
