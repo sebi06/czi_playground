@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : czi_metadata.py
-# Version     : 0.1.1
+# Version     : 0.1.2
 # Author      : sebi06
-# Date        : 11.08.2021
+# Date        : 12.08.2021
 #
 # Disclaimer: The code is purely experimental. Feel free to
 # use it at your own risk.
@@ -46,9 +46,9 @@ class CziMetadata:
             self.isRGB = False
 
         # get additional data by using aicspylibczi directly
-        self.aicsczi_dims = aicsczi.dims
-        self.aicsczi_dims_shape = aicsczi.get_dims_shape()
-        self.aicsczi_size = aicsczi.size
+        self.dimstring = aicsczi.dims
+        self.dims_shape = aicsczi.get_dims_shape()
+        self.size = aicsczi.size
         self.isMosaic = aicsczi.is_mosaic()
 
         # determine pixel type for CZI array by reading XML metadata
@@ -65,7 +65,7 @@ class CziMetadata:
         self.dim_order, self.dim_index, self.dim_valid = self.get_dimorder(aicsczi.dims)
 
         # get the bounding boxes
-        self.bbox = CziBoundingBox(filename, isMosaic=self.isMosaic)
+        self.bbox = CziBoundingBox(filename)
 
         # get information about channels
         self.channelinfo = CziChannelInfo(filename)
@@ -229,12 +229,12 @@ class CziDimensions:
 
 
 class CziBoundingBox:
-    def __init__(self, filename: str, isMosaic: bool = False) -> None:
+    def __init__(self, filename: str) -> None:
 
         aicsczi = CziFile(filename)
 
         self.all_scenes = aicsczi.get_all_scene_bounding_boxes()
-        if isMosaic:
+        if aicsczi.is_mosaic():
             self.all_mosaic_scenes = aicsczi.get_all_mosaic_scene_bounding_boxes()
             self.all_mosaic_tiles = aicsczi.get_all_mosaic_tile_bounding_boxes()
             self.all_tiles = aicsczi.get_all_tile_bounding_boxes()
@@ -1127,7 +1127,7 @@ def get_planetable(czifile: str,
     else:
         sizeC = metadata.dims.SizeC
 
-    def getsbinfo(subblock: Any) -> Tuple[Float, Float, Float, Float]:
+    def getsbinfo(subblock: Any) -> Tuple[float, float, float, float]:
         try:
             # time = sb.xpath('//AcquisitionTime')[0].text
             time = subblock.findall(".//AcquisitionTime")[0].text
@@ -1384,9 +1384,9 @@ def create_mdict_complete(metadata: Union[str, CziMetadata], sort: bool = True) 
                'AcqDate': metadata.info.acquisition_date,
                'SW-Name': metadata.info.software_name,
                'SW-Version': metadata.info.software_version,
-               'czi_dims': metadata.aicsczi_dims,
-               'czi_dims_shape': metadata.aicsczi_dims_shape,
-               'czi_size': metadata.aicsczi_size,
+               'czi_dims': metadata.dimstring,
+               'czi_dims_shape': metadata.dims_shape,
+               'czi_size': metadata.size,
                'dim_order': metadata.dim_order,
                'dim_index': metadata.dim_index,
                'dim_valid': metadata.dim_valid,
