@@ -61,7 +61,7 @@ df_md = misc.md2dataframe(mdict)
 print(df_md[:10])
 
 # write metadata as XML to disk
-xmlfile = czimd.writexml_czi(filename)
+xmlfile = misc.writexml_czi(filename)
 
 # get the planetable for the CZI file and save it (optional)
 pt, csvfile = czimd.get_planetable(filename,
@@ -80,14 +80,13 @@ print("Scene DimString :", scene.single_scene_dimstr)
 print("Scene Shape :", scene.shape_single_scene)
 
 # read pixel data
-all_scenes = czird.read(filename)
+all_scenes, _ = czird.read(filename)
 
 # show array inside napari viewer
 viewer = napari.Viewer()
 layers = napari_tools.show(viewer, all_scenes, mdata,
                            blending="additive",
-                           calc_contrast=False,
-                           auto_contrast=True,
+                           contrast="calc",
                            gamma=0.85,
                            add_mdtable=True,
                            name_sliders=True)

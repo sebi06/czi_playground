@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : napari_tools.py
-# Version     : 0.0.7
+# Version     : 0.0.8
 # Author      : sebi06
-# Date        : 28.07.2021
+# Date        : 24.08.2021
 #
 # Disclaimer: This code is purely experimental. Feel free to
 # use it at your own risk.
@@ -135,7 +135,7 @@ def show(viewer: Any, array: np.ndarray, metadata: czimd.CziMetadata,
 
     # check if contrast mode
     if contrast not in ["calc", "napari_auto", "from_czi"]:
-        print(contrast, "is not valid contrast method. Use from_czi instead.")
+        print(contrast, "is not valid contrast method. Use napari_auto instead.")
         contrast = "from_czi"
 
     # create empty list for the napari layers
@@ -194,7 +194,7 @@ def show(viewer: Any, array: np.ndarray, metadata: czimd.CziMetadata,
 
         if contrast == "calc":
             # really calculate the min and max values - might be slow
-            sc = utils.calc_scaling(channel, corr_max=0.5)
+            sc = utils.calc_scaling(channel, corr_min=1.1, corr_max=0.9)
             print("Calculated Display Scaling (min & max)", sc)
 
             # add channel to napari viewer

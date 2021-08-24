@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : misc.py
-# Version     : 0.0.1
+# Version     : 0.0.2
 # Author      : sebi06
-# Date        : 28.07.2021
+# Date        : 24.08.2021
 #
 # Disclaimer: The code is purely experimental. Feel free to
 # use it at your own risk.
@@ -20,6 +20,9 @@ import dask
 import dask.array as da
 import numpy as np
 import time
+from pathlib import Path
+import xml.etree.ElementTree as ET
+from aicspylibczi import CziFile
 from typing import List, Dict, Tuple, Optional, Type, Any, Union
 
 
@@ -112,7 +115,7 @@ def calc_scaling(data: np.ndarray,
         # use dask.compute only once since this is faster
         minvalue, maxvalue = da.compute(data.min(), data.max())
     else:
-        minvalue, maxvalue = np.min(data, initial=0), np.max(data, initial=0)
+        minvalue, maxvalue = np.min(data), np.max(data)
 
     end = time.time()
 
@@ -147,3 +150,85 @@ def md2dataframe(md_dict: Dict,
         mdframe = pd.concat([mdframe, df], ignore_index=True)
 
     return mdframe
+
+
+def sort_dict_by_key(unsorted_dict: Dict) -> Dict:
+    sorted_keys = sorted(unsorted_dict.keys(), key=lambda x: x.lower())
+    sorted_dict = {}
+    for key in sorted_keys:
+        sorted_dict.update({key: unsorted_dict[key]})
+
+    return sorted_dict
+
+
+def writexml_czi(filename: str, xmlsuffix: str = '_CZI_MetaData.xml') -> str:
+    """Write XML information of CZI to disk
+
+    :param filename: CZI image filename
+    :type filename: str
+    :param xmlsuffix: suffix for the XML file that will be created, defaults to '_CZI_MetaData.xml'
+    :type xmlsuffix: str, optional
+    :return: filename of the XML file
+    :rtype: str
+    """
+
+    # get metadata dictionary using aicspylibczi
+    aicsczi = CziFile(filename)
+    metadata_xmlstr = ET.tostring(aicsczi.meta)
+
+    # change file name
+    xmlfile = filename.replace('.czi', xmlsuffix)
+
+    # get tree from string
+    tree = ET.ElementTree(ET.fromstring(metadata_xmlstr))
+
+    # write XML file to same folder
+    tree.write(xmlfile, encoding='utf-8', method='xml')
+
+    return xmlfile
+
+
+def addzeros(number: int) -> str:
+    """Convert a number into a string and add leading zeros.
+    Typically used to construct filenames with equal lengths.
+
+    :param number: the number
+    :type number: int
+    :return: zerostring - string with leading zeros
+    :rtype: str
+    """
+
+    if number < 10:
+        zerostring = '0000' + str(number)
+    if number >= 10 and number < 100:
+        zerostring = '000' + str(number)
+    if number >= 100 and number < 1000:
+        zerostring = '00' + str(number)
+    if number >= 1000 and number < 10000:
+        zerostring = '0' + str(number)
+
+    return zerostring
+
+
+def get_fname_woext(filepath: str) -> str:
+    """Get the complete path of a file without the extension
+    It also will works for extensions like c:\myfile.abc.xyz
+    The output will be: c:\myfile
+
+    :param filepath: complete fiepath
+    :type filepath: str
+    :return: complete filepath without extension
+    :rtype: str
+    """
+    # create empty string
+    real_extension = ''
+
+    # get all part of the file extension
+    sufs = Path(filepath).suffixes
+    for s in sufs:
+        real_extension = real_extension + s
+
+    # remove real extension from filepath
+    filepath_woext = filepath.replace(real_extension, '')
+
+    return filepath_woext
