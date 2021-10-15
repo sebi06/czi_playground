@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : misc.py
-# Version     : 0.0.2
+# Version     : 0.0.3
 # Author      : sebi06
-# Date        : 24.08.2021
+# Date        : 15.10.2021
 #
 # Disclaimer: The code is purely experimental. Feel free to
 # use it at your own risk.
@@ -23,6 +23,7 @@ import time
 from pathlib import Path
 import xml.etree.ElementTree as ET
 from aicspylibczi import CziFile
+from aicsimageio import AICSImage
 from typing import List, Dict, Tuple, Optional, Type, Any, Union
 
 
@@ -38,7 +39,6 @@ def openfile(directory: str,
     :param extension: extension of allowed file type
     :return: filepath object for the selected
     """
-
 
     # request input and output image path from user
     root = Tk()
@@ -232,3 +232,26 @@ def get_fname_woext(filepath: str) -> str:
     filepath_woext = filepath.replace(real_extension, '')
 
     return filepath_woext
+
+
+def check_dimsize(mdata: Union[int, None], set2one: int = 1) -> int:
+
+    # check if the dimension entry is None
+    if mdata is None:
+        size = 1
+    if mdata is not None:
+        size = mdata
+
+    return size
+
+
+def get_daskstack(aics_img: AICSImage) -> List:
+
+    stacks = []
+    for scene in aics_img.scenes:
+        aics_img.set_scene(scene)
+        stacks.append(aics_img.dask_data)
+
+    stacks = da.stack(stacks)
+
+    return stacks

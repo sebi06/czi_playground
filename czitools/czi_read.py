@@ -261,3 +261,6 @@ def adaptmd_scale(metadata: czimd.CziMetadata,
     setattr(metadata.scale, "ratio_sf", {"xy": 1.0, "zx": metadata.scale.ratio["zx"] * scale})
 
     return metadata
+
+
+
