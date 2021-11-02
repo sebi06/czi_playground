@@ -1,10 +1,7 @@
 import napari
 from czitools import czi_metadata as czimd
-from aicspylibczi import CziFile
+
 from aicsimageio import AICSImage
-import dask.array as da
-import time
-import pylibczirw_tools
 from utils import misc, napari_tools
 
 filename = r'd:\Testdata_Zeiss\CZI_Testfiles\testwell96.czi'
