@@ -2,15 +2,13 @@
 
 #################################################################
 # File        : processing_tools.py
-# Version     : 0.0.1
-# Author      : czsrh
-# Date        : 10.05.2021
-# Institution : Carl Zeiss Microscopy GmbH
+# Version     : 0.0.2
+# Author      : sebi06
+# Date        : 02.11.2021
 #
 # Disclaimer: This tool is purely experimental. Feel free to
 # use it at your own risk.
 #
-# Copyright (c) 2021 Carl Zeiss AG, Germany. All Rights Reserved.
 #################################################################
 
 import numpy as np
@@ -29,7 +27,10 @@ def calc_normvar(img2d: np.ndarray) -> float:
     :rtype: float
     """
 
+    # get the mean intensity value for the plane
     mean = np.mean(img2d)
+
+    # get height and width of the plane
     height = img2d.shape[0]
     width = img2d.shape[1]
 
@@ -43,23 +44,33 @@ def calc_normvar(img2d: np.ndarray) -> float:
     return normvar
 
 
-def get_sharpest_plane(zstack: np.ndarray, sizez: int) -> np.ndarray:
+def get_sharpest_plane(zstack: np.ndarray) -> Tuple[np.ndarray, list]:
+    """Get the sharpest plane from az-stack with shape [z, x, y]
 
+    :param zstack: 3D stack
+    :type zstack: NumPy.Array
+    :return: tuple (sharpest_plane from zstack, list of focus values
+    :rtype: tuple(NumPy.Array, fv)
+    """
+
+    # create empty list of focus values and set initial value to zero
     fv = []
     fv_max = 0
 
-    # for z in range(md['SizeZ']):
-    for z in range(sizez):
+    # loop over all zplanes
+    for z in range(zstack.shape[0]):
 
-        # print('Processing Plane Z :', z)
+        # get the normalizes variance for the plane
         normvar_curr = calc_normvar(zstack[z, :, :])
 
+        # append value to the list of focus values
         fv.append(normvar_curr)
 
+        # update the maximum focus value and sharpest plane
         if normvar_curr > fv_max:
             fv_max = normvar_curr
             sharpest_plane = zstack[z, :, :]
 
-    return sharpest_plane
+    return (sharpest_plane, fv)
 
 

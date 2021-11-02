@@ -3,11 +3,9 @@
 #################################################################
 # File        : visutools.py
 # Version     : 0.4
-# Author      : czsrh
+# Author      : sebi06
 # Date        : 12.10.2021
-# Institution : Carl Zeiss Microscopy GmbH
 #
-# Copyright (c) 2021 Carl Zeiss AG, Germany. All Rights Reserved.
 #################################################################
 
 import os
