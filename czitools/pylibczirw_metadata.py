@@ -22,7 +22,7 @@ from pylibCZIrw import czi as pyczi
 from aicspylibczi import CziFile
 from tqdm.contrib.itertools import product
 import pandas as pd
-import misc
+from utils import misc
 import numpy as np
 import dateutil.parser as dt
 import pydash
