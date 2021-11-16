@@ -1,5 +1,5 @@
 from pylibCZIrw import czi as pyczi
-import pylibczirw_metadata as czimd
+from czitools import pylibczirw_metadata as czimd
 import numpy as np
 from typing import List, Dict, Tuple, Optional, Type, Any, Union
 from tqdm.contrib.itertools import product

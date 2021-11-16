@@ -44,7 +44,7 @@ from PyQt5.QtCore import pyqtSlot
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtGui import QFont
 #import czi_metadata as czimd
-import pylibczirw_metadata as czimd
+from czitools import pylibczirw_metadata as czimd
 import misc
 import numpy as np
 from typing import List, Dict, Tuple, Optional, Type, Any, Union
