@@ -1,9 +1,9 @@
-import pylibczirw_metadata as czimd
+from czitools import pylibczirw_metadata as czimd
 from pylibCZIrw import czi as pyczi
 from matplotlib import pyplot as plt
 import napari
-import pylibczirw_tools
-import misc, napari_tools
+from utils import pylibczirw_tools
+from utils import misc, napari_tools
 import numpy as np
 
 #filename = r'D:\Testdata_Zeiss\CZI_Testfiles\CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi'
