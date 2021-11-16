@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : czi_read.py
-# Version     : 0.0.3
+# Version     : 0.0.4
 # Author      : sebi06
-# Date        : 04.08.2021
+# Date        : 15.11.2021
 #
 # Disclaimer: This code is purely experimental. Feel free to
 # use it at your own risk.
@@ -130,14 +130,19 @@ def read_mosaic(filename: str, scale: float=1.0) -> Tuple[Union[np.ndarray, None
     aicsczi = CziFile(filename)
 
     if not aicsczi.is_mosaic():
-        # check if this CZIn is really a non-mosaic file
+        # check if this CZI is really a non-mosaic file
         print("CZI is not a mosaic file. Please use the read_nonmosaic method instead")
         return None, md
 
     # get data for 1st scene and create the required shape for all scenes
     scene = czimd.CziScene(aicsczi, sceneindex=0)
     shape_all = scene.shape_single_scene
-    shape_all[scene.posS] = md.dims.SizeS
+
+    if scene.hasS:
+        shape_all[scene.posS] = md.dims.SizeS
+    if not scene.hasS:
+        num_scenes = 1
+
     print("Shape all Scenes (scale=1.0): ", shape_all)
     print("DimString all Scenes : ", scene.single_scene_dimstr)
 
@@ -147,7 +152,7 @@ def read_mosaic(filename: str, scale: float=1.0) -> Tuple[Union[np.ndarray, None
     resize_done = False
 
     # loop over scenes if CZI is not Mosaic
-    for s in range(md.dims.SizeS):
+    for s in range(num_scenes):
         scene = czimd.CziScene(aicsczi, sceneindex=s)
 
         # create a slice object for all_scenes array
@@ -159,7 +164,10 @@ def read_mosaic(filename: str, scale: float=1.0) -> Tuple[Union[np.ndarray, None
             idl_all = [slice(None, None, None)] * (len(shape_all) - 3)
 
         # update the entry with the current S index
-        idl_all[scene.posS] = s
+        if not scene.hasS:
+            idl_all[s] = s
+        if scene.hasS:
+            idl_all[scene.posS] = s
 
         # in case T-Z-H dimension are found
         if scene.hasT is True and scene.hasZ is True and scene.hasH is True:
@@ -203,6 +211,47 @@ def read_mosaic(filename: str, scale: float=1.0) -> Tuple[Union[np.ndarray, None
 
                 # cast the current scene into the stack for all scenes
                 all_scenes[tuple(idl_all)] = scene_array_htzc
+
+        # in case T-Z-H dimension are found
+        if scene.hasT is True and scene.hasZ is True and scene.hasH is False:
+
+            # read array for the scene
+            for t, z, c in product(range(scene.sizeT),
+                                   range(scene.sizeZ),
+                                   range(scene.sizeC)):
+                # read the array for the 1st scene using the ROI
+                scene_array_tzc = aicsczi.read_mosaic(region=(scene.xstart,
+                                                              scene.ystart,
+                                                              scene.width,
+                                                              scene.height),
+                                                       scale_factor=scale,
+                                                       T=t,
+                                                       Z=z,
+                                                       C=c)
+
+                print("Shape Single Scene (Scalefactor: ", scale, ": ", scene_array_tzc.shape)
+
+                # check if all_scenes array must be resized due to scaling
+                if scale < 1.0 and not resize_done:
+                    shape_all[-1] = scene_array_tzc.shape[-1]
+                    shape_all[-2] = scene_array_tzc.shape[-2]
+                    all_scenes = np.resize(all_scenes, shape_all)
+
+                    # add new entries to metadata
+                    md = adaptmd_scale(md, scene_array_tzc.shape[-1], scene_array_tzc.shape[-2], scale=scale)
+                    resize_done = True
+
+                # create slide object for the current mosaic scene
+                # idl_scene = [slice(None, None, None)] * (len(scene.shape_single_scene) - 2)
+                idl_all[scene.posS] = s
+                idl_all[scene.posT] = t
+                idl_all[scene.posZ] = z
+                idl_all[scene.posC] = c
+
+                # cast the current scene into the stack for all scenes
+                all_scenes[tuple(idl_all)] = scene_array_tzc
+
+
 
         if scene.hasT is False and scene.hasZ is False:
 

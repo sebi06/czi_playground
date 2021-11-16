@@ -16,8 +16,8 @@ from czitools import pylibczirw_metadata as czimd
 from utils import misc
 
 # adapt to your needs
-#defaultdir = r"D:\Testdata_Zeiss\CZI_Testfiles"
-defaultdir = r"d:\Temp\test_czi_write"
+defaultdir = r"C:\Testdata_Zeiss\CZI_Testfiles"
+#defaultdir = r"d:\Temp\test_czi_write"
 
 # open s simple dialog to select a CZI file
 filename = misc.openfile(directory=defaultdir,

@@ -1,10 +1,10 @@
 from pylibCZIrw import czi as pyczi
-from czitools import pylibczirw_metadata as czimd
+import pylibczirw_metadata as czimd
 import numpy as np
 from typing import List, Dict, Tuple, Optional, Type, Any, Union
 from tqdm.contrib.itertools import product
 
-def read_6darray(filename: str) -> np.ndarray:
+def read_7darray(filename: str) -> np.ndarray:
     # get the complete metadata at once as one big class
     mdata = czimd.CziMetadata(filename)
 
@@ -42,8 +42,8 @@ def read_6darray(filename: str) -> np.ndarray:
         else:
             sizeS = mdata.dims.SizeS
 
-        # define the dimension order to be STZCYX
-        array6d = np.empty([sizeS, sizeT, sizeZ, sizeC, sizeY, sizeX, 3 if mdata.isRGB else 1], dtype=mdata.npdtype)
+        # define the dimension order to be STZCYXA
+        array7d = np.empty([sizeS, sizeT, sizeZ, sizeC, sizeY, sizeX, 3 if mdata.isRGB else 1], dtype=mdata.npdtype)
 
         # read array for the scene
         for s, t, z, c in product(range(sizeS),
@@ -55,7 +55,12 @@ def read_6darray(filename: str) -> np.ndarray:
             else:
                 image2d = czidoc.read(plane={'T': t, 'Z': z, 'C': c}, scene=s)
 
-            #array6d[s, t, z, c, ...] = image2d[..., 0]
-            array6d[s, t, z, c, ...] = image2d
+            # check if the image2d is really not too big
+            if mdata.pyczi_dims["X"][1] > mdata.dims.SizeX or mdata.pyczi_dims["Y"][1] > mdata.dims.SizeY:
+                image2d = image2d[..., 0:mdata.dims.SizeY, 0:mdata.dims.SizeX, :]
 
-    return array6d
+
+            #array6d[s, t, z, c, ...] = image2d[..., 0]
+            array7d[s, t, z, c, ...] = image2d
+
+    return array7d

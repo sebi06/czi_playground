@@ -19,7 +19,7 @@ from aicspylibczi import CziFile
 from utils import misc, napari_tools
 
 # adapt to your needs
-defaultdir = r"D:\Testdata_Zeiss\CZI_Testfiles"
+defaultdir = r"C:\Testdata_Zeiss\CZI_Testfiles"
 
 # open s simple dialog to select a CZI file
 filename = misc.openfile(directory=defaultdir,
@@ -86,7 +86,7 @@ all_scenes, _ = czird.read(filename)
 viewer = napari.Viewer()
 layers = napari_tools.show(viewer, all_scenes, mdata,
                            blending="additive",
-                           contrast="calc",
+                           contrast="napari_auto",
                            gamma=0.85,
                            add_mdtable=True,
                            name_sliders=True)

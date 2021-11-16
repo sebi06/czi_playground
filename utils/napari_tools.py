@@ -43,13 +43,10 @@ from PyQt5.QtCore import Qt, QDir, QSortFilterProxyModel
 from PyQt5.QtCore import pyqtSlot
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtGui import QFont
-from czitools import czi_metadata as czimd
-from utils import misc as utils
-#import zarr
-#import dask
-#import dask.array as da
+#import czi_metadata as czimd
+import pylibczirw_metadata as czimd
+import misc
 import numpy as np
-#import time
 from typing import List, Dict, Tuple, Optional, Type, Any, Union
 
 
@@ -183,7 +180,7 @@ def show(viewer: Any, array: np.ndarray, metadata: czimd.CziMetadata,
 
         # cut out channel
         if metadata.dims.SizeC is not None:
-            channel = utils.slicedim(array, ch, metadata.dim_order["C"])
+            channel = misc.slicedim(array, ch, metadata.dim_order["C"])
         if metadata.dims.SizeC is None:
             channel = array
 
@@ -194,7 +191,7 @@ def show(viewer: Any, array: np.ndarray, metadata: czimd.CziMetadata,
 
         if contrast == "calc":
             # really calculate the min and max values - might be slow
-            sc = utils.calc_scaling(channel, corr_min=1.1, corr_max=0.9)
+            sc = misc.calc_scaling(channel, corr_min=1.1, corr_max=0.9)
             print("Calculated Display Scaling (min & max)", sc)
 
             # add channel to napari viewer
@@ -260,7 +257,7 @@ def rename_sliders(sliders: Tuple, dim_order: Dict) -> Tuple:
     """
 
     # update the labels with the correct dimension strings
-    slidernames = ["B", "H", "V", "M", "S", "T", "Z"]
+    slidernames = ["B", "H", "V", "M", "S", "T", "Z", "Y", "X", "A"]
 
     # convert to list()
     tmp_sliders = list(sliders)

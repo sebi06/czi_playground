@@ -22,7 +22,7 @@ from pylibCZIrw import czi as pyczi
 from aicspylibczi import CziFile
 from tqdm.contrib.itertools import product
 import pandas as pd
-from utils import misc
+import misc
 import numpy as np
 import dateutil.parser as dt
 import pydash
@@ -241,8 +241,23 @@ class CziBoundingBox:
 
         with pyczi.open_czi(filename) as czidoc:
 
-            self.all_scenes = czidoc.scenes_bounding_rectangle
-            self.total_rect = czidoc.total_bounding_rectangle
+            try:
+                self.all_scenes = czidoc.scenes_bounding_rectangle
+            except Exception as e:
+                self.all_scenes = None
+                print("Scenes Bounding rectangle not found.", e)
+
+            try:
+                self.total_rect = czidoc.total_bounding_rectangle
+            except Exception as e:
+                self.total_rect = None
+                print("Total Bounding rectangle not found.", e)
+
+            try:
+                self.total_bounding_box = czidoc.total_bounding_box
+            except Exception as e:
+                self.total_bounding_box = None
+                print("Total Bounding Box not found.", e)
 
 
 class CziChannelInfo:
@@ -509,7 +524,7 @@ class CziObjectives:
                 else:
                     num_obj = 1
             except KeyError as e:
-                num_obj = 0 # no objective found
+                num_obj = 0  # no objective found
 
             # if there is only one objective found
             if num_obj == 1:
@@ -527,7 +542,8 @@ class CziObjectives:
                     self.immersion = None
 
                 try:
-                    self.NA = np.float(md_dict['ImageDocument']['Metadata']['Information']['Instrument']['Objectives']['Objective']['LensNA'])
+                    self.NA = np.float(md_dict['ImageDocument']['Metadata']['Information']
+                                       ['Instrument']['Objectives']['Objective']['LensNA'])
                 except (KeyError, TypeError) as e:
                     print('No Objective NA :', e)
                     self.NA = None
@@ -1001,9 +1017,9 @@ def create_mdict_complete(metadata: Union[str, CziMetadata], sort: bool = True) 
                'czi_dims': metadata.dimstring,
                'czi_dims_shape': metadata.dims_shape,
                'czi_size': metadata.size,
-               #'dim_order': metadata.dim_order,
-               #'dim_index': metadata.dim_index,
-               #'dim_valid': metadata.dim_valid,
+               # 'dim_order': metadata.dim_order,
+               # 'dim_index': metadata.dim_index,
+               # 'dim_valid': metadata.dim_valid,
                'SizeX': metadata.dims.SizeX,
                'SizeY': metadata.dims.SizeY,
                'SizeZ': metadata.dims.SizeZ,
@@ -1047,7 +1063,7 @@ def create_mdict_complete(metadata: Union[str, CziMetadata], sort: bool = True) 
                'WellCounter': metadata.sample.well_counter,
                'SceneCenterStageX': metadata.sample.scene_stageX,
                'SceneCenterStageY': metadata.sample.scene_stageX
-             }
+               }
 
     # check fro extra entries when reading mosaic file with a scale factor
     if hasattr(metadata.dims, "SizeX_sf"):
@@ -1058,16 +1074,12 @@ def create_mdict_complete(metadata: Union[str, CziMetadata], sort: bool = True) 
         md_dict['ratio sf'] = metadata.scale.ratio_sf
         md_dict['scalefactorXY'] = metadata.scale.scalefactorXY
 
-    # check if mosaic
-    if metadata.isMosaic:
-        md_dict['bbox_all_mosaic_scenes'] = metadata.bbox.all_mosaic_scenes
-        md_dict['bbox_all_mosaic_tiles'] = metadata.bbox.all_mosaic_tiles
-        md_dict['bbox_all_tiles'] = metadata.bbox.all_tiles
+    # add info for bounding boxes
+    md_dict['bbox_all_scenes'] = metadata.bbox.all_scenes
+    md_dict['bbox_total_rect'] = metadata.bbox.total_rect
+    md_dict['bbox_total'] = metadata.bbox.total_bounding_box
 
     if sort:
         return misc.sort_dict_by_key(md_dict)
     if not sort:
         return md_dict
-
-
-

@@ -102,7 +102,7 @@ with pyczi.create_czi(savename) as czidoc:
     czidoc.write_metadata()
 
 # read 6D array from the CZI file
-test = pylibczirw_tools.read_6darray(savename)
+test = pylibczirw_tools.read_7darray(savename)
 
 viewer = napari.view_image(test, colormap='gray')
 napari.run()
@@ -147,4 +147,4 @@ with pyczi.create_czi(savename) as czidoc:
 print("Done")
 
 # try to read the created CZI again# read 6D array from the CZI file
-test = pylibczirw_tools.read_6darray(savename)
+test = pylibczirw_tools.read_7darray(savename)
