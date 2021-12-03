@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 #################################################################
-# File        : test_pylicczirw_metadata_class.py
+# File        : test_pylibczirw_metadata_class.py
 # Version     : 0.0.1
 # Author      : sebi06
 # Date        : 11.08.2021

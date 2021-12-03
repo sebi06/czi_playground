@@ -29,16 +29,17 @@ REQUIRED = [
     "numpy>=1.20.3",
     "python-dateutil>=2.8.2",
     "pydash>=5.0.2",
-    "aicspylibczi>=3.0.2",
+    "aicspylibczi>=3.0.4",
     "tqdm>=4.61.2",
-    "napari>=0.4.10",
+    "napari>=0.4.12",
     "zarr>=2.6.1",
     "dask>=2021.7.0",
     "pyqt5>=5.15.4",
-    "aicsimageio>=4.0.5",
-    #"pylibczirw>=0.1.15",
+    "aicsimageio>=4.5.0",
+    # "pylibczirw>=0.1.15",
     "matplotlib>=3.3.4",
     "lxml>=4.6.3"
+    "ipyfilechooser>=0.6.0"
 ]
 
 # What packages are optional?

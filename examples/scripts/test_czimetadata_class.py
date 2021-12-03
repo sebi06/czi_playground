@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : test_czimetadata_class.py
-# Version     : 0.0.3
+# Version     : 0.0.4
 # Author      : sebi06
-# Date        : 11.08.2021
+# Date        : 03.12.2021
 #
 # Disclaimer: This code is purely experimental. Feel free to
 # use it at your own risk.
@@ -53,7 +53,7 @@ mdata = czimd.CziMetadata(filename)
 
 # get the metadata as a dictionary
 mdict = czimd.create_mdict_complete(filename, sort=False)
-for k,v in mdict.items():
+for k, v in mdict.items():
     print(k, " : ", v)
 
 # and convert to pd.DataFrame

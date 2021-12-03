@@ -43,9 +43,9 @@ from PyQt5.QtCore import Qt, QDir, QSortFilterProxyModel
 from PyQt5.QtCore import pyqtSlot
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtGui import QFont
-#import czi_metadata as czimd
+from czitools import czi_metadata as czimd_aics
 from czitools import pylibczirw_metadata as czimd
-import misc
+from utils import misc
 import numpy as np
 from typing import List, Dict, Tuple, Optional, Type, Any, Union
 
@@ -106,7 +106,7 @@ class TableWidget(QWidget):
         self.mdtable.setHorizontalHeaderItem(1, item2)
 
 
-def show(viewer: Any, array: np.ndarray, metadata: czimd.CziMetadata,
+def show(viewer: Any, array: np.ndarray, metadata: Union[czimd.CziMetadata, czimd_aics.CziMetadata],
          blending: str = "additive",
          contrast: str = "calc",
          gamma: float = 0.85,
@@ -158,7 +158,10 @@ def show(viewer: Any, array: np.ndarray, metadata: czimd.CziMetadata,
                                       area="right")
 
         # add the metadata and adapt the table
-        mdbrowser.update_metadata(czimd.create_mdict_complete(metadata))
+        if isinstance(metadata, czimd.CziMetadata):
+            mdbrowser.update_metadata(czimd.create_mdict_complete(metadata))
+        if isinstance(metadata, czimd_aics.CziMetadata):
+            mdbrowser.update_metadata(czimd_aics.create_mdict_complete(metadata))
         mdbrowser.update_style()
 
     # add all channels as individual layers
