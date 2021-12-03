@@ -106,7 +106,7 @@ class TableWidget(QWidget):
         self.mdtable.setHorizontalHeaderItem(1, item2)
 
 
-def show(viewer: Any, array: np.ndarray, metadata: Union[czimd.CziMetadata, czimd_aics.CziMetadata],
+def show(viewer: Any, array: np.ndarray, metadata: Union[type[czimd.CziMetadata], type[czimd_aics.CziMetadata]],
          blending: str = "additive",
          contrast: str = "calc",
          gamma: float = 0.85,
