@@ -1,3 +1,17 @@
+# -*- coding: utf-8 -*-
+
+#################################################################
+# File        : pylibczirw_tools.py
+# Version     : 0.0.2
+# Author      : sebi06
+# Date        : 04.12.2021
+#
+# Disclaimer: This code is purely experimental. Feel free to
+# use it at your own risk.
+#
+#################################################################
+
+from __future__ import annotations
 from pylibCZIrw import czi as pyczi
 from czitools import pylibczirw_metadata as czimd
 import numpy as np

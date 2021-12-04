@@ -2,9 +2,13 @@
 
 #################################################################
 # File        : segmentation_tools.py
-# Version     : 0.5
+# Version     : 0.6
 # Author      : sebi06
-# Date        : 02.11.2021
+# Date        : 04.12.2021
+#
+# Disclaimer: This code is purely experimental. Feel free to
+# use it at your own risk.
+#
 #################################################################
 
 
@@ -21,21 +25,17 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import matplotlib.patches as mpatches
 
-import tools.imgfile_tools as imf
-
 from aicsimageio import AICSImage, imread
 
 from skimage import io, measure, segmentation
 from skimage import exposure
 from skimage.exposure import rescale_intensity
-from skimage.morphology import watershed, dilation
-from skimage.morphology import white_tophat, black_tophat, disk, square, ball, closing, square
+from skimage.morphology import white_tophat, black_tophat, disk, square, ball, closing, square, dilation
 from skimage.morphology import remove_small_objects, remove_small_holes
 from skimage.feature import peak_local_max
 from skimage.measure import label, regionprops
 from skimage.filters import threshold_otsu, threshold_triangle, rank, median, gaussian
-from skimage.segmentation import clear_border
-from skimage.segmentation import random_walker
+from skimage.segmentation import clear_border, watershed, random_walker
 from skimage.color import label2rgb
 from skimage.util import invert
 
@@ -99,13 +99,25 @@ def apply_watershed(binary, min_distance=10):
     distance = ndimage.distance_transform_edt(binary)
 
     # determine local maxima
-    local_maxi = peak_local_max(distance,
-                                min_distance=min_distance,
-                                indices=False,
-                                labels=binary)
+    # local_maxi = peak_local_max(distance,
+    #                            min_distance=min_distance,
+    #                            # indices=False,
+    #                            labels=binary)
+
+    # create the seeds
+    peak_idx = peak_local_max(distance,
+                              labels=binary,
+                              min_distance=min_distance,
+                              # indices=False
+                              )
+
+    # create peak mask
+    peak_mask = np.zeros_like(distance, dtype=bool)
+    peak_mask[tuple(peak_idx.T)] = True
 
     # label maxima
-    markers, num_features = ndimage.label(local_maxi)
+    #markers, num_features = ndimage.label(local_maxi)
+    markers, num_features = ndimage.label(peak_mask)
 
     # apply watershed
     mask = watershed(-distance, markers,
@@ -152,13 +164,18 @@ def apply_watershed_adv(image2d,
         image2d = gaussian(image2d, sigma=filtersize_ws, mode='reflect')
 
     # create the seeds
-    peaks = peak_local_max(image2d,
-                           labels=label(segmented),
-                           min_distance=min_distance,
-                           indices=False)
+    peak_idx = peak_local_max(image2d,
+                              labels=label(segmented),
+                              min_distance=min_distance,
+                              # indices=False
+                              )
+
+    # create peak mask
+    peak_mask = np.zeros_like(image2d, dtype=bool)
+    peak_mask[tuple(peak_idx.T)] = True
 
     # create the seeds
-    seed = dilation(peaks, selem=disk(radius))
+    seed = dilation(peak_mask, selem=disk(radius))
 
     # create watershed map
     watershed_map = -1 * distance_transform_edt(segmented)
@@ -209,7 +226,7 @@ def segment_threshold(image2d,
     """
 
     # filter image
-    if filtermethod == 'none' or filtermethod == 'None':
+    if filtermethod is None:
         image2d_filtered = image2d
     if filtermethod == 'median':
         image2d_filtered = median(image2d, selem=disk(filtersize))

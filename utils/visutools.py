@@ -2,9 +2,12 @@
 
 #################################################################
 # File        : visutools.py
-# Version     : 0.4
+# Version     : 0.5
 # Author      : sebi06
-# Date        : 12.10.2021
+# Date        : 04.12.2021
+#
+# Disclaimer: This code is purely experimental. Feel free to
+# use it at your own risk.
 #
 #################################################################
 
@@ -51,7 +54,8 @@ def showheatmap(heatmap, parameter2display,
                 # savename='Heatmap.png',
                 robust=True,
                 filename='Test.czi',
-                dpi=100):
+                dpi=100,
+                show=False):
     """Plot a heatmap for a wellplate from a dataframe.
 
     :param heatmap: Pandas DataFrame with the heatmap data for a wellplate
@@ -78,6 +82,8 @@ def showheatmap(heatmap, parameter2display,
     :type filename: str, optional
     :param dpi: dpi, defaults to 100
     :type dpi: int, optional
+    :param show: show the plot, defaults to False
+    :type show: bool, optional
     :return: savename - filename of the saved plot
     :rtype: str
     """
@@ -119,6 +125,10 @@ def showheatmap(heatmap, parameter2display,
         print('Heatmap image saved as: ', savename)
     else:
         savename = None
+
+    if show:
+
+        plt.show()
 
     return savename
 
@@ -647,16 +657,15 @@ def create_heatmap_plotly(heatmap_dataframe: pd.DataFrame,
                                unit=unit)
     fig = go.Figure(data)
 
-
     # use this template if nothing else was provided
     if xaxis_template == {}:
         xaxis_template = dict(constrain="domain",
                               side="top",
-                              #autorange=False,
+                              # autorange=False,
                               showgrid=False,
                               zeroline=False,
                               showticklabels=True,
-                              #scaleanchor="x",
+                              # scaleanchor="x",
                               scaleratio=1,
                               )
 
@@ -673,7 +682,7 @@ def create_heatmap_plotly(heatmap_dataframe: pd.DataFrame,
 
     fig.update_layout(xaxis=xaxis_template,
                       yaxis=yaxis_template,
-                      #showlegend=True,
+                      # showlegend=True,
                       autosize=True,
                       title=dict(text=parameter + " [" + unit + "]",
                                  x=0.5,
