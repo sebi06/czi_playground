@@ -575,6 +575,7 @@ def showheatmap_all(heatmap_dict, subplots,
     for key in heatmap_dict.keys():  # python 3
 
         plotid = plotid + 1
+
         # get the desired heatmap from the dictionary containing all heatmaps
         heatmap_test = heatmap_dict[key]
         # create the actual heatmap

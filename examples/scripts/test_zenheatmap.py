@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Thu Oct  7 17:34:02 2021
 
-@author: M1SRH
-"""
+#################################################################
+# File        : test_zenheatmap.py
+# Version     : 0.1
+# Author      : sebi06
+# Date        : 04.12.2021
+#
+# Disclaimer: This code is purely experimental. Feel free to
+# use it at your own risk.
+#
+#################################################################
+
 import pandas as pd
 from utils import visutools as vt
 import numpy as np
@@ -112,11 +119,11 @@ savename = vt.showheatmap(heatmap_dict[params[p2d]], params[p2d],
                           colormap='Blues',
                           linecolor='black',
                           linewidth=1.0,
-                          save=False,
+                          save=True,
                           robust=True
                           )
 
-# create the figure of a single heapmap plot using plotly
+# create the figure of a single heatmap plot using plotly
 xaxis_template = dict(constrain="domain",
                       side="top",
                       #autorange=False,
