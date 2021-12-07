@@ -44,6 +44,24 @@ def create_heatmap(platetype: int) -> np.ndarray:
     return heatmap_array
 
 
+def extract_wellstats(results, well: str = "A1",
+                      wellstr: str = "WellID",
+                      wellcolstr: str = "WellColumnID",
+                      wellrowstr: str = "WellRowID") -> Tuple[pd.DataFrame, int, int]:
+
+    # extract all entries for specific well
+    well_results = results.loc[results[wellstr] == well]
+
+    # get the descriptive statistics for specific well
+    stats = well_results.describe(include="all")
+
+    # get the column an row indices for specific well
+    col = int(stats[wellcolstr]["mean"])
+    row = int(stats[wellrowstr]["mean"])
+
+    return (stats, row, col)
+
+
 def showheatmap(heatmap, parameter2display,
                 fontsize_title=12,
                 fontsize_label=10,

@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : read_czi_analyze_display_heatmap.py
-# Version     : 0.1
+# Version     : 0.2
 # Author      : sebi06
-# Date        : 04.12.2021
+# Date        : 07.12.2021
 #
 # Disclaimer: This code is purely experimental. Feel free to
 # use it at your own risk.
@@ -35,6 +35,7 @@ from IPython.display import display, HTML
 import plotly.graph_objects as go
 import matplotlib.pyplot as plt
 from plotly.subplots import make_subplots
+from typing import List, Dict, Tuple, Optional, Type, Any, Union
 
 
 # specify the filename of the CZI file
@@ -207,7 +208,7 @@ results = results.reindex(columns=new_order)
 # Filter and Inspect Data
 
 # get a specific scene from a well and a specific scene
-well2show = results[(results['WellID']=='B4') & (results['S']==0)]
+well2show = results[(results['WellID'] == 'B4') & (results['S'] == 0)]
 
 # create heatmap array with NaNs
 heatmap_numobj = vt.create_heatmap(platetype=platetype)
@@ -229,38 +230,24 @@ for p in range(0, numparams):
 for p in params:
     for well in mdict['WellCounter']:
 
-        # extract all entries for specific well
-        well_results = results.loc[results['WellID'] == well]
-
-        # get the descriptive statistics for specific well
-        stats = well_results.describe(include='all')
-
-        # get the column an row indices for specific well
-        col = int(stats['WellColumnID']['mean'])
-        row = int(stats['WellRowID']['mean'])
+        stats, row, col = vt.extract_wellstats(results,
+                                               well=well,
+                                               wellstr="WellID",
+                                               wellcolstr="WellColumnID",
+                                               wellrowstr="WellRowID" )
 
         # add value for specifics params to heatmap - e.g. "area"
         heatmap_param[row - 1, col - 1] = stats[p]['mean']
 
+        # add value for number of objects to heatmap_numobj - e.g. "count"
+        heatmap_numobj[row - 1, col - 1] = stats["WellID"]["count"]
+
+    # store heatmap in dict for all the parameter heatmaps
     heatmap_dict[p] = vt.convert_array_to_heatmap(heatmap_param, nr, nc)
 
-# get heatmap for the number of objects
-for well in mdict['WellCounter']:
-
-    # extract all entries for specific well
-    well_results = results.loc[results['WellID'] == well]
-
-    # get the descriptive statistics for specific well
-    stats = well_results.describe(include='all')
-
-    # get the column an row indices for specific well
-    col = int(stats['WellColumnID']['mean'])
-    row = int(stats['WellRowID']['mean'])
-
-    # add value for number of objects to heatmap_numobj - e.g. "count"
-    heatmap_numobj[row - 1, col - 1] = stats['WellID']['count']
-
+# store heatmap with object number inside a separate dict
 heatmap_obj = vt.convert_array_to_heatmap(heatmap_numobj, nr, nc)
+
 
 # show the heatmap for a single parameter
 savename_single = vt.showheatmap(heatmap_obj, "Objects - Number",
