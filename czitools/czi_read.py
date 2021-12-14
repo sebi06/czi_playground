@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : czi_read.py
-# Version     : 0.0.4
+# Version     : 0.0.5
 # Author      : sebi06
-# Date        : 15.11.2021
+# Date        : 14.12.2021
 #
 # Disclaimer: This code is purely experimental. Feel free to
 # use it at your own risk.
@@ -15,11 +15,11 @@ from __future__ import annotations
 from aicspylibczi import CziFile
 from tqdm.contrib.itertools import product
 import numpy as np
-from czitools import czi_metadata as czimd
+from czitools import czi_metadata as czimd_aics
 from typing import List, Dict, Tuple, Optional, Type, Any, Union
 
 
-def read(filename: str) -> Tuple[np.ndarray, czimd.CziMetadata]:
+def read(filename: str) -> Tuple[np.ndarray, czimd_aics.CziMetadata]:
     """Read the pixel data of an CZI image file. Scaling factor
     of 1.0 will be used.
 
@@ -28,7 +28,7 @@ def read(filename: str) -> Tuple[np.ndarray, czimd.CziMetadata]:
     """
 
     # get the CZI metadata
-    md = czimd.CziMetadata(filename)
+    md = czimd_aics.CziMetadata(filename)
 
     # read CZI using aicspylibczi
     aicsczi = CziFile(filename)
@@ -48,14 +48,14 @@ def read(filename: str) -> Tuple[np.ndarray, czimd.CziMetadata]:
     return all_scenes, md
 
 
-def read_nonmosaic(filename: str) -> Tuple[Union[np.ndarray, None], czimd.CziMetadata]:
+def read_nonmosaic(filename: str) -> Tuple[Union[np.ndarray, None], czimd_aics.CziMetadata]:
     """Read CZI pixel data from non-mosaic image data
     :param filename: filename of the CZI file to be read
     :return: CZI pixel data and the CziMetadata class
     """
 
     # get the CZI metadata
-    md = czimd.CziMetadata(filename)
+    md = czimd_aics.CziMetadata(filename)
 
     # read CZI using aicspylibczi
     aicsczi = CziFile(filename)
@@ -66,7 +66,7 @@ def read_nonmosaic(filename: str) -> Tuple[Union[np.ndarray, None], czimd.CziMet
         return None, md
 
     # get the shape for the 1st scene
-    scene = czimd.CziScene(aicsczi, sceneindex=0)
+    scene = czimd_aics.CziScene(aicsczi, sceneindex=0)
     shape_all = scene.shape_single_scene
 
     # only update the shape for the scene if the CZI has an S-Dimension
@@ -109,7 +109,7 @@ def read_nonmosaic(filename: str) -> Tuple[Union[np.ndarray, None], czimd.CziMet
     return all_scenes, md
 
 
-def read_mosaic(filename: str, scale: float=1.0) -> Tuple[Union[np.ndarray, None], czimd.CziMetadata]:
+def read_mosaic(filename: str, scale: float = 1.0) -> Tuple[Union[np.ndarray, None], czimd_aics.CziMetadata]:
     """Read the pixel data of an CZI image file with an option scale factor
     to read the image with lower resolution and array size
 
@@ -124,7 +124,7 @@ def read_mosaic(filename: str, scale: float=1.0) -> Tuple[Union[np.ndarray, None
         scale = 1.0
 
     # get the CZI metadata
-    md = czimd.CziMetadata(filename)
+    md = czimd_aics.CziMetadata(filename)
 
     # read CZI using aicspylibczi
     aicsczi = CziFile(filename)
@@ -135,7 +135,7 @@ def read_mosaic(filename: str, scale: float=1.0) -> Tuple[Union[np.ndarray, None
         return None, md
 
     # get data for 1st scene and create the required shape for all scenes
-    scene = czimd.CziScene(aicsczi, sceneindex=0)
+    scene = czimd_aics.CziScene(aicsczi, sceneindex=0)
     shape_all = scene.shape_single_scene
 
     if scene.hasS:
@@ -153,7 +153,7 @@ def read_mosaic(filename: str, scale: float=1.0) -> Tuple[Union[np.ndarray, None
 
     # loop over scenes if CZI is not Mosaic
     for s in range(num_scenes):
-        scene = czimd.CziScene(aicsczi, sceneindex=s)
+        scene = czimd_aics.CziScene(aicsczi, sceneindex=s)
 
         # create a slice object for all_scenes array
         if not scene.isRGB:
@@ -224,10 +224,10 @@ def read_mosaic(filename: str, scale: float=1.0) -> Tuple[Union[np.ndarray, None
                                                               scene.ystart,
                                                               scene.width,
                                                               scene.height),
-                                                       scale_factor=scale,
-                                                       T=t,
-                                                       Z=z,
-                                                       C=c)
+                                                      scale_factor=scale,
+                                                      T=t,
+                                                      Z=z,
+                                                      C=c)
 
                 print("Shape Single Scene (Scalefactor: ", scale, ": ", scene_array_tzc.shape)
 
@@ -250,8 +250,6 @@ def read_mosaic(filename: str, scale: float=1.0) -> Tuple[Union[np.ndarray, None
 
                 # cast the current scene into the stack for all scenes
                 all_scenes[tuple(idl_all)] = scene_array_tzc
-
-
 
         if scene.hasT is False and scene.hasZ is False:
 
@@ -286,10 +284,10 @@ def read_mosaic(filename: str, scale: float=1.0) -> Tuple[Union[np.ndarray, None
     return all_scenes, md
 
 
-def adaptmd_scale(metadata: czimd.CziMetadata,
+def adaptmd_scale(metadata: czimd_aics.CziMetadata,
                   newx: int,
                   newy: int,
-                  scale: float=1.0) -> czimd.CziMetadata:
+                  scale: float = 1.0) -> czimd_aics.CziMetadata:
     """ Adapt some metadata due to reading the CZI using a scaling factor.
 
     :param metadata: CziMetadata class to be modified
@@ -310,6 +308,3 @@ def adaptmd_scale(metadata: czimd.CziMetadata,
     setattr(metadata.scale, "ratio_sf", {"xy": 1.0, "zx": metadata.scale.ratio["zx"] * scale})
 
     return metadata
-
-
-

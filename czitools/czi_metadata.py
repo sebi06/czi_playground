@@ -521,7 +521,8 @@ class CziObjectives:
                     self.immersion = None
 
                 try:
-                    self.NA = np.float(md_dict['ImageDocument']['Metadata']['Information']['Instrument']['Objectives']['Objective']['LensNA'])
+                    self.NA = np.float(md_dict['ImageDocument']['Metadata']['Information']
+                                       ['Instrument']['Objectives']['Objective']['LensNA'])
                 except (KeyError, TypeError) as e:
                     print('No Objective NA :', e)
                     self.NA = None
@@ -1434,7 +1435,7 @@ def create_mdict_complete(metadata: Union[str, CziMetadata], sort: bool = True) 
                'WellCounter': metadata.sample.well_counter,
                'SceneCenterStageX': metadata.sample.scene_stageX,
                'SceneCenterStageY': metadata.sample.scene_stageX
-             }
+               }
 
     # check fro extra entries when reading mosaic file with a scale factor
     if hasattr(metadata.dims, "SizeX_sf"):
@@ -1456,3 +1457,30 @@ def create_mdict_complete(metadata: Union[str, CziMetadata], sort: bool = True) 
     if not sort:
         return md_dict
 
+
+def get_shape_allscenes(filename: str, md: dict) -> Tuple[list, list, list]:
+
+    aicsczi = CziFile(filename)
+
+    shape_single_scenes = []
+
+    # loop over all scenes
+    for s in range(md['SizeS']):
+
+        # get info for a single scene
+        single_scene = CziScene(aicsczi, md, s)
+
+        # add shape info to the list for shape of all single scenes
+        print('Adding shape for scene: ', s)
+        shape_single_scenes.append(single_scene.shape_single_scene)
+
+    # check if all calculated scene sizes have the same shape
+    same_shape = all(elem == shape_single_scenes[0] for elem in shape_single_scenes)
+
+    # create required array shape in case all scenes are equal
+    array_size_all_scenes = None
+    if same_shape:
+        array_size_all_scenes = shape_single_scenes[0].copy()
+        array_size_all_scenes[0] = md['SizeS']
+
+    return array_size_all_scenes, shape_single_scenes, same_shape
