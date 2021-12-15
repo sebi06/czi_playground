@@ -16,7 +16,7 @@ from czitools import czi_metadata as czimd
 from czitools import czi_read as czird
 import napari
 from aicspylibczi import CziFile
-from czitools misc, napari_tools
+from czitools import misc, napari_tools
 
 # adapt to your needs
 defaultdir = r"C:\Testdata_Zeiss\CZI_Testfiles"
