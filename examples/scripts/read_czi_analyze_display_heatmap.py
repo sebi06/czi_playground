@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : read_czi_analyze_display_heatmap.py
-# Version     : 0.2
+# Version     : 0.3
 # Author      : sebi06
-# Date        : 07.12.2021
+# Date        : 15.12.2021
 #
 # Disclaimer: This code is purely experimental. Feel free to
 # use it at your own risk.
@@ -17,8 +17,8 @@ import os, sys
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from utils import segmentation_tools as sgt
-from utils import visutools as vt
+from czitools import segmentation_tools as sgt
+from czitools import visutools as vt
 from skimage import measure, segmentation
 from skimage.measure import regionprops
 from skimage.color import label2rgb
@@ -30,7 +30,7 @@ from czitools import czi_metadata as czimd_aics
 from czitools import pylibczirw_metadata as czimd
 from czitools import czi_read as czird
 from pylibCZIrw import czi as pyczi
-from utils import misc, napari_tools
+from czitools import misc, napari_tools
 from IPython.display import display, HTML
 import plotly.graph_objects as go
 import matplotlib.pyplot as plt

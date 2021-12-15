@@ -13,7 +13,7 @@
 
 from __future__ import annotations
 from czitools import pylibczirw_metadata as czimd
-from utils import misc
+from czitools import misc
 
 # adapt to your needs
 defaultdir = r"C:\Testdata_Zeiss\CZI_Testfiles"

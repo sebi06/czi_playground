@@ -1,7 +1,7 @@
 from czitools import pylibczirw_metadata as czimd
 from pylibCZIrw import czi as pyczi
-from utils import pylibczirw_tools
-from utils import misc
+from czitools import pylibczirw_tools
+from czitools import misc
 import os
 from tqdm.contrib.itertools import product
 

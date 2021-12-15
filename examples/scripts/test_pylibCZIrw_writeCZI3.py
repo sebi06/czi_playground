@@ -2,14 +2,14 @@
 from czitools import czi_metadata as czimd
 from pylibCZIrw import czi as pyczi
 from aicspylibczi import CziFile
-from utils import pylibczirw_tools
-from utils import misc
+from czitools import pylibczirw_tools
+from czitools import misc
 import os
 from tqdm.contrib.itertools import product
 import numpy as np
 import pandas as pd
 import napari
-from utils import processing_tools as pt
+from czitools import processing_tools as pt
 
 
 # define the CZI file to be read

@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : test_aicsimageio.py
-# Version     : 0.0.1
+# Version     : 0.0.2
 # Author      : sebi06
-# Date        : 03.12.2021
+# Date        : 14.12.2021
 #
 # Disclaimer: This code is purely experimental. Feel free to
 # use it at your own risk.
@@ -16,7 +16,7 @@ from czitools import czi_metadata as czimd_aics
 from czitools import pylibczirw_metadata as czimd
 
 from aicsimageio import AICSImage
-from utils import misc, napari_tools
+from czitools import misc, napari_tools
 
 filename = r'd:\Testdata_Zeiss\CZI_Testfiles\testwell96.czi'
 

@@ -2,7 +2,7 @@
 
 #################################################################
 # File        : test_czimetadata_class.py
-# Version     : 0.0.4
+# Version     : 0.0.5
 # Author      : sebi06
 # Date        : 03.12.2021
 #
@@ -16,7 +16,7 @@ from czitools import czi_metadata as czimd
 from czitools import czi_read as czird
 import napari
 from aicspylibczi import CziFile
-from utils import misc, napari_tools
+from czitools misc, napari_tools
 
 # adapt to your needs
 defaultdir = r"C:\Testdata_Zeiss\CZI_Testfiles"

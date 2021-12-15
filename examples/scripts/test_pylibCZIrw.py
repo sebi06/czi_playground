@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : test_pylibczirw.py
-# Version     : 0.0.1
+# Version     : 0.0.2
 # Author      : sebi06
-# Date        : 11.08.2021
+# Date        : 14.12.2021
 #
 # Disclaimer: This code is purely experimental. Feel free to
 # use it at your own risk.
@@ -14,7 +14,7 @@
 from czitools import pylibczirw_metadata as czimd
 from pylibCZIrw import czi as pyczi
 from matplotlib import pyplot as plt
-from utils import misc
+from czitools import misc
 import os
 
 # open s simple dialog to select a CZI file

@@ -12,7 +12,7 @@
 #################################################################
 
 import pandas as pd
-from utils import visutools as vt
+from czitools import visutools as vt
 import numpy as np
 import plotly.graph_objects as go
 import matplotlib.pyplot as plt
