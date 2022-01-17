@@ -132,4 +132,4 @@ dmypy.json
 /czifiletools.egg-info
 .idea
 /.vscode/settings.json
-/experimental/
+#/experimental/
