@@ -6,13 +6,13 @@ from czitools import pylibczirw_tools
 from czitools import misc, napari_tools
 import numpy as np
 
-filename = r'D:\Testdata_Zeiss\CZI_Testfiles\CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi'
+filename = r'C:\Testdata_Zeiss\CZI_Testfiles\CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi'
 #filename = r'C:\Testdata_Zeiss\CZI_Testfiles\testwell96.czi'
 #filename = r"C:\Testdata_Zeiss\CZI_Testfiles\tobacco_z=10_tiles.czi"
 #filename = r"C:\Testdata_Zeiss\CZI_Testfiles\S=2_3x3_T=3_Z=4_CH=2.czi"
 
 # get the complete metadata at once as one big class
-mdata = czimd.CziMetadata(filename)
+mdata = czimd.get_czimetadata_extended(filename)
 
 # return a 7d array with dimension order STZCYXA
 mdarray = pylibczirw_tools.read_7darray(filename)
@@ -20,7 +20,7 @@ mdarray = pylibczirw_tools.read_7darray(filename)
 # remove A dimension do display the array inside Napari
 mdarray = np.squeeze(mdarray, axis=-1)
 mdata.dimstring = "STZCYX"
-dim_order, dim_index, dim_valid = czimd.CziMetadata.get_dimorder(mdata.dimstring)
+dim_order, dim_index, dim_valid = czimd.get_dimorder(mdata.dimstring)
 setattr(mdata, "dim_order", dim_order)
 setattr(mdata, "dim_index", dim_index)
 setattr(mdata, "dim_valid", dim_valid)

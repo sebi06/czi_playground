@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : napari_tools.py
-# Version     : 0.0.8
+# Version     : 0.0.9
 # Author      : sebi06
-# Date        : 24.08.2021
+# Date        : 17.01.2022
 #
 # Disclaimer: This code is purely experimental. Feel free to
 # use it at your own risk.
@@ -46,6 +46,8 @@ from PyQt5.QtGui import QFont
 from czitools import czi_metadata as czimd_aics
 from czitools import pylibczirw_metadata as czimd
 from czitools import misc
+from pylibCZIrw import czi as pyczi
+from pylibCZIrw import czi_metadata
 import numpy as np
 from typing import List, Dict, Tuple, Optional, Type, Any, Union
 
@@ -105,8 +107,11 @@ class TableWidget(QWidget):
         item2.setFont(fnt)
         self.mdtable.setHorizontalHeaderItem(1, item2)
 
+# old
+# def show(viewer: Any, array: np.ndarray, metadata: Union[type[czimd.CziMetadata], type[czimd_aics.CziMetadata]],
 
-def show(viewer: Any, array: np.ndarray, metadata: Union[type[czimd.CziMetadata], type[czimd_aics.CziMetadata]],
+
+def show(viewer: Any, array: np.ndarray, metadata: Type[pyczi.czi_metadata.CziMetadata],
          blending: str = "additive",
          contrast: str = "calc",
          gamma: float = 0.85,
@@ -158,17 +163,19 @@ def show(viewer: Any, array: np.ndarray, metadata: Union[type[czimd.CziMetadata]
                                       area="right")
 
         # add the metadata and adapt the table
-        if isinstance(metadata, czimd.CziMetadata):
-            mdbrowser.update_metadata(czimd.create_mdict_complete(metadata))
-        if isinstance(metadata, czimd_aics.CziMetadata):
-            mdbrowser.update_metadata(czimd_aics.create_mdict_complete(metadata))
+        # if isinstance(metadata, czimd.CziMetadata):
+        #    mdbrowser.update_metadata(czimd.create_mdict_complete(metadata))
+        # if isinstance(metadata, czimd_aics.CziMetadata):
+        #    mdbrowser.update_metadata(czimd_aics.create_mdict_complete(metadata))
+
+        mdbrowser.update_metadata(misc.sort_dict_by_key(metadata.metadict))
         mdbrowser.update_style()
 
     # add all channels as individual layers
-    if metadata.dims.SizeC is None:
+    if metadata.image.SizeC is None:
         sizeC = 1
     else:
-        sizeC = metadata.dims.SizeC
+        sizeC = metadata.image.SizeC
 
     # loop over all channels and add them as layers
     for ch in range(sizeC):
@@ -182,9 +189,9 @@ def show(viewer: Any, array: np.ndarray, metadata: Union[type[czimd.CziMetadata]
             chname = "CH" + str(ch + 1)
 
         # cut out channel
-        if metadata.dims.SizeC is not None:
+        if metadata.image.SizeC is not None:
             channel = misc.slicedim(array, ch, metadata.dim_order["C"])
-        if metadata.dims.SizeC is None:
+        if metadata.image.SizeC is None:
             channel = array
 
         # actually show the image array
