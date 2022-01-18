@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : pylibczirw_tools.py
-# Version     : 0.0.4
+# Version     : 0.0.5
 # Author      : sebi06
-# Date        : 17.01.2022
+# Date        : 18.01.2022
 #
 # Disclaimer: This code is purely experimental. Feel free to
 # use it at your own risk.
@@ -139,19 +139,3 @@ def read_7darray_lazy(filename: str) -> da.Array:
     array7d = da.stack(dask_arrays, axis=0)
 
     return array7d
-
-
-def get_czimdata_extended(filename: str) -> pylibCZIrw.czi_metadata.CziMetadata:
-
-    with pyczi.open_czi(filename) as czidoc:
-        mdata = pyczi.CziMetadata(czidoc.raw_metadata)
-
-        # get the bouding box
-        mdata.__setattr__("bbox", czimd.CziBoundingBox(filename))
-
-        # determine pixel type for CZI array
-        pixeltype = czidoc.pixel_types[0]
-        npdtype, maxvalue = czimd.CziMetadata.get_dtype_fromstring(pixeltype)
-        mdata.__setattr__("npdtype", npdtype)
-
-    return mdata
