@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : pylibczirw_metadata_old.py
-# Version     : 0.0.5
+# Version     : 0.0.6
 # Author      : sebi06
-# Date        : 17.01.2022
+# Date        : 19.01.2022
 #
 # Disclaimer: The code is purely experimental. Feel free to
 # use it at your own risk.
@@ -61,10 +61,10 @@ class CziMetadata:
             self.npdtype, self.maxvalue = self.get_dtype_fromstring(self.pixeltype)
 
             # get the dimensions and order
-            self.dims = CziDimensions(filename)
+            self.image = CziDimensions(filename)
 
             # try to guess if the CZI is a mosaic file
-            if self.dims.SizeM is None or self.dims.SizeM == 1:
+            if self.image.SizeM is None or self.image.SizeM == 1:
                 self.isMosaic = False
             else:
                 self.isMosaic = True
@@ -1020,16 +1020,16 @@ def create_mdict_complete(metadata: Union[str, CziMetadata], sort: bool = True) 
                # 'dim_order': metadata.dim_order,
                # 'dim_index': metadata.dim_index,
                # 'dim_valid': metadata.dim_valid,
-               'SizeX': metadata.dims.SizeX,
-               'SizeY': metadata.dims.SizeY,
-               'SizeZ': metadata.dims.SizeZ,
-               'SizeC': metadata.dims.SizeC,
-               'SizeT': metadata.dims.SizeT,
-               'SizeS': metadata.dims.SizeS,
-               'SizeB': metadata.dims.SizeB,
-               'SizeM': metadata.dims.SizeM,
-               'SizeH': metadata.dims.SizeH,
-               'SizeI': metadata.dims.SizeI,
+               'SizeX': metadata.image.SizeX,
+               'SizeY': metadata.images.SizeY,
+               'SizeZ': metadata.image.SizeZ,
+               'SizeC': metadata.image.SizeC,
+               'SizeT': metadata.image.SizeT,
+               'SizeS': metadata.image.SizeS,
+               'SizeB': metadata.image.SizeB,
+               'SizeM': metadata.image.SizeM,
+               'SizeH': metadata.image.SizeH,
+               'SizeI': metadata.image.SizeI,
                'isRGB': metadata.isRGB,
                'isMosaic': metadata.isMosaic,
                'ObjNA': metadata.objective.NA,
@@ -1067,8 +1067,8 @@ def create_mdict_complete(metadata: Union[str, CziMetadata], sort: bool = True) 
 
     # check fro extra entries when reading mosaic file with a scale factor
     if hasattr(metadata.dims, "SizeX_sf"):
-        md_dict['SizeX sf'] = metadata.dims.SizeX_sf
-        md_dict['SizeY sf'] = metadata.dims.SizeY_sf
+        md_dict['SizeX sf'] = metadata.image.SizeX_sf
+        md_dict['SizeY sf'] = metadata.image.SizeY_sf
         md_dict['XScale sf'] = metadata.scale.X_sf
         md_dict['YScale sf'] = metadata.scale.Y_sf
         md_dict['ratio sf'] = metadata.scale.ratio_sf
