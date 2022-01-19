@@ -65,7 +65,7 @@ def read_czi_lazy(filename):
 filename = r"C:\Testdata_Zeiss\CZI_Testfiles\S=2_3x3_T=3_Z=4_CH=2.czi"
 
 # get the complete metadata at once as one big class
-mdata_extended = get_czimetadata_extended(filename)
+mdata_extended = czimd.get_czimetadata_extended(filename)
 
 # define the required shape
 sp = [sizeS, sizeT, sizeZ, sizeC, sizeY, sizeX, 3 if mdata.isRGB else 1]

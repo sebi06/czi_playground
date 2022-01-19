@@ -93,7 +93,7 @@ def read_7darray_lazy(filename: str) -> da.Array:
                                    range(sizeC)):
 
                 if mdata.image.SizeS is None:
-                    image2d = czidoc.read(plane={'T': t, 'Z': z, 'C': c})
+                    image2d = czidoc.read()
                 else:
                     image2d = czidoc.read(plane={'T': t, 'Z': z, 'C': c}, scene=s)
 
