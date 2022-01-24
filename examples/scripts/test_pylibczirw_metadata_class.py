@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : test_pylibczirw_metadata_class.py
-# Version     : 0.0.1
+# Version     : 0.0.2
 # Author      : sebi06
-# Date        : 11.08.2021
+# Date        : 24.12.2022
 #
 # Disclaimer: This code is purely experimental. Feel free to
 # use it at your own risk.
@@ -26,6 +26,9 @@ filename = misc.openfile(directory=defaultdir,
                          extension="*.czi")
 print(filename)
 
+# get the complete metadata at once as one big class
+mdata = czimd.get_czimetadata_extended(filename)
+
 # get only specific metadata
 czi_dimensions = czimd.CziDimensions(filename)
 print("SizeS: ", czi_dimensions.SizeS)
@@ -44,9 +47,6 @@ czi_objectives = czimd.CziObjectives(filename)
 czi_detectors = czimd.CziDetector(filename)
 czi_microscope = czimd.CziMicroscope(filename)
 czi_sample = czimd.CziSampleInfo(filename)
-
-# get the complete metadata at once as one big class
-mdata = czimd.CziMetadata(filename)
 
 # get the metadata as a dictionary
 mdict = czimd.create_mdict_complete(filename, sort=False)
