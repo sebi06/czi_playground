@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : pylibczirw_tools.py
-# Version     : 0.0.5
+# Version     : 0.0.6
 # Author      : sebi06
-# Date        : 18.01.2022
+# Date        : 24.01.2022
 #
 # Disclaimer: This code is purely experimental. Feel free to
 # use it at your own risk.
@@ -24,7 +24,8 @@ import dask
 import dask.array as da
 
 
-def read_7darray(filename: str) -> np.ndarray:
+def read_mdarray(filename: str,
+                 remove_Adim: bool = True) -> Tuple[np.ndarray, str]:
 
     # get the complete metadata at once as one big class
     mdata = czimd.CziMetadata(filename)
@@ -49,7 +50,8 @@ def read_7darray(filename: str) -> np.ndarray:
         sizeS = misc.check_dimsize(mdata.image.SizeS, set2value=1)
 
         # define the dimension order to be STZCYXA
-        array7d = np.empty([sizeS, sizeT, sizeZ, sizeC, sizeY, sizeX, 3 if mdata.isRGB else 1], dtype=mdata.npdtype)
+        dimstring = "STZCYXA"
+        array_md = np.empty([sizeS, sizeT, sizeZ, sizeC, sizeY, sizeX, 3 if mdata.isRGB else 1], dtype=mdata.npdtype)
 
         # read array for the scene
         for s, t, z, c in product(range(sizeS),
@@ -68,29 +70,33 @@ def read_7darray(filename: str) -> np.ndarray:
                 image2d = image2d[..., 0:mdata.image.SizeY, 0:mdata.image.SizeX, :]
 
             # array6d[s, t, z, c, ...] = image2d[..., 0]
-            array7d[s, t, z, c, ...] = image2d
+            array_md[s, t, z, c, ...] = image2d
 
-    return array7d
+        if remove_Adim:
+            dimstring = "STZCYX"
+            array_md = np.squeeze(array_md, axis=-1)
+
+    return array_md, dimstring
 
 
-def read_7darray_lazy(filename: str) -> da.Array:
+def read_mdarray_lazy(filename: str, remove_Adim: bool = True) -> Tuple[da.Array, str]:
 
     def read_scene6d(filename: str,
                      sizes: Tuple[int, int, int, int, int],
                      s: int,
-                     mdata: pylibCZIrw.czi_metadata.CziMetadata):
+                     mdata: pylibCZIrw.czi_metadata.CziMetadata,
+                     remove_Adim: bool = True) -> np.ndarray:
 
-        # define the dimension order to be TZCYXA
-        array6d = da.empty([sizes[0], sizes[1], sizes[2], sizes[3], sizes[4], 3 if mdata.isRGB else 1],
-                           dtype=mdata.npdtype)
+        array_md = da.empty([sizes[0], sizes[1], sizes[2], sizes[3], sizes[4], 3 if mdata.isRGB else 1],
+                            dtype=mdata.npdtype)
 
         # open the CZI document to read the
         with pyczi.open_czi(filename) as czidoc:
 
             # read array for the scene
-            for t, z, c in product(range(sizeT),
-                                   range(sizeZ),
-                                   range(sizeC)):
+            for t, z, c in product(range(sizes[0]),
+                                   range(sizes[1]),
+                                   range(sizes[2])):
 
                 if mdata.image.SizeS is None:
                     image2d = czidoc.read()
@@ -101,9 +107,13 @@ def read_7darray_lazy(filename: str) -> da.Array:
                 if mdata.pyczi_dims["X"][1] > mdata.image.SizeX or mdata.pyczi_dims["Y"][1] > mdata.image.SizeY:
                     image2d = image2d[..., 0:mdata.image.SizeY, 0:mdata.image.SizeX, :]
 
-                array6d[t, z, c, ...] = image2d
+                array_md[t, z, c, ...] = image2d
 
-        return array6d
+        if remove_Adim:
+            array_md = np.squeeze(array_md, axis=-1)
+            print("read6d - Remove A-Dim", array_md.shape)
+
+        return array_md
 
     # get the metadata
     mdata = czimd.CziMetadata(filename)
@@ -127,15 +137,21 @@ def read_7darray_lazy(filename: str) -> da.Array:
     sizes = (sizeT, sizeZ, sizeC, sizeY, sizeX)
 
     # define the required shape
-    sp = [sizeT, sizeZ, sizeC, sizeY, sizeX, 3 if mdata.isRGB else 1]
+    if remove_Adim:
+        sp = [sizeT, sizeZ, sizeC, sizeY, sizeX]
+    if not remove_Adim:
+        sp = [sizeT, sizeZ, sizeC, sizeY, sizeX, 3 if mdata.isRGB else 1]
 
     # create dask stack of lazy image readers
     lazy_process_image = dask.delayed(read_scene6d)  # lazy reader
-    lazy_arrays = [lazy_process_image(filename, sizes, s, mdata) for s in range(sizeS)]
+    lazy_arrays = [lazy_process_image(filename, sizes, s, mdata, remove_Adim) for s in range(sizeS)]
 
     dask_arrays = [da.from_delayed(lazy_array, shape=sp, dtype=mdata.npdtype) for lazy_array in lazy_arrays]
 
     # Stack into one large dask.array
-    array7d = da.stack(dask_arrays, axis=0)
+    array_md = da.stack(dask_arrays, axis=0)
 
-    return array7d
+    if remove_Adim:
+        dimstring = "STZCYX"
+
+    return array_md, dimstring

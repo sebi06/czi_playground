@@ -178,43 +178,43 @@ class CziDimensions:
         # check C-Dimension
         try:
             self.SizeC = np.int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeC"])
-        except (Value, KeyError) as e:
+        except (KeyError, KeyError) as e:
             self.SizeC = None
 
         # check Z-Dimension
         try:
             self.SizeZ = np.int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeZ"])
-        except (Value, KeyError) as e:
+        except (KeyError, KeyError) as e:
             self.SizeZ = None
 
         # check T-Dimension
         try:
             self.SizeT = np.int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeT"])
-        except (Value, KeyError) as e:
+        except (KeyError, KeyError) as e:
             self.SizeT = None
 
         # check M-Dimension
         try:
             self.SizeM = np.int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeM"])
-        except (ValueError, KeyError) as e:
+        except (KeyError, KeyError) as e:
             self.SizeM = None
 
         # check B-Dimension
         try:
             self.SizeB = np.int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeB"])
-        except (ValueError, KeyError) as e:
+        except (KeyError, KeyError) as e:
             self.SizeB = None
 
         # check S-Dimension
         try:
             self.SizeS = np.int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeS"])
-        except (ValueError, KeyError) as e:
+        except (KeyError, KeyError) as e:
             self.SizeS = None
 
         # check H-Dimension
         try:
             self.SizeH = np.int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeH"])
-        except (ValueError, KeyError) as e:
+        except (KeyError, KeyError) as e:
             self.SizeH = None
 
         # check I-Dimension
@@ -226,7 +226,7 @@ class CziDimensions:
         # check R-Dimension
         try:
             self.SizeR = np.int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeR"])
-        except (ValueError, KeyError) as e:
+        except (KeyError, KeyError) as e:
             self.SizeR = None
 
 
