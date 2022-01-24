@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : test_czimetadata_class.py
-# Version     : 0.0.5
+# Version     : 0.0.6
 # Author      : sebi06
-# Date        : 03.12.2021
+# Date        : 24.01.2022
 #
 # Disclaimer: This code is purely experimental. Feel free to
 # use it at your own risk.
@@ -64,11 +64,11 @@ print(df_md[:10])
 xmlfile = misc.writexml_czi(filename)
 
 # get the planetable for the CZI file and save it (optional)
-pt, csvfile = czimd.get_planetable(filename,
-                                   norm_time=True,
-                                   savetable=True,
-                                   separator=",",
-                                   index=True)
+pt, csvfile = czimd.aics_get_planetable(filename,
+                                        norm_time=True,
+                                        savetable=True,
+                                        separator=",",
+                                        index=True)
 
 print(pt[:5])
 
@@ -85,6 +85,7 @@ all_scenes, _ = czird.read(filename)
 # show array inside napari viewer
 viewer = napari.Viewer()
 layers = napari_tools.show(viewer, all_scenes, mdata,
+                           dim_order=mdata.aics_dim_order,
                            blending="additive",
                            contrast="napari_auto",
                            gamma=0.85,

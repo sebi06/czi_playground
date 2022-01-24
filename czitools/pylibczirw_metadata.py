@@ -55,6 +55,7 @@ class CziMetadata:
                 self.aics_size = aicsczi.size
                 self.aics_ismosaic = aicsczi.is_mosaic()
                 self.aics_dim_order, self.aics_dim_index, self.aics_dim_valid = self.get_dimorder(aicsczi.dims)
+                self.aics_posC = self.aics_dim_order["C"]
 
             except ImportError as e:
                 print("Use Fallback values because:", e)
@@ -65,6 +66,7 @@ class CziMetadata:
                 self.aics_dim_order = None
                 self.aics_dim_index = None
                 self.aics_dim_valid = None
+                self.aics_posC = None
 
             # get the pixel typed for all channels
             self.pixeltypes = czidoc.pixel_types
@@ -85,9 +87,9 @@ class CziMetadata:
 
             # try to guess if the CZI is a mosaic file
             if self.image.SizeM is None or self.image.SizeM == 1:
-                self.isMosaic = False
+                self.ismosaic = False
             else:
-                self.isMosaic = True
+                self.ismosaic = True
 
             # get the bounding boxes
             self.bbox = CziBoundingBox(filename)
@@ -536,7 +538,7 @@ class CziObjectives:
             # get objective data
             try:
                 if isinstance(md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Objectives"]["Objective"], list):
-                    num_obj = len(md_dict['ImageDocument']['Metadata']['Information']['Instrument']['Objectives']['Objective'])
+                    num_obj = len(md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Objectives"]["Objective"])
                 else:
                     num_obj = 1
             except (KeyError, TypeError) as e:
@@ -546,54 +548,54 @@ class CziObjectives:
             if num_obj == 1:
                 try:
                     self.name.append(
-                        md_dict['ImageDocument']['Metadata']['Information']['Instrument']['Objectives']['Objective']['Name'])
+                        md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Objectives"]["Objective"]["Name"])
                 except (KeyError, TypeError) as e:
-                    print('No Objective Name :', e)
+                    print("No Objective Name :", e)
                     self.name.append(None)
 
                 try:
-                    self.immersion = md_dict['ImageDocument']['Metadata']['Information']['Instrument']['Objectives']['Objective']['Immersion']
+                    self.immersion = md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Objectives"]["Objective"]["Immersion"]
                 except (KeyError, TypeError) as e:
-                    print('No Objective Immersion :', e)
+                    print("No Objective Immersion :", e)
                     self.immersion = None
 
                 try:
-                    self.NA = np.float(md_dict['ImageDocument']['Metadata']['Information']
-                                       ['Instrument']['Objectives']['Objective']['LensNA'])
+                    self.NA = np.float(md_dict["ImageDocument"]["Metadata"]["Information"]
+                                       ["Instrument"]["Objectives"]["Objective"]["LensNA"])
                 except (KeyError, TypeError) as e:
-                    print('No Objective NA :', e)
+                    print("No Objective NA :", e)
                     self.NA = None
 
                 try:
-                    self.ID = md_dict['ImageDocument']['Metadata']['Information']['Instrument']['Objectives']['Objective']['Id']
+                    self.ID = md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Objectives"]["Objective"]["Id"]
                 except (KeyError, TypeError) as e:
-                    print('No Objective ID :', e)
+                    print("No Objective ID :", e)
                     self.ID = None
 
                 try:
                     self.tubelensmag = np.float(
-                        md_dict['ImageDocument']['Metadata']['Information']['Instrument']['TubeLenses']['TubeLens']['Magnification'])
+                        md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["TubeLenses"]["TubeLens"]["Magnification"])
                 except (KeyError, TypeError) as e:
-                    print('No Tubelens Mag. :', e, 'Using Default Value = 1.0.')
+                    print("No Tubelens Mag. :", e, "Using Default Value = 1.0.")
                     self.tubelensmag = 1.0
 
                 try:
                     self.nominalmag = np.float(
-                        md_dict['ImageDocument']['Metadata']['Information']['Instrument']['Objectives']['Objective'][
-                            'NominalMagnification'])
+                        md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Objectives"]["Objective"][
+                            "NominalMagnification"])
                 except (KeyError, TypeError) as e:
-                    print('No Nominal Mag.:', e, 'Using Default Value = 1.0.')
+                    print("No Nominal Mag.:", e, "Using Default Value = 1.0.")
                     self.nominalmag = 1.0
 
                 try:
                     if self.tubelensmag is not None:
                         self.mag = self.nominalmag * self.tubelensmag
                     if self.tubelensmag is None:
-                        print('Using Tublens Mag = 1.0 for calculating Objective Magnification.')
+                        print("Using Tublens Mag = 1.0 for calculating Objective Magnification.")
                         self.mag = self.nominalmag * 1.0
 
                 except (KeyError, TypeError) as e:
-                    print('No Objective Magnification :', e)
+                    print("No Objective Magnification :", e)
                     self.mag = None
 
             if num_obj > 1:
@@ -601,61 +603,61 @@ class CziObjectives:
 
                     try:
                         self.name.append(
-                            md_dict['ImageDocument']['Metadata']['Information']['Instrument']['Objectives']['Objective'][o][
-                                'Name'])
+                            md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Objectives"]["Objective"][o][
+                                "Name"])
                     except (KeyError, TypeError) as e:
-                        print('No Objective Name :', e)
+                        print("No Objective Name :", e)
                         self.name.append(None)
 
                     try:
                         self.immersion.append(
-                            md_dict['ImageDocument']['Metadata']['Information']['Instrument']['Objectives']['Objective'][o][
-                                'Immersion'])
+                            md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Objectives"]["Objective"][o][
+                                "Immersion"])
                     except (KeyError, TypeError) as e:
-                        print('No Objective Immersion :', e)
+                        print("No Objective Immersion :", e)
                         self.immersion.append(None)
 
                     try:
                         self.NA.append(np.float(
-                            md_dict['ImageDocument']['Metadata']['Information']['Instrument']['Objectives']['Objective'][o][
-                                'LensNA']))
+                            md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Objectives"]["Objective"][o][
+                                "LensNA"]))
                     except (KeyError, TypeError) as e:
-                        print('No Objective NA :', e)
+                        print("No Objective NA :", e)
                         self.NA.append(None)
 
                     try:
                         self.ID.append(
-                            md_dict['ImageDocument']['Metadata']['Information']['Instrument']['Objectives']['Objective'][o][
-                                'Id'])
+                            md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Objectives"]["Objective"][o][
+                                "Id"])
                     except (KeyError, TypeError) as e:
-                        print('No Objective ID :', e)
+                        print("No Objective ID :", e)
                         self.ID.append(None)
 
                     try:
                         self.tubelensmag.append(np.float(
-                            md_dict['ImageDocument']['Metadata']['Information']['Instrument']['TubeLenses']['TubeLens'][o][
-                                'Magnification']))
+                            md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["TubeLenses"]["TubeLens"][o][
+                                "Magnification"]))
                     except (KeyError, TypeError) as e:
-                        print('No Tubelens Mag. :', e, 'Using Default Value = 1.0.')
+                        print("No Tubelens Mag. :", e, "Using Default Value = 1.0.")
                         self.tubelensmag.append(1.0)
 
                     try:
                         self.nominalmag.append(np.float(
-                            md_dict['ImageDocument']['Metadata']['Information']['Instrument']['Objectives']['Objective'][o][
-                                'NominalMagnification']))
+                            md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Objectives"]["Objective"][o][
+                                "NominalMagnification"]))
                     except (KeyError, TypeError) as e:
-                        print('No Nominal Mag. :', e, 'Using Default Value = 1.0.')
+                        print("No Nominal Mag. :", e, "Using Default Value = 1.0.")
                         self.nominalmag.append(1.0)
 
                     try:
                         if self.tubelensmag is not None:
                             self.mag.append(self.nominalmag[o] * self.tubelensmag[o])
                         if self.tubelensmag is None:
-                            print('Using Tublens Mag = 1.0 for calculating Objective Magnification.')
+                            print("Using Tublens Mag = 1.0 for calculating Objective Magnification.")
                             self.mag.append(self.nominalmag[o] * 1.0)
 
                     except (KeyError, TypeError) as e:
-                        print('No Objective Magnification :', e)
+                        print("No Objective Magnification :", e)
                         self.mag.append(None)
 
 
@@ -674,11 +676,11 @@ class CziDetector:
         self.instrumentID = []
 
         # check if there are any detector entries inside the dictionary
-        if pydash.objects.has(md_dict, ['ImageDocument', 'Metadata', 'Information', 'Instrument', 'Detectors']):
+        if pydash.objects.has(md_dict, ["ImageDocument", "Metadata", "Information", "Instrument", "Detectors"]):
 
-            if isinstance(md_dict['ImageDocument']['Metadata']['Information']['Instrument']['Detectors']['Detector'], list):
+            if isinstance(md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Detectors"]["Detector"], list):
                 num_detectors = len(
-                    md_dict['ImageDocument']['Metadata']['Information']['Instrument']['Detectors']['Detector'])
+                    md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Detectors"]["Detector"])
             else:
                 num_detectors = 1
 
@@ -688,34 +690,34 @@ class CziDetector:
                 # check for detector ID
                 try:
                     self.ID.append(
-                        md_dict['ImageDocument']['Metadata']['Information']['Instrument']['Detectors']['Detector']['Id'])
+                        md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Detectors"]["Detector"]["Id"])
                 except (KeyError, TypeError) as e:
-                    print('DetectorID not found :', e)
+                    print("DetectorID not found :", e)
                     self.ID.append(None)
 
                 # check for detector Name
                 try:
                     self.name.append(
-                        md_dict['ImageDocument']['Metadata']['Information']['Instrument']['Detectors']['Detector']['Name'])
+                        md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Detectors"]["Detector"]["Name"])
                 except (KeyError, TypeError) as e:
-                    print('DetectorName not found :', e)
+                    print("DetectorName not found :", e)
                     self.name.append(None)
 
                 # check for detector model
                 try:
                     self.model.append(
-                        md_dict['ImageDocument']['Metadata']['Information']['Instrument']['Detectors']['Detector'][
-                            'Manufacturer']['Model'])
+                        md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Detectors"]["Detector"][
+                            "Manufacturer"]["Model"])
                 except (KeyError, TypeError) as e:
-                    print('DetectorModel not found :', e)
+                    print("DetectorModel not found :", e)
                     self.model.append(None)
 
                 # check for detector modeltype
                 try:
                     self.modeltype.append(
-                        md_dict['ImageDocument']['Metadata']['Information']['Instrument']['Detectors']['Detector']['Type'])
+                        md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Detectors"]["Detector"]["Type"])
                 except (KeyError, TypeError) as e:
-                    print('DetectorType not found :', e)
+                    print("DetectorType not found :", e)
                     self.modeltype.append(None)
 
             if num_detectors > 1:
@@ -724,37 +726,37 @@ class CziDetector:
                     # check for detector ID
                     try:
                         self.ID.append(
-                            md_dict['ImageDocument']['Metadata']['Information']['Instrument']['Detectors']['Detector'][d][
-                                'Id'])
+                            md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Detectors"]["Detector"][d][
+                                "Id"])
                     except (KeyError, TypeError) as e:
-                        print('DetectorID not found :', e)
+                        print("DetectorID not found :", e)
                         self.ID.append(None)
 
                     # check for detector Name
                     try:
                         self.name.append(
-                            md_dict['ImageDocument']['Metadata']['Information']['Instrument']['Detectors']['Detector'][d][
-                                'Name'])
+                            md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Detectors"]["Detector"][d][
+                                "Name"])
                     except (KeyError, TypeError) as e:
-                        print('DetectorName not found :', e)
+                        print("DetectorName not found :", e)
                         self.name.append(None)
 
                     # check for detector model
                     try:
                         self.model.append(
-                            md_dict['ImageDocument']['Metadata']['Information']['Instrument']['Detectors']['Detector'][d][
-                                'Manufacturer']['Model'])
+                            md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Detectors"]["Detector"][d][
+                                "Manufacturer"]["Model"])
                     except (KeyError, TypeError) as e:
-                        print('DetectorModel not found :', e)
+                        print("DetectorModel not found :", e)
                         self.model.append(None)
 
                     # check for detector modeltype
                     try:
                         self.modeltype.append(
-                            md_dict['ImageDocument']['Metadata']['Information']['Instrument']['Detectors']['Detector'][d][
-                                'Type'])
+                            md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Detectors"]["Detector"][d][
+                                "Type"])
                     except (KeyError, TypeError) as e:
-                        print('DetectorType not found :', e)
+                        print("DetectorType not found :", e)
                         self.modeltype.append(None)
 
 
@@ -769,26 +771,26 @@ class CziMicroscope:
         self.Name = None
 
         # check if there are any microscope entry inside the dictionary
-        if pydash.objects.has(md_dict, ['ImageDocument', 'Metadata', 'Information', 'Instrument', 'Microscopes']):
+        if pydash.objects.has(md_dict, ["ImageDocument", "Metadata", "Information", "Instrument", "Microscopes"]):
 
             # check for detector ID
             try:
-                self.ID = md_dict['ImageDocument']['Metadata']['Information']['Instrument']['Microscopes']['Microscope'][
-                    'Id']
+                self.ID = md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Microscopes"]["Microscope"][
+                    "Id"]
             except (KeyError, TypeError) as e:
                 try:
-                    self.ID = md_dict['ImageDocument']['Metadata']['Information']['Instrument']['Microscopes']['Microscope'][
-                        '@Id']
+                    self.ID = md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Microscopes"]["Microscope"][
+                        "@Id"]
                 except (KeyError, TypeError) as e:
-                    print('Microscope ID not found :', e)
+                    print("Microscope ID not found :", e)
                     self.ID = None
 
             # check for microscope system name
             try:
-                self.Name = md_dict['ImageDocument']['Metadata']['Information']['Instrument']['Microscopes']['Microscope'][
-                    'System']
+                self.Name = md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Microscopes"]["Microscope"][
+                    "System"]
             except (KeyError, TypeError) as e:
-                print('Microscope System Name not found :', e)
+                print("Microscope System Name not found :", e)
                 self.Name = None
 
 
@@ -811,11 +813,11 @@ class CziSampleInfo:
 
         try:
             # get S-Dimension
-            sizeS = np.int(md_dict['ImageDocument']['Metadata']['Information']['Image']['SizeS'])
-            print('Trying to extract Scene and Well information if existing ...')
+            sizeS = np.int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeS"])
+            print("Trying to extract Scene and Well information if existing ...")
 
             # extract well information from the dictionary
-            allscenes = md_dict['ImageDocument']['Metadata']['Information']['Image']['Dimensions']['S']['Scenes']['Scene']
+            allscenes = md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["Dimensions"]["S"]["Scenes"]["Scene"]
 
             # loop over all detected scenes
             for s in range(sizeS):
@@ -823,110 +825,110 @@ class CziSampleInfo:
                 if sizeS == 1:
                     well = allscenes
                     try:
-                        self.well_array_names.append(allscenes['ArrayName'])
+                        self.well_array_names.append(allscenes["ArrayName"])
                     except (KeyError, TypeError) as e:
                         try:
-                            self.well_array_names.append(well['Name'])
+                            self.well_array_names.append(well["Name"])
                         except (KeyError, TypeError) as e:
-                            # print('Well Name not found :', e)
+                            # print("Well Name not found :", e)
                             try:
-                                self.well_array_names.append(well['@Name'])
+                                self.well_array_names.append(well["@Name"])
                             except (KeyError, TypeError) as e:
-                                # print('Well @Name not found :', e)
-                                print('Well Name not found :', e, 'Using A1 instead')
-                                self.well_array_names.append('A1')
+                                # print("Well @Name not found :", e)
+                                print("Well Name not found :", e, "Using A1 instead")
+                                self.well_array_names.append("A1")
 
                     try:
-                        self.well_indices.append(allscenes['Index'])
+                        self.well_indices.append(allscenes["Index"])
                     except (KeyError, TypeError) as e:
                         try:
-                            self.well_indices.append(allscenes['@Index'])
+                            self.well_indices.append(allscenes["@Index"])
                         except (KeyError, TypeError) as e:
-                            print('Well Index not found :', e)
+                            print("Well Index not found :", e)
                             self.well_indices.append(1)
 
                     try:
-                        self.well_position_names.append(allscenes['Name'])
+                        self.well_position_names.append(allscenes["Name"])
                     except (KeyError, TypeError) as e:
                         try:
-                            self.well_position_names.append(allscenes['@Name'])
+                            self.well_position_names.append(allscenes["@Name"])
                         except (KeyError, TypeError) as e:
-                            print('Well Position Names not found :', e)
-                            self.well_position_names.append('P1')
+                            print("Well Position Names not found :", e)
+                            self.well_position_names.append("P1")
 
                     try:
-                        self.well_colID.append(np.int(allscenes['Shape']['ColumnIndex']))
+                        self.well_colID.append(np.int(allscenes["Shape"]["ColumnIndex"]))
                     except (KeyError, TypeError) as e:
-                        print('Well ColumnIDs not found :', e)
+                        print("Well ColumnIDs not found :", e)
                         self.well_colID.append(0)
 
                     try:
-                        self.well_rowID.append(np.int(allscenes['Shape']['RowIndex']))
+                        self.well_rowID.append(np.int(allscenes["Shape"]["RowIndex"]))
                     except (KeyError, TypeError) as e:
-                        print('Well RowIDs not found :', e)
+                        print("Well RowIDs not found :", e)
                         self.well_rowID.append(0)
 
                     try:
                         # count the content of the list, e.g. how many time a certain well was detected
                         self.well_counter = Counter(self.well_array_names)
                     except (KeyError, TypeError):
-                        self.well_counter.append(Counter({'A1': 1}))
+                        self.well_counter.append(Counter({"A1": 1}))
 
                     try:
                         # get the SceneCenter Position
-                        sx = allscenes['CenterPosition'].split(',')[0]
-                        sy = allscenes['CenterPosition'].split(',')[1]
+                        sx = allscenes["CenterPosition"].split(",")[0]
+                        sy = allscenes["CenterPosition"].split(",")[1]
                         self.scene_stageX.append(np.double(sx))
                         self.scene_stageY.append(np.double(sy))
                     except (TypeError, (KeyError, TypeError)) as e:
-                        print('Stage Positions XY not found :', e)
+                        print("Stage Positions XY not found :", e)
                         self.scene_stageX.append(0.0)
                         self.scene_stageY.append(0.0)
 
                 if sizeS > 1:
                     try:
                         well = allscenes[s]
-                        self.well_array_names.append(well['ArrayName'])
+                        self.well_array_names.append(well["ArrayName"])
                     except (KeyError, TypeError) as e:
                         try:
-                            self.well_array_names.append(well['Name'])
+                            self.well_array_names.append(well["Name"])
                         except (KeyError, TypeError) as e:
-                            # print('Well Name not found :', e)
+                            # print("Well Name not found :", e)
                             try:
-                                self.well_array_names.append(well['@Name'])
+                                self.well_array_names.append(well["@Name"])
                             except (KeyError, TypeError) as e:
-                                # print('Well @Name not found :', e)
-                                print('Well Name not found. Using A1 instead')
-                                self.well_array_names.append('A1')
+                                # print("Well @Name not found :", e)
+                                print("Well Name not found. Using A1 instead")
+                                self.well_array_names.append("A1")
 
                     # get the well information
                     try:
-                        self.well_indices.append(well['Index'])
+                        self.well_indices.append(well["Index"])
                     except (KeyError, TypeError) as e:
                         try:
-                            self.well_indices.append(well['@Index'])
+                            self.well_indices.append(well["@Index"])
                         except (KeyError, TypeError) as e:
-                            print('Well Index not found :', e)
+                            print("Well Index not found :", e)
                             self.well_indices.append(None)
                     try:
-                        self.well_position_names.append(well['Name'])
+                        self.well_position_names.append(well["Name"])
                     except (KeyError, TypeError) as e:
                         try:
-                            self.well_position_names.append(well['@Name'])
+                            self.well_position_names.append(well["@Name"])
                         except (KeyError, TypeError) as e:
-                            print('Well Position Names not found :', e)
+                            print("Well Position Names not found :", e)
                             self.well_position_names.append(None)
 
                     try:
-                        self.well_colID.append(np.int(well['Shape']['ColumnIndex']))
+                        self.well_colID.append(np.int(well["Shape"]["ColumnIndex"]))
                     except (KeyError, TypeError) as e:
-                        print('Well ColumnIDs not found :', e)
+                        print("Well ColumnIDs not found :", e)
                         self.well_colID.append(None)
 
                     try:
-                        self.well_rowID.append(np.int(well['Shape']['RowIndex']))
+                        self.well_rowID.append(np.int(well["Shape"]["RowIndex"]))
                     except (KeyError, TypeError) as e:
-                        print('Well RowIDs not found :', e)
+                        print("Well RowIDs not found :", e)
                         self.well_rowID.append(None)
 
                     # count the content of the list, e.g. how many time a certain well was detected
@@ -936,12 +938,12 @@ class CziSampleInfo:
                     if isinstance(allscenes, list):
                         try:
                             # get the SceneCenter Position
-                            sx = allscenes[s]['CenterPosition'].split(',')[0]
-                            sy = allscenes[s]['CenterPosition'].split(',')[1]
+                            sx = allscenes[s]["CenterPosition"].split(",")[0]
+                            sy = allscenes[s]["CenterPosition"].split(",")[1]
                             self.scene_stageX.append(np.double(sx))
                             self.scene_stageY.append(np.double(sy))
                         except (KeyError, TypeError) as e:
-                            print('Stage Positions XY not found :', e)
+                            print("Stage Positions XY not found :", e)
                             self.scene_stageX.append(0.0)
                             self.scene_stageY.append(0.0)
                     if not isinstance(allscenes, list):
@@ -952,7 +954,7 @@ class CziSampleInfo:
                 self.number_wells = len(self.well_counter.keys())
 
         except (KeyError, TypeError) as e:
-            print('No valid Scene or Well information found:', e)
+            print("No valid Scene or Well information found:", e)
 
 
 class CziAddMetaData:
@@ -963,33 +965,33 @@ class CziAddMetaData:
             md_dict = czidoc.metadata
 
         try:
-            self.experiment = md_dict['ImageDocument']['Metadata']['Experiment']
+            self.experiment = md_dict["ImageDocument"]["Metadata"]["Experiment"]
         except (KeyError, TypeError) as e:
-            print('Key not found :', e)
+            print("Key not found :", e)
             self.experiment = None
 
         try:
-            self.hardwaresetting = md_dict['ImageDocument']['Metadata']['HardwareSetting']
+            self.hardwaresetting = md_dict["ImageDocument"]["Metadata"]["HardwareSetting"]
         except (KeyError, TypeError) as e:
-            print('Key not found :', e)
+            print("Key not found :", e)
             self.hardwaresetting = None
 
         try:
-            self.customattributes = md_dict['ImageDocument']['Metadata']['CustomAttributes']
+            self.customattributes = md_dict["ImageDocument"]["Metadata"]["CustomAttributes"]
         except (KeyError, TypeError) as e:
-            print('Key not found :', e)
+            print("Key not found :", e)
             self.customattributes = None
 
         try:
-            self.displaysetting = md_dict['ImageDocument']['Metadata']['DisplaySetting']
+            self.displaysetting = md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]
         except (KeyError, TypeError) as e:
-            print('Key not found :', e)
+            print("Key not found :", e)
             self.displaysetting = None
 
         try:
-            self.layers = md_dict['ImageDocument']['Metadata']['Layers']
+            self.layers = md_dict["ImageDocument"]["Metadata"]["Layers"]
         except (KeyError, TypeError) as e:
-            print('Key not found :', e)
+            print("Key not found :", e)
             self.layers = None
 
 
@@ -1029,76 +1031,76 @@ def create_mdict_complete(metadata: Union[str, CziMetadata], sort: bool = True) 
     # create a dictionary with the metadata
 
     # Attemtion: the list of keys is not complete!
-    md_dict = {'Directory': metadata.info.dirname,
-               'Filename': metadata.info.filename,
-               'AcqDate': metadata.info.acquisition_date,
-               'SW-Name': metadata.info.software_name,
-               'SW-Version': metadata.info.software_version,
-               'aics_dims': metadata.aics_dimstring,
-               'aics_dims_shape': metadata.aics_dims_shape,
-               'aics_size': metadata.aics_size,
-               'aics_ismosaic': metadata.aics_ismosaic,
-               'aics_dim_order': metadata.aics_dim_order,
-               'aics_dim_index': metadata.aics_dim_index,
-               'aics_dim_valid': metadata.aics_dim_valid,
-               'SizeX': metadata.image.SizeX,
-               'SizeY': metadata.image.SizeY,
-               'SizeZ': metadata.image.SizeZ,
-               'SizeC': metadata.image.SizeC,
-               'SizeT': metadata.image.SizeT,
-               'SizeS': metadata.image.SizeS,
-               'SizeB': metadata.image.SizeB,
-               'SizeM': metadata.image.SizeM,
-               'SizeH': metadata.image.SizeH,
-               'SizeI': metadata.image.SizeI,
-               'isRGB': metadata.isRGB,
-               'isMosaic': metadata.isMosaic,
-               'ObjNA': metadata.objective.NA,
-               'ObjMag': metadata.objective.mag,
-               'ObjID': metadata.objective.ID,
-               'ObjName': metadata.objective.name,
-               'ObjImmersion': metadata.objective.immersion,
-               'TubelensMag': metadata.objective.tubelensmag,
-               'ObjNominalMag': metadata.objective.nominalmag,
-               'XScale': metadata.scale.X,
-               'YScale': metadata.scale.Y,
-               'ZScale': metadata.scale.Z,
-               'XScaleUnit': metadata.scale.XUnit,
-               'YScaleUnit': metadata.scale.YUnit,
-               'ZScaleUnit': metadata.scale.ZUnit,
-               'scale_ratio': metadata.scale.ratio,
-               'DetectorModel': metadata.detector.model,
-               'DetectorName': metadata.detector.name,
-               'DetectorID': metadata.detector.ID,
-               'DetectorType': metadata.detector.modeltype,
-               'InstrumentID': metadata.detector.instrumentID,
-               'ChannelsNames': metadata.channelinfo.names,
-               'ChannelShortNames': metadata.channelinfo.shortnames,
-               'ChannelColors': metadata.channelinfo.colors,
-               'bbox_all_scenes': metadata.bbox.all_scenes,
-               'WellArrayNames': metadata.sample.well_array_names,
-               'WellIndicies': metadata.sample.well_indices,
-               'WellPositionNames': metadata.sample.well_position_names,
-               'WellRowID': metadata.sample.well_rowID,
-               'WellColumnID': metadata.sample.well_colID,
-               'WellCounter': metadata.sample.well_counter,
-               'SceneCenterStageX': metadata.sample.scene_stageX,
-               'SceneCenterStageY': metadata.sample.scene_stageX
+    md_dict = {"Directory": metadata.info.dirname,
+               "Filename": metadata.info.filename,
+               "AcqDate": metadata.info.acquisition_date,
+               "SW-Name": metadata.info.software_name,
+               "SW-Version": metadata.info.software_version,
+               "aics_dims": metadata.aics_dimstring,
+               "aics_dims_shape": metadata.aics_dims_shape,
+               "aics_size": metadata.aics_size,
+               "aics_ismosaic": metadata.aics_ismosaic,
+               "aics_dim_order": metadata.aics_dim_order,
+               "aics_dim_index": metadata.aics_dim_index,
+               "aics_dim_valid": metadata.aics_dim_valid,
+               "SizeX": metadata.image.SizeX,
+               "SizeY": metadata.image.SizeY,
+               "SizeZ": metadata.image.SizeZ,
+               "SizeC": metadata.image.SizeC,
+               "SizeT": metadata.image.SizeT,
+               "SizeS": metadata.image.SizeS,
+               "SizeB": metadata.image.SizeB,
+               "SizeM": metadata.image.SizeM,
+               "SizeH": metadata.image.SizeH,
+               "SizeI": metadata.image.SizeI,
+               "isRGB": metadata.isRGB,
+               "isMosaic": metadata.ismosaic,
+               "ObjNA": metadata.objective.NA,
+               "ObjMag": metadata.objective.mag,
+               "ObjID": metadata.objective.ID,
+               "ObjName": metadata.objective.name,
+               "ObjImmersion": metadata.objective.immersion,
+               "TubelensMag": metadata.objective.tubelensmag,
+               "ObjNominalMag": metadata.objective.nominalmag,
+               "XScale": metadata.scale.X,
+               "YScale": metadata.scale.Y,
+               "ZScale": metadata.scale.Z,
+               "XScaleUnit": metadata.scale.XUnit,
+               "YScaleUnit": metadata.scale.YUnit,
+               "ZScaleUnit": metadata.scale.ZUnit,
+               "scale_ratio": metadata.scale.ratio,
+               "DetectorModel": metadata.detector.model,
+               "DetectorName": metadata.detector.name,
+               "DetectorID": metadata.detector.ID,
+               "DetectorType": metadata.detector.modeltype,
+               "InstrumentID": metadata.detector.instrumentID,
+               "ChannelsNames": metadata.channelinfo.names,
+               "ChannelShortNames": metadata.channelinfo.shortnames,
+               "ChannelColors": metadata.channelinfo.colors,
+               "bbox_all_scenes": metadata.bbox.all_scenes,
+               "WellArrayNames": metadata.sample.well_array_names,
+               "WellIndicies": metadata.sample.well_indices,
+               "WellPositionNames": metadata.sample.well_position_names,
+               "WellRowID": metadata.sample.well_rowID,
+               "WellColumnID": metadata.sample.well_colID,
+               "WellCounter": metadata.sample.well_counter,
+               "SceneCenterStageX": metadata.sample.scene_stageX,
+               "SceneCenterStageY": metadata.sample.scene_stageX
                }
 
     # check fro extra entries when reading mosaic file with a scale factor
     if hasattr(metadata.image, "SizeX_sf"):
-        md_dict['SizeX sf'] = metadata.image.SizeX_sf
-        md_dict['SizeY sf'] = metadata.image.SizeY_sf
-        md_dict['XScale sf'] = metadata.scale.X_sf
-        md_dict['YScale sf'] = metadata.scale.Y_sf
-        md_dict['ratio sf'] = metadata.scale.ratio_sf
-        md_dict['scalefactorXY'] = metadata.scale.scalefactorXY
+        md_dict["SizeX sf"] = metadata.image.SizeX_sf
+        md_dict["SizeY sf"] = metadata.image.SizeY_sf
+        md_dict["XScale sf"] = metadata.scale.X_sf
+        md_dict["YScale sf"] = metadata.scale.Y_sf
+        md_dict["ratio sf"] = metadata.scale.ratio_sf
+        md_dict["scalefactorXY"] = metadata.scale.scalefactorXY
 
     # add info for bounding boxes
-    md_dict['bbox_all_scenes'] = metadata.bbox.all_scenes
-    md_dict['bbox_total_rect'] = metadata.bbox.total_rect
-    md_dict['bbox_total'] = metadata.bbox.total_bounding_box
+    md_dict["bbox_all_scenes"] = metadata.bbox.all_scenes
+    md_dict["bbox_total_rect"] = metadata.bbox.total_rect
+    md_dict["bbox_total"] = metadata.bbox.total_bounding_box
 
     if sort:
         return misc.sort_dict_by_key(md_dict)

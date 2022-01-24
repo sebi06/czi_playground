@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : czi_metadata.py
-# Version     : 0.1.2
+# Version     : 0.1.3
 # Author      : sebi06
-# Date        : 12.08.2021
+# Date        : 24.01.2022
 #
 # Disclaimer: The code is purely experimental. Feel free to
 # use it at your own risk.
@@ -47,23 +47,24 @@ class CziMetadata:
             self.isRGB = False
 
         # get additional data by using aicspylibczi directly
-        self.dimstring = aicsczi.dims
-        self.dims_shape = aicsczi.get_dims_shape()
-        self.size = aicsczi.size
-        self.isMosaic = aicsczi.is_mosaic()
+        self.aics_dimstring = aicsczi.dims
+        self.aics_dims_shape = aicsczi.get_dims_shape()
+        self.aics_size = aicsczi.size
+        self.aics_ismosaic = aicsczi.is_mosaic()
 
         # determine pixel type for CZI array by reading XML metadata
         self.pixeltype = md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["PixelType"]
 
         # determine pixel type for CZI array using aicspylibczi
-        self.pixeltype_aics = aicsczi.pixel_type
+        self.aics_pixeltype = aicsczi.pixel_type
 
         # determine pixel type for CZI array
-        self.npdtype, self.maxrange = self.get_dtype_fromstring(self.pixeltype_aics)
+        self.npdtype, self.maxrange = self.get_dtype_fromstring(self.aics_pixeltype)
 
         # get the dimensions and order
-        self.dims = CziDimensions(filename)
-        self.dim_order, self.dim_index, self.dim_valid = self.get_dimorder(aicsczi.dims)
+        self.image = CziDimensions(filename)
+        self.aics_dim_order, self.aics_dim_index, self.aics_dim_valid = self.get_dimorder(aicsczi.dims)
+        self.aics_posC = self.aics_dim_order["C"]
 
         # get the bounding boxes
         self.bbox = CziBoundingBox(filename)
@@ -177,55 +178,55 @@ class CziDimensions:
         # check C-Dimension
         try:
             self.SizeC = np.int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeC"])
-        except KeyError as e:
+        except (Value, KeyError) as e:
             self.SizeC = None
 
         # check Z-Dimension
         try:
             self.SizeZ = np.int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeZ"])
-        except KeyError as e:
+        except (Value, KeyError) as e:
             self.SizeZ = None
 
         # check T-Dimension
         try:
             self.SizeT = np.int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeT"])
-        except KeyError as e:
+        except (Value, KeyError) as e:
             self.SizeT = None
 
         # check M-Dimension
         try:
             self.SizeM = np.int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeM"])
-        except KeyError as e:
+        except (ValueError, KeyError) as e:
             self.SizeM = None
 
         # check B-Dimension
         try:
             self.SizeB = np.int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeB"])
-        except KeyError as e:
+        except (ValueError, KeyError) as e:
             self.SizeB = None
 
         # check S-Dimension
         try:
             self.SizeS = np.int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeS"])
-        except KeyError as e:
+        except (ValueError, KeyError) as e:
             self.SizeS = None
 
         # check H-Dimension
         try:
             self.SizeH = np.int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeH"])
-        except KeyError as e:
+        except (ValueError, KeyError) as e:
             self.SizeH = None
 
         # check I-Dimension
         try:
             self.SizeI = np.int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeH"])
-        except KeyError as e:
+        except (ValueError, KeyError) as e:
             self.SizeI = None
 
         # check R-Dimension
         try:
             self.SizeR = np.int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeR"])
-        except KeyError as e:
+        except (ValueError, KeyError) as e:
             self.SizeR = None
 
 
@@ -256,7 +257,7 @@ class CziChannelInfo:
 
         try:
             sizeC = np.int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeC"])
-        except KeyError as e:
+        except (ValueError, KeyError) as e:
             # enforce C = 1
             sizeC = 1
 
@@ -266,11 +267,11 @@ class CziChannelInfo:
             try:
                 channels.append(
                     md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"]["ShortName"])
-            except KeyError as e:
+            except (ValueError, KeyError) as e:
                 print("Channel shortname not found :", e)
                 try:
                     channels.append(md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"]["DyeName"])
-                except KeyError as e:
+                except (ValueError, KeyError) as e:
                     print("Channel dye not found :", e)
                     channels.append("Dye-CH1")
 
@@ -278,11 +279,11 @@ class CziChannelInfo:
             try:
                 channels_names.append(
                     md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"]["Name"])
-            except KeyError as e:
+            except (ValueError, KeyError) as e:
                 try:
                     channels_names.append(
                         md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"]["@Name"])
-                except KeyError as e:
+                except (ValueError, KeyError) as e:
                     print("Channel name found :", e)
                     channels_names.append("CH1")
 
@@ -290,18 +291,18 @@ class CziChannelInfo:
             try:
                 channels_colors.append(
                     md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"]["Color"])
-            except KeyError as e:
+            except (ValueError, KeyError) as e:
                 print("Channel color not found :", e)
                 channels_colors.append("#80808000")
 
             # get contrast setting fro DisplaySetting
             try:
                 low = np.float(md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"]["Low"])
-            except KeyError as e:
+            except (ValueError, KeyError) as e:
                 low = 0.1
             try:
                 high = np.float(md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"]["High"])
-            except KeyError as e:
+            except (ValueError, KeyError) as e:
                 high = 0.5
 
             channels_contrast.append([low, high])
@@ -310,7 +311,7 @@ class CziChannelInfo:
             try:
                 channels_gamma.append(
                     np.float(md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"]["Gamma"]))
-            except KeyError as e:
+            except (ValueError, KeyError) as e:
                 channels_gamma.append(0.85)
 
         # in case of two or more channels
@@ -321,13 +322,13 @@ class CziChannelInfo:
                 try:
                     channels.append(
                         md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"][ch]["ShortName"])
-                except KeyError as e:
+                except (ValueError, KeyError) as e:
                     print("Channel shortname not found :", e)
                     try:
                         channels.append(
                             md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"][ch][
                                 "DyeName"])
-                    except KeyError as e:
+                    except (ValueError, KeyError) as e:
                         print("Channel dye not found :", e)
                         channels.append("Dye-CH" + str(ch))
 
@@ -335,11 +336,11 @@ class CziChannelInfo:
                 try:
                     channels_names.append(
                         md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"][ch]["Name"])
-                except KeyError as e:
+                except (ValueError, KeyError) as e:
                     try:
                         channels_names.append(
                             md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"][ch]["@Name"])
-                    except KeyError as e:
+                    except (ValueError, KeyError) as e:
                         print("Channel name not found :", e)
                         channels_names.append("CH" + str(ch))
 
@@ -347,7 +348,7 @@ class CziChannelInfo:
                 try:
                     channels_colors.append(
                         md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"][ch]["Color"])
-                except KeyError as e:
+                except (ValueError, KeyError) as e:
                     print("Channel color not found :", e)
                     # use grayscale instead
                     channels_colors.append("80808000")
@@ -356,12 +357,12 @@ class CziChannelInfo:
                 try:
                     low = np.float(
                         md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"][ch]["Low"])
-                except KeyError as e:
+                except (ValueError, KeyError) as e:
                     low = 0.0
                 try:
                     high = np.float(
                         md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"][ch]["High"])
-                except KeyError as e:
+                except (ValueError, KeyError) as e:
                     high = 0.5
 
                 channels_contrast.append([low, high])
@@ -370,7 +371,7 @@ class CziChannelInfo:
                 try:
                     channels_gamma.append(np.float(
                         md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"][ch]["Gamma"]))
-                except KeyError as e:
+                except (ValueError, KeyError) as e:
                     channels_gamma.append(0.85)
 
         # write channels information (as lists) into metadata dictionary
@@ -468,14 +469,14 @@ class CziInfo:
         try:
             self.software_name = md_dict["ImageDocument"]["Metadata"]["Information"]["Application"]["Name"]
             self.software_version = md_dict["ImageDocument"]["Metadata"]["Information"]["Application"]["Version"]
-        except KeyError as e:
+        except (ValueError, KeyError) as e:
             print("Key not found:", e)
             self.software_name = None
             self.software_version = None
 
         try:
             self.acquisition_date = md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["AcquisitionDateAndTime"]
-        except KeyError as e:
+        except (ValueError, KeyError) as e:
             print("Key not found:", e)
             self.acquisition_date = None
 
@@ -502,7 +503,7 @@ class CziObjectives:
                     num_obj = len(md_dict['ImageDocument']['Metadata']['Information']['Instrument']['Objectives']['Objective'])
                 else:
                     num_obj = 1
-            except KeyError as e:
+            except (ValueError, KeyError) as e:
                 num_obj = 0  # no objective found
 
             # if there is only one objective found
@@ -566,7 +567,7 @@ class CziObjectives:
                         self.name.append(
                             md_dict['ImageDocument']['Metadata']['Information']['Instrument']['Objectives']['Objective'][o][
                                 'Name'])
-                    except KeyError as e:
+                    except (ValueError, KeyError) as e:
                         print('No Objective Name :', e)
                         self.name.append(None)
 
@@ -574,7 +575,7 @@ class CziObjectives:
                         self.immersion.append(
                             md_dict['ImageDocument']['Metadata']['Information']['Instrument']['Objectives']['Objective'][o][
                                 'Immersion'])
-                    except KeyError as e:
+                    except (ValueError, KeyError) as e:
                         print('No Objective Immersion :', e)
                         self.immersion.append(None)
 
@@ -582,7 +583,7 @@ class CziObjectives:
                         self.NA.append(np.float(
                             md_dict['ImageDocument']['Metadata']['Information']['Instrument']['Objectives']['Objective'][o][
                                 'LensNA']))
-                    except KeyError as e:
+                    except (ValueError, KeyError) as e:
                         print('No Objective NA :', e)
                         self.NA.append(None)
 
@@ -590,7 +591,7 @@ class CziObjectives:
                         self.ID.append(
                             md_dict['ImageDocument']['Metadata']['Information']['Instrument']['Objectives']['Objective'][o][
                                 'Id'])
-                    except KeyError as e:
+                    except (ValueError, KeyError) as e:
                         print('No Objective ID :', e)
                         self.ID.append(None)
 
@@ -598,7 +599,7 @@ class CziObjectives:
                         self.tubelensmag.append(np.float(
                             md_dict['ImageDocument']['Metadata']['Information']['Instrument']['TubeLenses']['TubeLens'][o][
                                 'Magnification']))
-                    except KeyError as e:
+                    except (ValueError, KeyError) as e:
                         print('No Tubelens Mag. :', e, 'Using Default Value = 1.0.')
                         self.tubelensmag.append(1.0)
 
@@ -606,7 +607,7 @@ class CziObjectives:
                         self.nominalmag.append(np.float(
                             md_dict['ImageDocument']['Metadata']['Information']['Instrument']['Objectives']['Objective'][o][
                                 'NominalMagnification']))
-                    except KeyError as e:
+                    except (ValueError, KeyError) as e:
                         print('No Nominal Mag. :', e, 'Using Default Value = 1.0.')
                         self.nominalmag.append(1.0)
 
@@ -617,7 +618,7 @@ class CziObjectives:
                             print('Using Tublens Mag = 1.0 for calculating Objective Magnification.')
                             self.mag.append(self.nominalmag[o] * 1.0)
 
-                    except KeyError as e:
+                    except (ValueError, KeyError) as e:
                         print('No Objective Magnification :', e)
                         self.mag.append(None)
 
@@ -651,7 +652,7 @@ class CziDetector:
                 try:
                     self.ID.append(
                         md_dict['ImageDocument']['Metadata']['Information']['Instrument']['Detectors']['Detector']['Id'])
-                except KeyError as e:
+                except (ValueError, KeyError) as e:
                     print('DetectorID not found :', e)
                     self.ID.append(None)
 
@@ -659,7 +660,7 @@ class CziDetector:
                 try:
                     self.name.append(
                         md_dict['ImageDocument']['Metadata']['Information']['Instrument']['Detectors']['Detector']['Name'])
-                except KeyError as e:
+                except (ValueError, KeyError) as e:
                     print('DetectorName not found :', e)
                     self.name.append(None)
 
@@ -668,7 +669,7 @@ class CziDetector:
                     self.model.append(
                         md_dict['ImageDocument']['Metadata']['Information']['Instrument']['Detectors']['Detector'][
                             'Manufacturer']['Model'])
-                except KeyError as e:
+                except (ValueError, KeyError) as e:
                     print('DetectorModel not found :', e)
                     self.model.append(None)
 
@@ -676,7 +677,7 @@ class CziDetector:
                 try:
                     self.modeltype.append(
                         md_dict['ImageDocument']['Metadata']['Information']['Instrument']['Detectors']['Detector']['Type'])
-                except KeyError as e:
+                except (ValueError, KeyError) as e:
                     print('DetectorType not found :', e)
                     self.modeltype.append(None)
 
@@ -688,7 +689,7 @@ class CziDetector:
                         self.ID.append(
                             md_dict['ImageDocument']['Metadata']['Information']['Instrument']['Detectors']['Detector'][d][
                                 'Id'])
-                    except KeyError as e:
+                    except (ValueError, KeyError) as e:
                         print('DetectorID not found :', e)
                         self.ID.append(None)
 
@@ -697,7 +698,7 @@ class CziDetector:
                         self.name.append(
                             md_dict['ImageDocument']['Metadata']['Information']['Instrument']['Detectors']['Detector'][d][
                                 'Name'])
-                    except KeyError as e:
+                    except (ValueError, KeyError) as e:
                         print('DetectorName not found :', e)
                         self.name.append(None)
 
@@ -706,7 +707,7 @@ class CziDetector:
                         self.model.append(
                             md_dict['ImageDocument']['Metadata']['Information']['Instrument']['Detectors']['Detector'][d][
                                 'Manufacturer']['Model'])
-                    except KeyError as e:
+                    except (ValueError, KeyError) as e:
                         print('DetectorModel not found :', e)
                         self.model.append(None)
 
@@ -715,7 +716,7 @@ class CziDetector:
                         self.modeltype.append(
                             md_dict['ImageDocument']['Metadata']['Information']['Instrument']['Detectors']['Detector'][d][
                                 'Type'])
-                    except KeyError as e:
+                    except (ValueError, KeyError) as e:
                         print('DetectorType not found :', e)
                         self.modeltype.append(None)
 
@@ -736,11 +737,11 @@ class CziMicroscope:
             try:
                 self.ID = md_dict['ImageDocument']['Metadata']['Information']['Instrument']['Microscopes']['Microscope'][
                     'Id']
-            except KeyError as e:
+            except (ValueError, KeyError) as e:
                 try:
                     self.ID = md_dict['ImageDocument']['Metadata']['Information']['Instrument']['Microscopes']['Microscope'][
                         '@Id']
-                except KeyError as e:
+                except (ValueError, KeyError) as e:
                     print('Microscope ID not found :', e)
                     self.ID = None
 
@@ -748,7 +749,7 @@ class CziMicroscope:
             try:
                 self.Name = md_dict['ImageDocument']['Metadata']['Information']['Instrument']['Microscopes']['Microscope'][
                     'System']
-            except KeyError as e:
+            except (ValueError, KeyError) as e:
                 print('Microscope System Name not found :', e)
                 self.Name = None
 
@@ -784,45 +785,45 @@ class CziSampleInfo:
                     well = allscenes
                     try:
                         self.well_array_names.append(allscenes['ArrayName'])
-                    except KeyError as e:
+                    except (ValueError, KeyError) as e:
                         try:
                             self.well_array_names.append(well['Name'])
-                        except KeyError as e:
+                        except (ValueError, KeyError) as e:
                             # print('Well Name not found :', e)
                             try:
                                 self.well_array_names.append(well['@Name'])
-                            except KeyError as e:
+                            except (ValueError, KeyError) as e:
                                 # print('Well @Name not found :', e)
                                 print('Well Name not found :', e, 'Using A1 instead')
                                 self.well_array_names.append('A1')
 
                     try:
                         self.well_indices.append(allscenes['Index'])
-                    except KeyError as e:
+                    except (ValueError, KeyError) as e:
                         try:
                             self.well_indices.append(allscenes['@Index'])
-                        except KeyError as e:
+                        except (ValueError, KeyError) as e:
                             print('Well Index not found :', e)
                             self.well_indices.append(1)
 
                     try:
                         self.well_position_names.append(allscenes['Name'])
-                    except KeyError as e:
+                    except (ValueError, KeyError) as e:
                         try:
                             self.well_position_names.append(allscenes['@Name'])
-                        except KeyError as e:
+                        except (ValueError, KeyError) as e:
                             print('Well Position Names not found :', e)
                             self.well_position_names.append('P1')
 
                     try:
                         self.well_colID.append(np.int(allscenes['Shape']['ColumnIndex']))
-                    except KeyError as e:
+                    except (ValueError, KeyError) as e:
                         print('Well ColumnIDs not found :', e)
                         self.well_colID.append(0)
 
                     try:
                         self.well_rowID.append(np.int(allscenes['Shape']['RowIndex']))
-                    except KeyError as e:
+                    except (ValueError, KeyError) as e:
                         print('Well RowIDs not found :', e)
                         self.well_rowID.append(0)
 
@@ -847,14 +848,14 @@ class CziSampleInfo:
                     try:
                         well = allscenes[s]
                         self.well_array_names.append(well['ArrayName'])
-                    except KeyError as e:
+                    except (ValueError, KeyError) as e:
                         try:
                             self.well_array_names.append(well['Name'])
-                        except KeyError as e:
+                        except (ValueError, KeyError) as e:
                             # print('Well Name not found :', e)
                             try:
                                 self.well_array_names.append(well['@Name'])
-                            except KeyError as e:
+                            except (ValueError, KeyError) as e:
                                 # print('Well @Name not found :', e)
                                 print('Well Name not found. Using A1 instead')
                                 self.well_array_names.append('A1')
@@ -862,30 +863,30 @@ class CziSampleInfo:
                     # get the well information
                     try:
                         self.well_indices.append(well['Index'])
-                    except KeyError as e:
+                    except (ValueError, KeyError) as e:
                         try:
                             self.well_indices.append(well['@Index'])
-                        except KeyError as e:
+                        except (ValueError, KeyError) as e:
                             print('Well Index not found :', e)
                             self.well_indices.append(None)
                     try:
                         self.well_position_names.append(well['Name'])
-                    except KeyError as e:
+                    except (ValueError, KeyError) as e:
                         try:
                             self.well_position_names.append(well['@Name'])
-                        except KeyError as e:
+                        except (ValueError, KeyError) as e:
                             print('Well Position Names not found :', e)
                             self.well_position_names.append(None)
 
                     try:
                         self.well_colID.append(np.int(well['Shape']['ColumnIndex']))
-                    except KeyError as e:
+                    except (ValueError, KeyError) as e:
                         print('Well ColumnIDs not found :', e)
                         self.well_colID.append(None)
 
                     try:
                         self.well_rowID.append(np.int(well['Shape']['RowIndex']))
-                    except KeyError as e:
+                    except (ValueError, KeyError) as e:
                         print('Well RowIDs not found :', e)
                         self.well_rowID.append(None)
 
@@ -900,7 +901,7 @@ class CziSampleInfo:
                             sy = allscenes[s]['CenterPosition'].split(',')[1]
                             self.scene_stageX.append(np.double(sx))
                             self.scene_stageY.append(np.double(sy))
-                        except KeyError as e:
+                        except (ValueError, KeyError) as e:
                             print('Stage Positions XY not found :', e)
                             self.scene_stageX.append(0.0)
                             self.scene_stageY.append(0.0)
@@ -923,31 +924,31 @@ class CziAddMetaData:
 
         try:
             self.experiment = md_dict['ImageDocument']['Metadata']['Experiment']
-        except KeyError as e:
+        except (ValueError, KeyError) as e:
             print('Key not found :', e)
             self.experiment = None
 
         try:
             self.hardwaresetting = md_dict['ImageDocument']['Metadata']['HardwareSetting']
-        except KeyError as e:
+        except (ValueError, KeyError) as e:
             print('Key not found :', e)
             self.hardwaresetting = None
 
         try:
             self.customattributes = md_dict['ImageDocument']['Metadata']['CustomAttributes']
-        except KeyError as e:
+        except (ValueError, KeyError) as e:
             print('Key not found :', e)
             self.customattributes = None
 
         try:
             self.displaysetting = md_dict['ImageDocument']['Metadata']['DisplaySetting']
-        except KeyError as e:
+        except (ValueError, KeyError) as e:
             print('Key not found :', e)
             self.displaysetting = None
 
         try:
             self.layers = md_dict['ImageDocument']['Metadata']['Layers']
-        except KeyError as e:
+        except (ValueError, KeyError) as e:
             print('Key not found :', e)
             self.layers = None
 
@@ -1074,11 +1075,11 @@ class CziScene:
             self.shape_single_scene.append(3)
 
 
-def get_planetable(czifile: str,
-                   norm_time: bool = True,
-                   savetable: bool = False,
-                   separator: str = ',',
-                   index: bool = True) -> Tuple[pd.DataFrame, Optional[str]]:
+def aics_get_planetable(czifile: str,
+                        norm_time: bool = True,
+                        savetable: bool = False,
+                        separator: str = ',',
+                        index: bool = True) -> Tuple[pd.DataFrame, Optional[str]]:
 
     # get the czi metadata
     metadata = CziMetadata(czifile)
@@ -1104,30 +1105,30 @@ def get_planetable(czifile: str,
     sbcount = -1
 
     # check fort non existing dimensions
-    if metadata.dims.SizeS is None:
+    if metadata.image.SizeS is None:
         sizeS = 1
     else:
-        sizeS = metadata.dims.SizeS
+        sizeS = metadata.image.SizeS
 
-    if metadata.dims.SizeM is None:
+    if metadata.image.SizeM is None:
         sizeM = 1
     else:
-        sizeM = metadata.dims.SizeM
+        sizeM = metadata.image.SizeM
 
-    if metadata.dims.SizeT is None:
+    if metadata.image.SizeT is None:
         sizeT = 1
     else:
-        sizeT = metadata.dims.SizeT
+        sizeT = metadata.image.SizeT
 
-    if metadata.dims.SizeZ is None:
+    if metadata.image.SizeZ is None:
         sizeZ = 1
     else:
-        sizeZ = metadata.dims.SizeZ
+        sizeZ = metadata.image.SizeZ
 
-    if metadata.dims.SizeC is None:
+    if metadata.image.SizeC is None:
         sizeC = 1
     else:
-        sizeC = metadata.dims.SizeC
+        sizeC = metadata.image.SizeC
 
     def getsbinfo(subblock: Any) -> Tuple[float, float, float, float]:
         try:
@@ -1158,7 +1159,7 @@ def get_planetable(czifile: str,
         return timestamp, xpos, ypos, zpos
 
     # in case the CZI has the M-Dimension
-    if metadata.isMosaic:
+    if metadata.aics_ismosaic:
 
         for s, m, t, z, c in product(range(sizeS),
                                      range(sizeM),
@@ -1202,7 +1203,7 @@ def get_planetable(czifile: str,
                                     'height': tilebbox.h},
                                    ignore_index=True)
 
-    if not metadata.isMosaic:
+    if not metadata.aics_ismosaic:
 
         for s, t, z, c in product(range(sizeS),
                                   range(sizeT),
@@ -1323,7 +1324,7 @@ def filter_planetable(planetable: pd.DataFrame,
             print('Z-Plane Index was invalid. Using Z = 0.')
             zplane = 0
             pt = pt[pt['Z[micron]'] == z]
-    except KeyError as e:
+    except (ValueError, KeyError) as e:
         if z > planetable['Z [micron]'].max():
             print('Z-Plane Index was invalid. Using Z = 0.')
             zplane = 0
@@ -1364,7 +1365,9 @@ def save_planetable(df: pd.DataFrame,
     return csvfile
 
 
-def create_mdict_complete(metadata: Union[str, CziMetadata], sort: bool = True) -> Dict:
+def create_mdict_complete(metadata: Union[str, CziMetadata],
+                          sort: bool = True,
+                          add_bbox: bool = False) -> Dict:
     """
     Created a metadata dictionary. Accepts a filename of a CZI file or
     a CziMetadata class
@@ -1386,24 +1389,24 @@ def create_mdict_complete(metadata: Union[str, CziMetadata], sort: bool = True) 
                'AcqDate': metadata.info.acquisition_date,
                'SW-Name': metadata.info.software_name,
                'SW-Version': metadata.info.software_version,
-               'czi_dims': metadata.dimstring,
-               'czi_dims_shape': metadata.dims_shape,
-               'czi_size': metadata.size,
-               'dim_order': metadata.dim_order,
-               'dim_index': metadata.dim_index,
-               'dim_valid': metadata.dim_valid,
-               'SizeX': metadata.dims.SizeX,
-               'SizeY': metadata.dims.SizeY,
-               'SizeZ': metadata.dims.SizeZ,
-               'SizeC': metadata.dims.SizeC,
-               'SizeT': metadata.dims.SizeT,
-               'SizeS': metadata.dims.SizeS,
-               'SizeB': metadata.dims.SizeB,
-               'SizeM': metadata.dims.SizeM,
-               'SizeH': metadata.dims.SizeH,
-               'SizeI': metadata.dims.SizeI,
+               'aics_dims': metadata.aics_dimstring,
+               'aics_dims_shape': metadata.aics_dims_shape,
+               'aics_size': metadata.aics_size,
+               'aics_dim_order': metadata.aics_dim_order,
+               'aics_dim_index': metadata.aics_dim_index,
+               'aics_dim_valid': metadata.aics_dim_valid,
+               'SizeX': metadata.image.SizeX,
+               'SizeY': metadata.image.SizeY,
+               'SizeZ': metadata.image.SizeZ,
+               'SizeC': metadata.image.SizeC,
+               'SizeT': metadata.image.SizeT,
+               'SizeS': metadata.image.SizeS,
+               'SizeB': metadata.image.SizeB,
+               'SizeM': metadata.image.SizeM,
+               'SizeH': metadata.image.SizeH,
+               'SizeI': metadata.image.SizeI,
                'isRGB': metadata.isRGB,
-               'isMosaic': metadata.isMosaic,
+               'aics_ismosaic': metadata.aics_ismosaic,
                'ObjNA': metadata.objective.NA,
                'ObjMag': metadata.objective.mag,
                'ObjID': metadata.objective.ID,
@@ -1438,16 +1441,16 @@ def create_mdict_complete(metadata: Union[str, CziMetadata], sort: bool = True) 
                }
 
     # check fro extra entries when reading mosaic file with a scale factor
-    if hasattr(metadata.dims, "SizeX_sf"):
-        md_dict['SizeX sf'] = metadata.dims.SizeX_sf
-        md_dict['SizeY sf'] = metadata.dims.SizeY_sf
+    if hasattr(metadata.image, "SizeX_sf"):
+        md_dict['SizeX sf'] = metadata.image.SizeX_sf
+        md_dict['SizeY sf'] = metadata.image.SizeY_sf
         md_dict['XScale sf'] = metadata.scale.X_sf
         md_dict['YScale sf'] = metadata.scale.Y_sf
         md_dict['ratio sf'] = metadata.scale.ratio_sf
         md_dict['scalefactorXY'] = metadata.scale.scalefactorXY
 
     # check if mosaic
-    if metadata.isMosaic:
+    if metadata.aics_ismosaic and add_bbox:
         md_dict['bbox_all_mosaic_scenes'] = metadata.bbox.all_mosaic_scenes
         md_dict['bbox_all_mosaic_tiles'] = metadata.bbox.all_mosaic_tiles
         md_dict['bbox_all_tiles'] = metadata.bbox.all_tiles

@@ -27,7 +27,7 @@ import dask.array as da
 def read_7darray(filename: str) -> np.ndarray:
 
     # get the complete metadata at once as one big class
-    mdata = czimd.get_czimetadata_extended(filename)
+    mdata = czimd.CziMetadata(filename)
 
     # open the CZI document to read the
     with pyczi.open_czi(filename) as czidoc:
@@ -106,7 +106,7 @@ def read_7darray_lazy(filename: str) -> da.Array:
         return array6d
 
     # get the metadata
-    mdata = get_czimdata_extended(filename)
+    mdata = czimd.CziMetadata(filename)
 
     if mdata.image.SizeS is not None:
         # get size for a single scene using the 1st

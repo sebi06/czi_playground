@@ -71,7 +71,7 @@ def read_nonmosaic(filename: str) -> Tuple[Union[np.ndarray, None], czimd_aics.C
 
     # only update the shape for the scene if the CZI has an S-Dimension
     if scene.hasS:
-        shape_all[scene.posS] = md.dims.SizeS
+        shape_all[scene.posS] = md.image.SizeS
 
     print("Shape all Scenes : ", shape_all)
     print("DimString all Scenes : ", scene.single_scene_dimstr)
@@ -80,10 +80,10 @@ def read_nonmosaic(filename: str) -> Tuple[Union[np.ndarray, None], czimd_aics.C
     all_scenes = np.empty(aicsczi.size, dtype=md.npdtype)
 
     # loop over scenes if CZI is not a mosaic image
-    if md.dims.SizeS is None:
+    if md.image.SizeS is None:
         sizeS = 1
     else:
-        sizeS = md.dims.SizeS
+        sizeS = md.image.SizeS
 
     for s in range(sizeS):
 
@@ -109,7 +109,9 @@ def read_nonmosaic(filename: str) -> Tuple[Union[np.ndarray, None], czimd_aics.C
     return all_scenes, md
 
 
-def read_mosaic(filename: str, scale: float = 1.0) -> Tuple[Union[np.ndarray, None], czimd_aics.CziMetadata]:
+def read_mosaic(filename: str,
+                scale: float = 1.0,
+                verbose: bool = False) -> Tuple[Union[np.ndarray, None], czimd_aics.CziMetadata]:
     """Read the pixel data of an CZI image file with an option scale factor
     to read the image with lower resolution and array size
 
@@ -139,7 +141,8 @@ def read_mosaic(filename: str, scale: float = 1.0) -> Tuple[Union[np.ndarray, No
     shape_all = scene.shape_single_scene
 
     if scene.hasS:
-        shape_all[scene.posS] = md.dims.SizeS
+        shape_all[scene.posS] = md.image.SizeS
+        num_scenes = md.image.SizeS
     if not scene.hasS:
         num_scenes = 1
 
@@ -151,7 +154,7 @@ def read_mosaic(filename: str, scale: float = 1.0) -> Tuple[Union[np.ndarray, No
 
     resize_done = False
 
-    # loop over scenes if CZI is not Mosaic
+    # loop over scenes
     for s in range(num_scenes):
         scene = czimd_aics.CziScene(aicsczi, sceneindex=s)
 
@@ -188,7 +191,8 @@ def read_mosaic(filename: str, scale: float = 1.0) -> Tuple[Union[np.ndarray, No
                                                        Z=z,
                                                        C=c)
 
-                print("Shape Single Scene (Scalefactor: ", scale, ": ", scene_array_htzc.shape)
+                if verbose:
+                    print("Shape Single Scene (Scalefactor: ", scale, ": ", scene_array_htzc.shape)
 
                 # check if all_scenes array must be resized due to scaling
                 if scale < 1.0 and not resize_done:
@@ -228,8 +232,8 @@ def read_mosaic(filename: str, scale: float = 1.0) -> Tuple[Union[np.ndarray, No
                                                       T=t,
                                                       Z=z,
                                                       C=c)
-
-                print("Shape Single Scene (Scalefactor: ", scale, ": ", scene_array_tzc.shape)
+                if verbose:
+                    print("Shape Single Scene (Scalefactor: ", scale, ": ", scene_array_tzc.shape)
 
                 # check if all_scenes array must be resized due to scaling
                 if scale < 1.0 and not resize_done:
@@ -262,7 +266,8 @@ def read_mosaic(filename: str, scale: float = 1.0) -> Tuple[Union[np.ndarray, No
                                                     scale_factor=scale,
                                                     C=c)
 
-                print("Shape Single Scene (Scalefactor: ", scale, ": ", scene_array_c.shape)
+                if verbose:
+                    print("Shape Single Scene (Scalefactor: ", scale, ": ", scene_array_c.shape)
 
                 # check if all_scenes array must be resized due to scaling
                 if scale < 1.0 and not resize_done:
@@ -298,8 +303,8 @@ def adaptmd_scale(metadata: czimd_aics.CziMetadata,
     """
 
     # adapt the size entry
-    setattr(metadata.dims, "SizeX_sf", newx)
-    setattr(metadata.dims, "SizeY_sf", newy)
+    setattr(metadata.image, "SizeX_sf", newx)
+    setattr(metadata.image, "SizeY_sf", newy)
 
     # adapt the scaling and add scalefactor attribute
     setattr(metadata.scale, "scalefactorXY", scale)

@@ -133,3 +133,6 @@ dmypy.json
 .idea
 /.vscode/settings.json
 /experimental/
+
+# plotly HTML outputTranslations
+*.html
