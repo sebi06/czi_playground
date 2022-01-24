@@ -35,16 +35,36 @@ class CziMetadata:
 
         # get metadata dictionary using pylibCZIrw
         with pyczi.open_czi(filename) as czidoc:
-            md_dict = xmltodict.parse(czidoc.raw_metadata)
+            md_dict = czidoc.metadata
 
             # get directory, filename, SW version and acquisition data
             self.info = CziInfo(filename)
 
             # get dimensions
             self.pyczi_dims = czidoc.total_bounding_box
-            self.dimstring = None
-            self.dims_shape = None
-            self.size = None
+
+            # get some additional metadata using aipylibczi
+            try:
+                from aicspylibczi import CziFile
+
+                # get the general CZI object using aicspylibczi
+                aicsczi = CziFile(filename)
+
+                self.aics_dimstring = aicsczi.dims
+                self.aics_dims_shape = aicsczi.get_dims_shape()
+                self.aics_size = aicsczi.size
+                self.aics_ismosaic = aicsczi.is_mosaic()
+                self.aics_dim_order, self.aics_dim_index, self.aics_dim_valid = self.get_dimorder(aicsczi.dims)
+
+            except ImportError as e:
+                print("Use Fallback values because:", e)
+                self.aics_dimstring = None
+                self.aics_dims_shape = None
+                self.aics_size = None
+                self.aics_ismosaic = None
+                self.aics_dim_order = None
+                self.aics_dim_index = None
+                self.aics_dim_valid = None
 
             # get the pixel typed for all channels
             self.pixeltypes = czidoc.pixel_types
@@ -145,15 +165,6 @@ class CziMetadata:
 
         return dims_dict, dimindex_list, numvalid_dims
 
-    @staticmethod
-    def get_metadict(filename: str) -> Dict:
-
-        # get metadata dictionary using pylibCZIrw
-        with pyczi.open_czi(filename) as czidoc:
-            md_dict = xmltodict.parse(czidoc.raw_metadata)
-
-        return md_dict
-
 
 class CziDimensions:
     """
@@ -174,8 +185,9 @@ class CziDimensions:
 
     def __init__(self, filename: str) -> None:
 
-        # get the metadata as a dictionary
-        md_dict = CziMetadata.get_metadict(filename)
+        # get metadata dictionary using pylibCZIrw
+        with pyczi.open_czi(filename) as czidoc:
+            md_dict = czidoc.metadata
 
         # get the dimensions
         self.SizeX = np.int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeX"])
@@ -263,8 +275,9 @@ class CziBoundingBox:
 class CziChannelInfo:
     def __init__(self, filename: str) -> None:
 
-        # get the metadata as a dictionary
-        md_dict = CziMetadata.get_metadict(filename)
+        # get metadata dictionary using pylibCZIrw
+        with pyczi.open_czi(filename) as czidoc:
+            md_dict = czidoc.metadata
 
         # create empty lists for channel related information
         channels = []
@@ -402,8 +415,9 @@ class CziChannelInfo:
 class CziScaling:
     def __init__(self, filename: str, dim2none: bool = True) -> None:
 
-        # get the metadata as a dictionary
-        md_dict = CziMetadata.get_metadict(filename)
+        # get metadata dictionary using pylibCZIrw
+        with pyczi.open_czi(filename) as czidoc:
+            md_dict = czidoc.metadata
 
         # get the XY scaling information
         try:
@@ -411,7 +425,7 @@ class CziScaling:
             self.Y = float(md_dict["ImageDocument"]["Metadata"]["Scaling"]["Items"]["Distance"][1]["Value"]) * 1000000
             self.X = np.round(self.X, 3)
             self.Y = np.round(self.Y, 3)
-        except ((KeyError, TypeError), TypeError) as e:
+        except (KeyError, TypeError) as e:
             print("Error extracting XY Scale  :", e)
             self.X = 1.0
             self.Y = 1.0
@@ -419,7 +433,7 @@ class CziScaling:
         try:
             self.XUnit = md_dict["ImageDocument"]["Metadata"]["Scaling"]["Items"]["Distance"][0]["DefaultUnitFormat"]
             self.YUnit = md_dict["ImageDocument"]["Metadata"]["Scaling"]["Items"]["Distance"][1]["DefaultUnitFormat"]
-        except ((KeyError, TypeError), TypeError) as e:
+        except (KeyError, TypeError) as e:
             print("Error extracting XY ScaleUnit :", e)
             self.XUnit = None
             self.YUnit = None
@@ -433,10 +447,10 @@ class CziScaling:
                 self.Z = 1.0
             try:
                 self.ZUnit = md_dict["ImageDocument"]["Metadata"]["Scaling"]["Items"]["Distance"][2]["DefaultUnitFormat"]
-            except (IndexError, (KeyError, TypeError), TypeError) as e:
+            except (IndexError, KeyError, TypeError) as e:
                 print("Error extracting Z ScaleUnit :", e)
                 self.ZUnit = self.XUnit
-        except (IndexError, (KeyError, TypeError), TypeError) as e:
+        except (IndexError, KeyError, TypeError) as e:
             print("Error extracting Z Scale  :", e)
             # set to isotropic scaling if it was single plane only
             self.Z = self.X
@@ -469,7 +483,7 @@ class CziScaling:
             scale_ratio["xy"] = np.round(scalex / scaley, 3)
             # get the scalefactor between XZ scaling
             scale_ratio["zx"] = np.round(scalez / scalex, 3)
-        except TypeError as e:
+        except (KeyError, TypeError) as e:
             print(e, "Using defaults = 1.0")
 
         return scale_ratio
@@ -482,8 +496,9 @@ class CziInfo:
         self.dirname = os.path.dirname(filename)
         self.filename = os.path.basename(filename)
 
-        # get the metadata as a dictionary
-        md_dict = CziMetadata.get_metadict(filename)
+        # get metadata dictionary using pylibCZIrw
+        with pyczi.open_czi(filename) as czidoc:
+            md_dict = czidoc.metadata
 
         # get acquisition data and SW version
         try:
@@ -504,8 +519,9 @@ class CziInfo:
 class CziObjectives:
     def __init__(self, filename: str) -> None:
 
-        # get the metadata as a dictionary
-        md_dict = CziMetadata.get_metadict(filename)
+        # get metadata dictionary using pylibCZIrw
+        with pyczi.open_czi(filename) as czidoc:
+            md_dict = czidoc.metadata
 
         self.NA = []
         self.mag = []
@@ -531,33 +547,33 @@ class CziObjectives:
                 try:
                     self.name.append(
                         md_dict['ImageDocument']['Metadata']['Information']['Instrument']['Objectives']['Objective']['Name'])
-                except ((KeyError, TypeError), TypeError) as e:
+                except (KeyError, TypeError) as e:
                     print('No Objective Name :', e)
                     self.name.append(None)
 
                 try:
                     self.immersion = md_dict['ImageDocument']['Metadata']['Information']['Instrument']['Objectives']['Objective']['Immersion']
-                except ((KeyError, TypeError), TypeError) as e:
+                except (KeyError, TypeError) as e:
                     print('No Objective Immersion :', e)
                     self.immersion = None
 
                 try:
                     self.NA = np.float(md_dict['ImageDocument']['Metadata']['Information']
                                        ['Instrument']['Objectives']['Objective']['LensNA'])
-                except ((KeyError, TypeError), TypeError) as e:
+                except (KeyError, TypeError) as e:
                     print('No Objective NA :', e)
                     self.NA = None
 
                 try:
                     self.ID = md_dict['ImageDocument']['Metadata']['Information']['Instrument']['Objectives']['Objective']['Id']
-                except ((KeyError, TypeError), TypeError) as e:
+                except (KeyError, TypeError) as e:
                     print('No Objective ID :', e)
                     self.ID = None
 
                 try:
                     self.tubelensmag = np.float(
                         md_dict['ImageDocument']['Metadata']['Information']['Instrument']['TubeLenses']['TubeLens']['Magnification'])
-                except ((KeyError, TypeError), TypeError) as e:
+                except (KeyError, TypeError) as e:
                     print('No Tubelens Mag. :', e, 'Using Default Value = 1.0.')
                     self.tubelensmag = 1.0
 
@@ -565,7 +581,7 @@ class CziObjectives:
                     self.nominalmag = np.float(
                         md_dict['ImageDocument']['Metadata']['Information']['Instrument']['Objectives']['Objective'][
                             'NominalMagnification'])
-                except ((KeyError, TypeError), TypeError) as e:
+                except (KeyError, TypeError) as e:
                     print('No Nominal Mag.:', e, 'Using Default Value = 1.0.')
                     self.nominalmag = 1.0
 
@@ -576,7 +592,7 @@ class CziObjectives:
                         print('Using Tublens Mag = 1.0 for calculating Objective Magnification.')
                         self.mag = self.nominalmag * 1.0
 
-                except ((KeyError, TypeError), TypeError) as e:
+                except (KeyError, TypeError) as e:
                     print('No Objective Magnification :', e)
                     self.mag = None
 
@@ -646,8 +662,9 @@ class CziObjectives:
 class CziDetector:
     def __init__(self, filename: str) -> None:
 
-        # get the metadata as a dictionary
-        md_dict = CziMetadata.get_metadict(filename)
+        # get metadata dictionary using pylibCZIrw
+        with pyczi.open_czi(filename) as czidoc:
+            md_dict = czidoc.metadata
 
         # get detector information
         self.model = []
@@ -744,8 +761,9 @@ class CziDetector:
 class CziMicroscope:
     def __init__(self, filename: str) -> None:
 
-        # get the metadata as a dictionary
-        md_dict = CziMetadata.get_metadict(filename)
+        # get metadata dictionary using pylibCZIrw
+        with pyczi.open_czi(filename) as czidoc:
+            md_dict = czidoc.metadata
 
         self.ID = None
         self.Name = None
@@ -777,8 +795,9 @@ class CziMicroscope:
 class CziSampleInfo:
     def __init__(self, filename: str) -> None:
 
-        # get the metadata as a dictionary
-        md_dict = CziMetadata.get_metadict(filename)
+        # get metadata dictionary using pylibCZIrw
+        with pyczi.open_czi(filename) as czidoc:
+            md_dict = czidoc.metadata
 
         # check for well information
         self.well_array_names = []
@@ -868,14 +887,14 @@ class CziSampleInfo:
                     try:
                         well = allscenes[s]
                         self.well_array_names.append(well['ArrayName'])
-                    except ((KeyError, TypeError), TypeError) as e:
+                    except (KeyError, TypeError) as e:
                         try:
                             self.well_array_names.append(well['Name'])
-                        except ((KeyError, TypeError), TypeError) as e:
+                        except (KeyError, TypeError) as e:
                             # print('Well Name not found :', e)
                             try:
                                 self.well_array_names.append(well['@Name'])
-                            except ((KeyError, TypeError), TypeError) as e:
+                            except (KeyError, TypeError) as e:
                                 # print('Well @Name not found :', e)
                                 print('Well Name not found. Using A1 instead')
                                 self.well_array_names.append('A1')
@@ -883,30 +902,30 @@ class CziSampleInfo:
                     # get the well information
                     try:
                         self.well_indices.append(well['Index'])
-                    except ((KeyError, TypeError), TypeError) as e:
+                    except (KeyError, TypeError) as e:
                         try:
                             self.well_indices.append(well['@Index'])
-                        except ((KeyError, TypeError), TypeError) as e:
+                        except (KeyError, TypeError) as e:
                             print('Well Index not found :', e)
                             self.well_indices.append(None)
                     try:
                         self.well_position_names.append(well['Name'])
-                    except ((KeyError, TypeError), TypeError) as e:
+                    except (KeyError, TypeError) as e:
                         try:
                             self.well_position_names.append(well['@Name'])
-                        except ((KeyError, TypeError), TypeError) as e:
+                        except (KeyError, TypeError) as e:
                             print('Well Position Names not found :', e)
                             self.well_position_names.append(None)
 
                     try:
                         self.well_colID.append(np.int(well['Shape']['ColumnIndex']))
-                    except ((KeyError, TypeError), TypeError) as e:
+                    except (KeyError, TypeError) as e:
                         print('Well ColumnIDs not found :', e)
                         self.well_colID.append(None)
 
                     try:
                         self.well_rowID.append(np.int(well['Shape']['RowIndex']))
-                    except ((KeyError, TypeError), TypeError) as e:
+                    except (KeyError, TypeError) as e:
                         print('Well RowIDs not found :', e)
                         self.well_rowID.append(None)
 
@@ -932,15 +951,16 @@ class CziSampleInfo:
                 # count the number of different wells
                 self.number_wells = len(self.well_counter.keys())
 
-        except ((KeyError, TypeError), TypeError) as e:
+        except (KeyError, TypeError) as e:
             print('No valid Scene or Well information found:', e)
 
 
 class CziAddMetaData:
     def __init__(self, filename: str) -> None:
 
-        # get the metadata as a dictionary
-        md_dict = CziMetadata.get_metadict(filename)
+        # get metadata dictionary using pylibCZIrw
+        with pyczi.open_czi(filename) as czidoc:
+            md_dict = czidoc.metadata
 
         try:
             self.experiment = md_dict['ImageDocument']['Metadata']['Experiment']
@@ -978,7 +998,7 @@ class CziScene:
 
         # get metadata dictionary using pylibCZIrw
         with pyczi.open_czi(filename) as czidoc:
-            md_dict = xmltodict.parse(czidoc.raw_metadata)
+            md_dict = czidoc.metadata
 
             self.bbox = czidoc.scenes_bounding_rectangle[sceneindex]
             self.xstart = self.bbox.x
@@ -1003,7 +1023,7 @@ def create_mdict_complete(metadata: Union[str, CziMetadata], sort: bool = True) 
 
     """
     if isinstance(metadata, str):
-        # get the metadata as a dictionary from filename
+        # get metadata dictionary using pylibCZIrw
         metadata = CziMetadata(metadata)
 
     # create a dictionary with the metadata
@@ -1014,14 +1034,15 @@ def create_mdict_complete(metadata: Union[str, CziMetadata], sort: bool = True) 
                'AcqDate': metadata.info.acquisition_date,
                'SW-Name': metadata.info.software_name,
                'SW-Version': metadata.info.software_version,
-               'czi_dims': metadata.dimstring,
-               'czi_dims_shape': metadata.dims_shape,
-               'czi_size': metadata.size,
-               # 'dim_order': metadata.dim_order,
-               # 'dim_index': metadata.dim_index,
-               # 'dim_valid': metadata.dim_valid,
+               'aics_dims': metadata.aics_dimstring,
+               'aics_dims_shape': metadata.aics_dims_shape,
+               'aics_size': metadata.aics_size,
+               'aics_ismosaic': metadata.aics_ismosaic,
+               'aics_dim_order': metadata.aics_dim_order,
+               'aics_dim_index': metadata.aics_dim_index,
+               'aics_dim_valid': metadata.aics_dim_valid,
                'SizeX': metadata.image.SizeX,
-               'SizeY': metadata.images.SizeY,
+               'SizeY': metadata.image.SizeY,
                'SizeZ': metadata.image.SizeZ,
                'SizeC': metadata.image.SizeC,
                'SizeT': metadata.image.SizeT,
@@ -1066,7 +1087,7 @@ def create_mdict_complete(metadata: Union[str, CziMetadata], sort: bool = True) 
                }
 
     # check fro extra entries when reading mosaic file with a scale factor
-    if hasattr(metadata.dims, "SizeX_sf"):
+    if hasattr(metadata.image, "SizeX_sf"):
         md_dict['SizeX sf'] = metadata.image.SizeX_sf
         md_dict['SizeY sf'] = metadata.image.SizeY_sf
         md_dict['XScale sf'] = metadata.scale.X_sf

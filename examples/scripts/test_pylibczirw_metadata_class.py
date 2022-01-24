@@ -27,7 +27,7 @@ filename = misc.openfile(directory=defaultdir,
 print(filename)
 
 # get the complete metadata at once as one big class
-mdata = czimd.get_czimetadata_extended(filename)
+mdata = czimd.CziMetadata(filename)
 
 # get only specific metadata
 czi_dimensions = czimd.CziDimensions(filename)
@@ -55,7 +55,7 @@ for k,v in mdict.items():
 
 # and convert to pd.DataFrame
 df_md = misc.md2dataframe(mdict)
-print(df_md[:10])
+print(df_md)
 
 # write metadata as XML to disk
 xmlfile = misc.writexml_czi(filename)
