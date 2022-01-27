@@ -2,7 +2,7 @@
 
 #################################################################
 # File        : pylibczirw_tools.py
-# Version     : 0.0.6
+# Version     : 0.0.7
 # Author      : sebi06
 # Date        : 24.01.2022
 #
@@ -58,6 +58,7 @@ def read_mdarray(filename: str,
                                   range(sizeT),
                                   range(sizeZ),
                                   range(sizeC)):
+
             if mdata.image.SizeS is None:
                 image2d = czidoc.read(plane={'T': t, 'Z': z, 'C': c})
             else:
@@ -81,11 +82,11 @@ def read_mdarray(filename: str,
 
 def read_mdarray_lazy(filename: str, remove_Adim: bool = True) -> Tuple[da.Array, str]:
 
-    def read_scene6d(filename: str,
-                     sizes: Tuple[int, int, int, int, int],
-                     s: int,
-                     mdata: pylibCZIrw.czi_metadata.CziMetadata,
-                     remove_Adim: bool = True) -> np.ndarray:
+    def read_5d(filename: str,
+                sizes: Tuple[int, int, int, int, int],
+                s: int,
+                mdata: czimd.CziMetadata,
+                remove_Adim: bool = True) -> np.ndarray:
 
         array_md = da.empty([sizes[0], sizes[1], sizes[2], sizes[3], sizes[4], 3 if mdata.isRGB else 1],
                             dtype=mdata.npdtype)
@@ -111,7 +112,6 @@ def read_mdarray_lazy(filename: str, remove_Adim: bool = True) -> Tuple[da.Array
 
         if remove_Adim:
             array_md = np.squeeze(array_md, axis=-1)
-            print("read6d - Remove A-Dim", array_md.shape)
 
         return array_md
 
@@ -143,7 +143,7 @@ def read_mdarray_lazy(filename: str, remove_Adim: bool = True) -> Tuple[da.Array
         sp = [sizeT, sizeZ, sizeC, sizeY, sizeX, 3 if mdata.isRGB else 1]
 
     # create dask stack of lazy image readers
-    lazy_process_image = dask.delayed(read_scene6d)  # lazy reader
+    lazy_process_image = dask.delayed(read_5d)  # lazy reader
     lazy_arrays = [lazy_process_image(filename, sizes, s, mdata, remove_Adim) for s in range(sizeS)]
 
     dask_arrays = [da.from_delayed(lazy_array, shape=sp, dtype=mdata.npdtype) for lazy_array in lazy_arrays]

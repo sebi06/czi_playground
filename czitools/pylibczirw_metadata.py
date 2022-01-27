@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : pylibczirw_metadata.py
-# Version     : 0.1.0
+# Version     : 0.1.1
 # Author      : sebi06
-# Date        : 24.01.2022
+# Date        : 2.01.2022
 #
 # Disclaimer: The code is purely experimental. Feel free to
 # use it at your own risk.
@@ -187,67 +187,49 @@ class CziDimensions:
 
     def __init__(self, filename: str) -> None:
 
-        # get metadata dictionary using pylibCZIrw
-        with pyczi.open_czi(filename) as czidoc:
-            md_dict = czidoc.metadata
+        with pyczi.open_czi(filename) as czidoc_r:
+            dim_dict = self.get_image_dimensions(czidoc_r.metadata)
 
-        # get the dimensions
-        self.SizeX = np.int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeX"])
-        self.SizeY = np.int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeY"])
+            for key in dim_dict:
+                setattr(self, key, dim_dict[key])
 
-        # check C-Dimension
-        try:
-            self.SizeC = np.int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeC"])
-        except (KeyError, TypeError) as e:
-            self.SizeC = None
+    @staticmethod
+    def get_image_dimensions(raw_metadata: Dict[Any, Any]) -> Dict[Any, Union[int, None]]:
+        """Determine the image dimensions.
 
-        # check Z-Dimension
-        try:
-            self.SizeZ = np.int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeZ"])
-        except (KeyError, TypeError) as e:
-            self.SizeZ = None
+        Arguments:
+            raw_metadata: The CZI meta-data to derive the image dimensions from.
 
-        # check T-Dimension
-        try:
-            self.SizeT = np.int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeT"])
-        except (KeyError, TypeError) as e:
-            self.SizeT = None
+        Returns:
+            The dimensions dictionary.
+        """
 
-        # check M-Dimension
-        try:
-            self.SizeM = np.int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeM"])
-        except (KeyError, TypeError) as e:
-            self.SizeM = None
+        def _safe_get(key: str) -> Optional[int]:
+            try:
+                extracted_value = raw_metadata["ImageDocument"]["Metadata"]["Information"]["Image"][key]
+                return int(extracted_value) if extracted_value is not None else None
+            except KeyError:
+                return None
 
-        # check B-Dimension
-        try:
-            self.SizeB = np.int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeB"])
-        except (KeyError, TypeError) as e:
-            self.SizeB = None
+        dimensions = ["SizeX",
+                      "SizeY",
+                      "SizeS",
+                      "SizeT",
+                      "SizeZ",
+                      "SizeC",
+                      "SizeM",
+                      "SizeR",
+                      "SizeH",
+                      "SizeI",
+                      "SizeV",
+                      "SizeB"]
 
-        # check S-Dimension
-        try:
-            self.SizeS = np.int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeS"])
-        except (KeyError, TypeError) as e:
-            self.SizeS = None
+        dim_dict = {}
 
-        # check H-Dimension
-        try:
-            self.SizeH = np.int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeH"])
-        except (KeyError, TypeError) as e:
-            self.SizeH = None
+        for dim in dimensions:
+            dim_dict[dim] = _safe_get(dim)
 
-        # check I-Dimension
-        try:
-            self.SizeI = np.int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeH"])
-        except (KeyError, TypeError) as e:
-            self.SizeI = None
-
-        # check R-Dimension
-        try:
-            self.SizeR = np.int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeR"])
-        except (KeyError, TypeError) as e:
-            self.SizeR = None
+        return dim_dict
 
 
 class CziBoundingBox:
