@@ -27,6 +27,7 @@ import numpy as np
 import dateutil.parser as dt
 import pydash
 from typing import List, Dict, Tuple, Optional, Type, Any, Union
+from dataclasses import dataclass, field
 
 
 class CziMetadata:
@@ -232,10 +233,38 @@ class CziDimensions:
         return dim_dict
 
 
-class CziBoundingBox:
-    def __init__(self, filename: str) -> None:
+# class CziBoundingBox:
+#     def __init__(self, filename: str) -> None:
 
-        with pyczi.open_czi(filename) as czidoc:
+#         with pyczi.open_czi(filename) as czidoc:
+
+#             try:
+#                 self.all_scenes = czidoc.scenes_bounding_rectangle
+#             except Exception as e:
+#                 self.all_scenes = None
+#                 print("Scenes Bounding rectangle not found.", e)
+
+#             try:
+#                 self.total_rect = czidoc.total_bounding_rectangle
+#             except Exception as e:
+#                 self.total_rect = None
+#                 print("Total Bounding rectangle not found.", e)
+
+#             try:
+#                 self.total_bounding_box = czidoc.total_bounding_box
+#             except Exception as e:
+#                 self.total_bounding_box = None
+#                 print("Total Bounding Box not found.", e)
+
+@dataclass
+class CziBoundingBox:
+    filename: str
+    all_scenes: Dict[int, pyczi.Rectangle] = field(init=False)
+    total_rect: pyczi.Rectangle = field(init=False)
+    total_bounding_box: Dict[str, tuple] = field(init=False)
+
+    def __post_init__(self):
+        with pyczi.open_czi(self.filename) as czidoc:
 
             try:
                 self.all_scenes = czidoc.scenes_bounding_rectangle
