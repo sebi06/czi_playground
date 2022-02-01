@@ -17,10 +17,12 @@ from czitools import napari_tools
 import napari
 import numpy as np
 
-filename = r'C:\Testdata_Zeiss\CZI_Testfiles\CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi'
+#filename = r'C:\Testdata_Zeiss\CZI_Testfiles\CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi'
 #filename = r'C:\Testdata_Zeiss\CZI_Testfiles\testwell96.czi'
 #filename = r"C:\Testdata_Zeiss\CZI_Testfiles\tobacco_z=10_tiles.czi"
 #filename = r"C:\Testdata_Zeiss\CZI_Testfiles\S=2_3x3_T=3_Z=4_CH=2.czi"
+#filename = r"/datadisk1/testpictures/Testdata_Zeiss/CZI_Testfiles/CellDivision_T=10_Z=20_CH=1_DCV.czi"
+filename = r"/datadisk1/testpictures/Testdata_Zeiss/CZI_Testfiles/CellDivision_T=10_Z=15_CH=2_DCV_small.czi"
 
 # get the complete metadata at once as one big class
 mdata = czimd.CziMetadata(filename)

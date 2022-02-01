@@ -1041,9 +1041,8 @@ def create_mdict_complete(metadata: Union[str, CziMetadata], sort: bool = True) 
 
     # create a dictionary with the metadata
 
-    # Attemtion: the list of keys is not complete!
-    md_dict = {"Directory": metadata.info.dirname,
-               "Filename": metadata.info.filename,
+    # Attention: the list of keys is not complete!
+    md_dict = {"Filename": metadata.info.filename,
                "AcqDate": metadata.info.acquisition_date,
                "SW-Name": metadata.info.software_name,
                "SW-Version": metadata.info.software_version,
