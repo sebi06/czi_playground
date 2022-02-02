@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : napari_tools.py
-# Version     : 0.1.2
+# Version     : 0.1.3
 # Author      : sebi06
-# Date        : 01.02.2022
+# Date        : 02.02.2022
 #
 # Disclaimer: This code is purely experimental. Feel free to
 # use it at your own risk.
@@ -40,12 +40,11 @@ from PyQt5.QtWidgets import (
 )
 
 from PyQt5.QtCore import Qt, QDir, QSortFilterProxyModel
-from PyQt5.QtCore import pyqtSlot
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtGui import QFont
-from pylibCZIrw import czi as pyczi
+#from pylibCZIrw import czi as pyczi
 from czitools import pylibczirw_metadata as czimd
-from czitools import czi_metadata as czimd_aics
+#from czitools import czi_metadata as czimd_aics
 from czitools import misc
 import numpy as np
 from typing import List, Dict, Tuple, Optional, Type, Any, Union
@@ -106,9 +105,6 @@ class TableWidget(QWidget):
         item2.setFont(fnt)
         self.mdtable.setHorizontalHeaderItem(1, item2)
 
-# old
-# def show(viewer: Any, array: np.ndarray, metadata: Union[type[czimd.CziMetadata], type[czimd_aics.CziMetadata]],
-
 
 def show(viewer: Any, array: np.ndarray, metadata: czimd.CziMetadata,
          dim_order: dict,
@@ -151,8 +147,8 @@ def show(viewer: Any, array: np.ndarray, metadata: czimd.CziMetadata,
     scalefactors[dim_order["Z"]] = metadata.scale.ratio["zx"]
 
     # remove C dimension from scalefactor
-    scalefactors_ch = scalefactors.copy()
-    del scalefactors_ch[dim_order["C"]]
+    #scalefactors_ch = scalefactors.copy()
+    #del scalefactors_ch[dim_order["C"]]
 
     # add Qt widget for metadata
     if add_mdtable:
@@ -164,7 +160,7 @@ def show(viewer: Any, array: np.ndarray, metadata: czimd.CziMetadata,
                                       area="right")
 
         # add the metadata and adapt the table
-        mdbrowser.update_metadata(czimd.create_mdict_complete(metadata))
+        mdbrowser.update_metadata(czimd.obj2dict(metadata, sort=True))
 
         # mdbrowser.update_metadata(misc.sort_dict_by_key(metadata.metadict))
         mdbrowser.update_style()
@@ -195,7 +191,6 @@ def show(viewer: Any, array: np.ndarray, metadata: czimd.CziMetadata,
         # actually show the image array
         print("Adding Channel  :", chname)
         print("Shape Channel   :", ch, channel.shape)
-        #print("Scaling Factors :", scalefactors_ch)
         print("Scaling Factors :", scalefactors)
 
         if contrast == "calc":
@@ -252,6 +247,11 @@ def show(viewer: Any, array: np.ndarray, metadata: czimd.CziMetadata,
         # get the label of the sliders (as a tuple) ad rename it
         sliderlabels = rename_sliders(viewer.dims.axis_labels, dim_order)
         viewer.dims.axis_labels = sliderlabels
+
+    # workaround because of: https://forum.image.sc/t/napari-3d-view-shows-flat-z-stack/62744/9?u=sebi06
+    od = list(viewer.dims.order)
+    od[dim_order["C"]], od[dim_order["Z"]] = od[dim_order["Z"]], od[dim_order["C"]]
+    viewer.dims.order = tuple(od)
 
     return napari_layers
 

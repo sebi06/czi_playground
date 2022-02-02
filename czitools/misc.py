@@ -2,7 +2,7 @@
 
 #################################################################
 # File        : misc.py
-# Version     : 0.0.6
+# Version     : 0.0.7
 # Author      : sebi06
 # Date        : 01.02.2022
 #
@@ -163,33 +163,6 @@ def sort_dict_by_key(unsorted_dict: Dict) -> Dict:
         sorted_dict.update({key: unsorted_dict[key]})
 
     return sorted_dict
-
-
-def writexml_czi(filename: str, xmlsuffix: str = '_CZI_MetaData.xml') -> str:
-    """Write XML information of CZI to disk
-
-    :param filename: CZI image filename
-    :type filename: str
-    :param xmlsuffix: suffix for the XML file that will be created, defaults to '_CZI_MetaData.xml'
-    :type xmlsuffix: str, optional
-    :return: filename of the XML file
-    :rtype: str
-    """
-
-    # get metadata dictionary using aicspylibczi
-    aicsczi = CziFile(filename)
-    metadata_xmlstr = ET.tostring(aicsczi.meta)
-
-    # change file name
-    xmlfile = filename.replace('.czi', xmlsuffix)
-
-    # get tree from string
-    tree = ET.ElementTree(ET.fromstring(metadata_xmlstr))
-
-    # write XML file to same folder
-    tree.write(xmlfile, encoding='utf-8', method='xml')
-
-    return xmlfile
 
 
 def addzeros(number: int) -> str:
