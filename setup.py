@@ -25,21 +25,21 @@ VERSION = "0.0.1"
 REQUIRED = [
     "setuptools>=52.0.0",
     "xmltodict>=0.12.0",
-    #"pandas>=1.2.5",
-    #"numpy>=1.20.3",
-    #"python-dateutil>=2.8.2",
-    #"pydash>=5.0.2",
+    # "pandas>=1.2.5",
+    # "numpy>=1.20.3",
+    # "python-dateutil>=2.8.2",
+    # "pydash>=5.0.2",
     "aicspylibczi>=3.0.4",
     "tqdm>=4.61.2",
-    #"napari>=0.4.12",
-    #"zarr>=2.6.1",
-    #"dask>=2021.7.0",
-    #"pyqt5>=5.15.4",
+    # "napari>=0.4.12",
+    # "zarr>=2.6.1",
+    # "dask>=2021.7.0",
+    # "pyqt5>=5.15.4",
     "aicsimageio>=4.5.0",
     # "pylibczirw>=0.2.5",
-    #"matplotlib>=3.3.4",
-    #"lxml>=4.6.3"
-    #"ipyfilechooser>=0.6.0"
+    # "matplotlib>=3.3.4",
+    # "lxml>=4.6.3"
+    # "ipyfilechooser>=0.6.0"
 ]
 
 # What packages are optional?
