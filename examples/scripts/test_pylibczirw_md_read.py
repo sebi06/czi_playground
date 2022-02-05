@@ -36,7 +36,7 @@ with pyczi.open_czi(filename) as czidoc:
 
 
 # try to write XML to file
-czimd.writexml((filename))
+xmlfile = czimd.writexml(filename)
 
 # get the selected metadata as an object
 mdata_sel = czimd.CziMetadata(filename)
