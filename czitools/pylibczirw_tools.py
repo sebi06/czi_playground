@@ -13,7 +13,7 @@
 
 from __future__ import annotations
 
-import pylibCZIrw.czi
+#import pylibCZIrw.czi
 from pylibCZIrw import czi as pyczi
 from czitools import pylibczirw_metadata as czimd
 from czitools import misc

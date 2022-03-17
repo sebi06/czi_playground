@@ -33,7 +33,6 @@ from pylibCZIrw import czi as pyczi
 from czitools import misc, napari_tools
 from IPython.display import display, HTML
 import plotly.graph_objects as go
-import matplotlib.pyplot as plt
 from plotly.subplots import make_subplots
 from typing import List, Dict, Tuple, Optional, Type, Any, Union
 
