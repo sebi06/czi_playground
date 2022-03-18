@@ -2,9 +2,12 @@
 
 #################################################################
 # File        : segmentation_tools.py
-# Version     : 0.6
+# Version     : 0.9
 # Author      : sebi06
-# Date        : 04.12.2021
+# Date        : 18.03.2021
+#
+# Kudos also to: https://github.com/haesleinhuepf/napari-segment-blobs-and-things-with-membranes/blob/main/docs/demo.ipynb
+#
 #
 # Disclaimer: This code is purely experimental. Feel free to
 # use it at your own risk.
@@ -19,30 +22,27 @@ from glob import glob
 import logging
 import numpy as np
 import pandas as pd
-import seaborn as sns
-
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import matplotlib.patches as mpatches
-
 from aicsimageio import AICSImage, imread
-
 from skimage import io, measure, segmentation
 from skimage import exposure
 from skimage.exposure import rescale_intensity
-from skimage.morphology import white_tophat, black_tophat, disk, square, ball, closing, square, dilation
+from skimage.morphology import white_tophat, black_tophat, disk, square
+from skimage.morphology import ball, closing, square, dilation
 from skimage.morphology import remove_small_objects, remove_small_holes
+from skimage.morphology import binary_opening
 from skimage.feature import peak_local_max
 from skimage.measure import label, regionprops
-from skimage.filters import threshold_otsu, threshold_triangle, rank, median, gaussian
+from skimage.filters import threshold_otsu, threshold_triangle, rank, median, gaussian, sobel
 from skimage.segmentation import clear_border, watershed, random_walker
 from skimage.color import label2rgb
 from skimage.util import invert
-
 from scipy.ndimage import distance_transform_edt
 from scipy import ndimage
 
-from MightyMosaic import MightyMosaic
+#from MightyMosaic import MightyMosaic
 
 try:
     print('Trying to find mxnet library ...')
@@ -74,15 +74,6 @@ except (ImportError, ModuleNotFoundError) as error:
     print(error.__class__.__name__ + ": " + error.msg)
     print('TensorFlow will not be used.')
 
-try:
-    print('Trying to find stardist library ...')
-    from stardist.models import StarDist2D
-    from csbdeep.utils import Path, normalize
-except (ImportError, ModuleNotFoundError) as error:
-    # Output expected ImportErrors.
-    print(error.__class__.__name__ + ": " + error.msg)
-    print('StarDist will not be used.')
-
 
 def apply_watershed(binary, min_distance=10):
     """Apply normal watershed to a binary image
@@ -98,17 +89,10 @@ def apply_watershed(binary, min_distance=10):
     # create distance map
     distance = ndimage.distance_transform_edt(binary)
 
-    # determine local maxima
-    # local_maxi = peak_local_max(distance,
-    #                            min_distance=min_distance,
-    #                            # indices=False,
-    #                            labels=binary)
-
     # create the seeds
     peak_idx = peak_local_max(distance,
                               labels=binary,
                               min_distance=min_distance,
-                              # indices=False
                               )
 
     # create peak mask
@@ -159,13 +143,16 @@ def apply_watershed_adv(image2d,
 
     # filter image
     if filtermethod_ws == 'median':
-        image2d = median(image2d, selem=disk(filtersize_ws))
+        image2d = median(image2d, disk(filtersize_ws))
     if filtermethod_ws == 'gauss':
         image2d = gaussian(image2d, sigma=filtersize_ws, mode='reflect')
 
     # create the seeds
+    # if image2d.dtype == np.float64:
+    #    image2d = image2d.astype(np.float32)
+    labels = label(segmented).astype(np.int32)
     peak_idx = peak_local_max(image2d,
-                              labels=label(segmented),
+                              labels=labels,
                               min_distance=min_distance,
                               # indices=False
                               )
@@ -396,80 +383,6 @@ def segment_nuclei_cellpose2d(image2d, model,
     return masks[0]
 
 
-def segment_nuclei_stardist(image2d, sdmodel,
-                            prob_thresh=0.5,
-                            overlap_thresh=0.3,
-                            norm=True,
-                            norm_pmin=1.0,
-                            norm_pmax=99.8,
-                            norm_clip=False):
-    """[summary]
-
-    :param image2d: 2d image to be segmented
-    :type image2d: NumPy.Array
-    :param sdmodel: stardit 2d model
-    :type sdmodel: StarDist Model
-    :param prob_thresh: probability threshold, defaults to 0.5
-    :type prob_thresh: float, optional
-    :param overlap_thresh: overlap threshold, defaults to 0.3
-    :type overlap_thresh: float, optional
-    :param norm: switch on image normalization, defaults to True
-    :type norm: bool, optional
-    :param norm_pmin: minimum percentile for normalization, defaults to 1.0
-    :type norm_pmin: float, optional
-    :param norm_pmax: maximum percentile for normalization, defaults to 99.8
-    :type norm_pmax: float, optional
-    :param norm_clip: clipping normalization, defaults to False
-    :type norm_clip: bool, optional
-    :return: mask - binary mask
-    :rtype: NumPy.Array
-    """
-
-    # workaround explained here to avoid errors
-    # https://github.com/openai/spinningup/issues/16
-    # os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
-
-    # normalize image
-    image2d_norm = normalize(image2d,
-                             pmin=norm_pmin,
-                             pmax=norm_pmax,
-                             axis=None,
-                             clip=norm_clip,
-                             eps=1e-20,
-                             dtype=np.float32)
-
-    # predict the instances of th single nuclei
-    mask2d, details = sdmodel.predict_instances(image2d_norm,
-                                                axes=None,
-                                                normalizer=None,
-                                                prob_thresh=0.4,
-                                                nms_thresh=0.3,
-                                                n_tiles=None,
-                                                show_tile_progress=True,
-                                                overlap_label=None,
-                                                verbose=False)
-
-    return mask2d
-
-
-# def set_device():
-#     """Check if GPU working, and if so use it
-#
-#     :return: device - CPU or GPU
-#     :rtype: mxnet device
-#     """
-#     # check if GPU working, and if so use it
-#     use_gpu = utils.use_gpu()
-#     print('Use GPU: ', use_gpu)
-#
-#     if use_gpu:
-#         device = mxnet.gpu()
-#     else:
-#         device = mxnet.cpu()
-#
-#     return device
-
-
 def load_cellpose_model(model_type='nuclei',
                         gpu=True,
                         net_avg=True):
@@ -503,28 +416,6 @@ def load_cellpose_model(model_type='nuclei',
                             net_avg=net_avg)
 
     return model
-
-
-def load_stardistmodel(modeltype='Versatile (fluorescent nuclei)'):
-
-    # workaround explained here to avoid errors
-    # https://github.com/openai/spinningup/issues/16
-    os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
-
-    # define and load the stardist model
-    sdmodel = StarDist2D.from_pretrained(modeltype)
-
-    return sdmodel
-
-
-def stardistmodel_from_folder(modelfolder, mdname='2D_dsb2018'):
-
-    # workaround explained here to avoid errors
-    # https://github.com/openai/spinningup/issues/16
-    os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
-    sdmodel = StarDist2D(None, name=mdname, basedir=modelfolder)
-
-    return sdmodel
 
 
 def load_tfmodel(modelfolder='model_folder'):
@@ -701,3 +592,124 @@ def subtract_background(image,
         img_subtracted = white_tophat(image, str_el)
 
     return img_subtracted
+
+
+def _sobel_3d(image):
+    kernel = np.asarray([
+        [
+            [0, 0, 0],
+            [0, 1, 0],
+            [0, 0, 0]
+        ], [
+            [0, 1, 0],
+            [1, -6, 1],
+            [0, 1, 0]
+        ], [
+            [0, 0, 0],
+            [0, 1, 0],
+            [0, 0, 0]
+        ]
+    ])
+    return ndimage.convolve(image, kernel)
+
+
+def split_touching_objects(binary: np.ndarray, sigma: float = 3.5) -> np.ndarray:
+    """
+    Takes a binary image and draws cuts in the objects similar to the ImageJ watershed algorithm.
+    See also
+    --------
+    .. [0] https://imagej.nih.gov/ij/docs/menus/process.html#watershed
+    """
+    #binary = np.asarray(binary)
+
+    # typical way of using scikit-image watershed
+    distance = ndimage.distance_transform_edt(binary)
+    blurred_distance = gaussian(distance, sigma=sigma)
+    fp = np.ones((3,) * binary.ndim)
+    coords = peak_local_max(blurred_distance, footprint=fp, labels=binary)
+    mask = np.zeros(distance.shape, dtype=bool)
+    mask[tuple(coords.T)] = True
+    markers = label(mask)
+    labels = watershed(-blurred_distance, markers, mask=binary)
+
+    # identify label-cutting edges
+    if len(binary.shape) == 2:
+        edges = sobel(labels)
+        edges2 = sobel(binary)
+    else:  # assuming 3D
+        edges = _sobel_3d(labels)
+        edges2 = _sobel_3d(binary)
+
+    almost = np.logical_not(np.logical_xor(edges != 0, edges2 != 0)) * binary
+    return binary_opening(almost)
+
+
+def erode_labels(segmentation, erosion_iterations, relabel=True):
+    # create empty list where the eroded masks can be saved to
+    list_of_eroded_masks = list()
+    regions = regionprops(segmentation)
+
+    def erode_mask(segmentation_labels, label_id, erosion_iterations, relabel=True):
+        only_current_label_id = np.where(segmentation_labels == label_id, 1, 0)
+        eroded = ndimage.binary_erosion(only_current_label_id, iterations=erosion_iterations)
+
+        if relabel:
+            # relabeled_eroded = np.where(eroded == 1, label_id, 0)
+            return (np.where(eroded == 1, label_id, 0))
+
+        if not relabel:
+            return (eroded)
+
+    for i in range(len(regions)):
+        label_id = regions[i].label
+        list_of_eroded_masks.append(erode_mask(segmentation,
+                                               label_id,
+                                               erosion_iterations,
+                                               relabel=relabel))
+
+    # convert list of numpy arrays to stacked numpy array
+    final_array = np.stack(list_of_eroded_masks)
+
+    # max_IP to reduce the stack of arrays, each containing one labelled region, to a single 2D np array.
+    final_array_labelled = np.sum(final_array, axis=0)
+
+    return (final_array_labelled)
+
+
+def area_filter(im: np.ndarray, area_min: int = 10, area_max: int = 100000) -> np.ndarray:
+    """
+    Filters objects in an image based on their areas.
+
+    Parameters
+    ----------
+    im : 2d-array, int
+        Labeled segmentation mask to be filtered. 
+    area_bounds : tuple of ints
+        Range of areas in which acceptable objects exist. This should be 
+        provided in units of square pixels.
+
+    Returns
+    -------
+    im_relab : 2d-array, int
+        The relabeled, filtered image.
+    """
+
+    # Extract the region props of the objects.
+    props = measure.regionprops(im)
+
+    # Extract the areas and labels.
+    areas = np.array([prop.area for prop in props])
+    labels = np.array([prop.label for prop in props])
+
+    # Make an empty image to add the approved cells.
+    im_approved = np.zeros_like(im)
+
+    # Threshold the objects based on area and eccentricity
+    for i, _ in enumerate(areas):
+        if areas[i] > area_min and areas[i] < area_max:
+            im_approved += im == labels[i]
+
+    # Relabel the image.
+    im_filt = measure.label(im_approved > 0)
+
+    return im_filt
