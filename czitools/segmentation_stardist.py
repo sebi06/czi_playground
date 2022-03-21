@@ -26,6 +26,7 @@ def segment_nuclei_stardist(image2d, sdmodel,
                             prob_thresh=0.5,
                             overlap_thresh=0.3,
                             overlap_label=None,
+                            n_tiles=None,
                             norm_pmin=1.0,
                             norm_pmax=99.8,
                             norm_clip=False):
@@ -39,6 +40,8 @@ def segment_nuclei_stardist(image2d, sdmodel,
     :type prob_thresh: float, optional
     :param overlap_thresh: overlap threshold, defaults to 0.3
     :type overlap_thresh: float, optional
+    :param n_tiles: number of tiles, e.g. (2,2), defaults to None
+    :type n_tiles: tuple, optional
     :param norm: switch on image normalization, defaults to True
     :type norm: bool, optional
     :param norm_pmin: minimum percentile for normalization, defaults to 1.0
@@ -66,7 +69,7 @@ def segment_nuclei_stardist(image2d, sdmodel,
                                                 normalizer=None,
                                                 prob_thresh=prob_thresh,
                                                 nms_thresh=overlap_thresh,
-                                                n_tiles=None,
+                                                n_tiles=n_tiles,
                                                 show_tile_progress=True,
                                                 overlap_label=overlap_label,
                                                 verbose=False)

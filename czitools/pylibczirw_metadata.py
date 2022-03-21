@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : pylibczirw_metadata.py
-# Version     : 0.1.1
+# Version     : 0.1.6
 # Author      : sebi06
-# Date        : 2.01.2022
+# Date        : 21.03.2022
 #
 # Disclaimer: The code is purely experimental. Feel free to
 # use it at your own risk.
@@ -13,24 +13,23 @@
 
 from __future__ import annotations
 import os
-import sys
-from pathlib import Path
-import xmltodict
+#from pathlib import Path
 from collections import Counter
 import xml.etree.ElementTree as ET
 from pylibCZIrw import czi as pyczi
-from aicspylibczi import CziFile
 from tqdm.contrib.itertools import product
-import pandas as pd
-from czitools import misc
+import misc
 import numpy as np
-import dateutil.parser as dt
 import pydash
 from typing import List, Dict, Tuple, Optional, Type, Any, Union
 from dataclasses import dataclass, field
 
 
 class CziMetadataComplete:
+    """Get the complete CZI metadata as an object created based on the
+    dictionary created from the XML data.
+    """
+
     def __init__(self, filename: str):
 
         # get metadata dictionary using pylibCZIrw
@@ -41,7 +40,10 @@ class CziMetadataComplete:
 
 
 class DictObj:
+    """Create an object based on a dictionary
+    """
     # based upon: https://joelmccune.com/python-dictionary-as-object/
+
     def __init__(self, in_dict: dict):
         assert isinstance(in_dict, dict)
         for key, val in in_dict.items():
@@ -53,7 +55,7 @@ class DictObj:
 
 class CziMetadata:
 
-    def __init__(self, filename: str) -> None:
+    def __init__(self, filename: str, dim2none: bool = False) -> None:
 
         # get metadata dictionary using pylibCZIrw
         with pyczi.open_czi(filename) as czidoc:
@@ -65,7 +67,7 @@ class CziMetadata:
             # get dimensions
             self.pyczi_dims = czidoc.total_bounding_box
 
-            # get some additional metadata using aipylibczi
+            # get some additional metadata using aicspylibczi
             try:
                 from aicspylibczi import CziFile
 
@@ -120,7 +122,7 @@ class CziMetadata:
             self.channelinfo = CziChannelInfo(filename)
 
             # get scaling info
-            self.scale = CziScaling(filename)
+            self.scale = CziScaling(filename, dim2none=dim2none)
 
             # get objetive information
             self.objective = CziObjectives(filename)
@@ -139,9 +141,10 @@ class CziMetadata:
 
     # can be also used without creating an instance of the class
     @staticmethod
-    def get_dtype_fromstring(pixeltype: str) -> Tuple[np.dtype, int]:
+    def get_dtype_fromstring(pixeltype: str) -> Tuple[Optional[np.dtype], Optional[int]]:
 
-        dytpe = None
+        dtype = None
+        maxvalue = None
 
         if pixeltype == "gray16" or pixeltype == "Gray16":
             dtype = np.dtype(np.uint16)
@@ -191,23 +194,23 @@ class CziMetadata:
 
 
 class CziDimensions:
-    """
-    Information official CZI Dimension Characters:
-    - "X":"Width"
-    - "Y":"Height"
-    - "C":"Channel"
-    - "Z":"Slice"        # depth
-    - "T":"Time"
-    - "R":"Rotation"
-    - "S":"Scene"        # contiguous regions of interest in a mosaic image
-    - "I":"Illumination" # direction
-    - "B":"Block"        # acquisition
-    - "M":"Mosaic"       # index of tile for compositing a scene
-    - "H":"Phase"        # e.g. Airy detector fibers
-    - "V":"View"         # e.g. for SPIM
-    """
 
     def __init__(self, filename: str) -> None:
+
+        self.SizeX = None
+        self.SizeY = None
+        self.SizeS = None
+        self.SizeT = None
+        self.SizeZ = None
+        self.SizeC = None
+        self.SizeM = None
+        self.SizeR = None
+        self.SizeH = None
+        self.SizeI = None
+        self.SizeV = None
+        self.SizeB = None
+        self.SizeX_sf = None
+        self.SizeY_sf = None
 
         with pyczi.open_czi(filename) as czidoc_r:
             dim_dict = self.get_image_dimensions(czidoc_r.metadata)
@@ -215,15 +218,30 @@ class CziDimensions:
             for key in dim_dict:
                 setattr(self, key, dim_dict[key])
 
+    # Information official CZI Dimension Characters:
+    # "X":"Width"        :
+    # "Y":"Height"       :
+    # "C":"Channel"      : number of channels
+    # "Z":"Slice"        : number of z-planes
+    # "T":"Time"         : number of time points
+    # "R":"Rotation"     :
+    # "S":"Scene"        : contiguous regions of interest in a mosaic image
+    # "I":"Illumination" : SPIM direction for LightSheet
+    # "B":"Block"        : acquisition
+    # "M":"Mosaic"       : index of tile for compositing a scene
+    # "H":"Phase"        : e.g. Airy detector fibers
+    # "V":"View"         : e.g. for SPIM
+
     @staticmethod
-    def get_image_dimensions(raw_metadata: Dict[Any, Any]) -> Dict[Any, Union[int, None]]:
+    def get_image_dimensions(raw_metadata: Dict[Any, Any],
+                             dim2none: bool = True) -> Dict[Any, Union[int, None]]:
         """Determine the image dimensions.
 
         Arguments:
             raw_metadata: The CZI meta-data to derive the image dimensions from.
 
         Returns:
-            The dimensions dictionary.
+            The dimension dictionary.
         """
 
         def _safe_get(key: str) -> Optional[int]:
@@ -254,35 +272,12 @@ class CziDimensions:
         return dim_dict
 
 
-# class CziBoundingBox:
-#     def __init__(self, filename: str) -> None:
-
-#         with pyczi.open_czi(filename) as czidoc:
-
-#             try:
-#                 self.all_scenes = czidoc.scenes_bounding_rectangle
-#             except Exception as e:
-#                 self.all_scenes = None
-#                 print("Scenes Bounding rectangle not found.", e)
-
-#             try:
-#                 self.total_rect = czidoc.total_bounding_rectangle
-#             except Exception as e:
-#                 self.total_rect = None
-#                 print("Total Bounding rectangle not found.", e)
-
-#             try:
-#                 self.total_bounding_box = czidoc.total_bounding_box
-#             except Exception as e:
-#                 self.total_bounding_box = None
-#                 print("Total Bounding Box not found.", e)
-
 @dataclass
 class CziBoundingBox:
     filename: str
-    all_scenes: Dict[int, pyczi.Rectangle] = field(init=False)
-    total_rect: pyczi.Rectangle = field(init=False)
-    total_bounding_box: Dict[str, tuple] = field(init=False)
+    all_scenes: Optional[Dict[int, pyczi.Rectangle]] = field(init=False)
+    total_rect: Optional[pyczi.Rectangle] = field(init=False)
+    total_bounding_box: Optional[Dict[str, tuple]] = field(init=False)
 
     def __post_init__(self):
         with pyczi.open_czi(self.filename) as czidoc:
@@ -450,53 +445,52 @@ class CziScaling:
     def __init__(self, filename: str, dim2none: bool = True) -> None:
 
         # get metadata dictionary using pylibCZIrw
+        self.scalefactorXY = None
+        self.ratio_sf = None
+        self.Y_sf = None
+        self.X_sf = None
+
         with pyczi.open_czi(filename) as czidoc:
             md_dict = czidoc.metadata
 
-        # get the XY scaling information
-        try:
-            self.X = float(md_dict["ImageDocument"]["Metadata"]["Scaling"]["Items"]["Distance"][0]["Value"]) * 1000000
-            self.Y = float(md_dict["ImageDocument"]["Metadata"]["Scaling"]["Items"]["Distance"][1]["Value"]) * 1000000
-            self.X = np.round(self.X, 3)
-            self.Y = np.round(self.Y, 3)
-        except (KeyError, TypeError) as e:
-            print("Error extracting XY Scale  :", e)
-            self.X = 1.0
-            self.Y = 1.0
-
-        try:
-            self.XUnit = md_dict["ImageDocument"]["Metadata"]["Scaling"]["Items"]["Distance"][0]["DefaultUnitFormat"]
-            self.YUnit = md_dict["ImageDocument"]["Metadata"]["Scaling"]["Items"]["Distance"][1]["DefaultUnitFormat"]
-        except (KeyError, TypeError) as e:
-            print("Error extracting XY ScaleUnit :", e)
-            self.XUnit = None
-            self.YUnit = None
-
-        # get the Z scaling information
-        try:
-            self.Z = float(md_dict["ImageDocument"]["Metadata"]["Scaling"]["Items"]["Distance"][2]["Value"]) * 1000000
-            self.Z = np.round(self.Z, 3)
-            # additional check for faulty z-scaling
-            if self.Z == 0.0:
-                self.Z = 1.0
+        def _safe_get_scale(distances_: List[Dict[Any, Any]], idx: int) -> Optional[float]:
             try:
-                self.ZUnit = md_dict["ImageDocument"]["Metadata"]["Scaling"]["Items"]["Distance"][2]["DefaultUnitFormat"]
-            except (IndexError, KeyError, TypeError) as e:
-                print("Error extracting Z ScaleUnit :", e)
-                self.ZUnit = self.XUnit
-        except (IndexError, KeyError, TypeError) as e:
-            print("Error extracting Z Scale  :", e)
-            # set to isotropic scaling if it was single plane only
-            self.Z = self.X
-            self.ZUnit = self.XUnit
+                # return np.round(float(distances_[idx]["Value"]) * 1000000, 6) if distances_[idx]["Value"] is not None else None
+                return float(distances_[idx]["Value"]) * 1000000 if distances_[idx]["Value"] is not None else None
+            except IndexError:
+                if dim2none:
+                    return None
+                if not dim2none:
+                    # use scaling = 1.0 micron as fallback
+                    return 1.0
 
-        # convert scale unit to avoid encoding problems
-        if self.XUnit == "µm":
-            self.XUnit = "micron"
-        if self.YUnit == "µm":
-            self.YUnit = "micron"
-        if self.ZUnit == "µm":
-            self.ZUnit = "micron"
+        try:
+            distances = md_dict["ImageDocument"]["Metadata"]["Scaling"]["Items"]["Distance"]
+        except KeyError:
+            if dim2none:
+                self.X = None
+                self.Y = None
+                self.Z = None
+            if not dim2none:
+                self.X = 1.0
+                self.Y = 1.0
+                self.Z = 1.0
+
+        # get the scaling in [micron] - inside CZI the default is [m]
+        self.X = _safe_get_scale(distances, 0)
+        self.Y = _safe_get_scale(distances, 1)
+        self.Z = _safe_get_scale(distances, 2)
+
+        # safety check in case a scale = 0
+        if self.X == 0.0:
+            self.X = 1.0
+        if self.Y == 0.0:
+            self.Y = 1.0
+        if self.Z == 0.0:
+            self.Z = 1.0
+
+        # set the scaling unit to [micron]
+        self.Unit = "micron"
 
         # get scaling ratio
         self.ratio = self.get_scale_ratio(scalex=self.X,
@@ -523,15 +517,23 @@ class CziScaling:
         return scale_ratio
 
 
+@dataclass
 class CziInfo:
-    def __init__(self, filename: str) -> None:
+    filepath: str
+    dirname: str = field(init=False)
+    filename: str = field(init=False)
+    software_name: str = field(init=False)
+    softname_version: str = field(init=False)
+    acquisition_date: str = field(init=False)
+
+    def __post_init__(self):
 
         # get directory and filename etc.
-        self.dirname = os.path.dirname(filename)
-        self.filename = os.path.basename(filename)
+        self.dirname = os.path.dirname(self.filepath)
+        self.filename = os.path.basename(self.filepath)
 
         # get metadata dictionary using pylibCZIrw
-        with pyczi.open_czi(filename) as czidoc:
+        with pyczi.open_czi(self.filepath) as czidoc:
             md_dict = czidoc.metadata
 
         # get acquisition data and SW version
@@ -833,6 +835,9 @@ class CziSampleInfo:
         with pyczi.open_czi(filename) as czidoc:
             md_dict = czidoc.metadata
 
+        dim_dict = CziDimensions.get_image_dimensions(md_dict)
+        sizeS = dim_dict["SizeS"]
+
         # check for well information
         self.well_array_names = []
         self.well_indices = []
@@ -843,9 +848,7 @@ class CziSampleInfo:
         self.scene_stageX = []
         self.scene_stageY = []
 
-        try:
-            # get S-Dimension
-            sizeS = np.int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeS"])
+        if sizeS is not None:
             print("Trying to extract Scene and Well information if existing ...")
 
             # extract well information from the dictionary
@@ -985,8 +988,8 @@ class CziSampleInfo:
                 # count the number of different wells
                 self.number_wells = len(self.well_counter.keys())
 
-        except (KeyError, TypeError) as e:
-            print("No valid Scene or Well information found:", e)
+        else:
+            print("No Scene or Well information found:", e)
 
 
 class CziAddMetaData:
@@ -1092,3 +1095,66 @@ def writexml(filename: str, xmlsuffix: str = '_CZI_MetaData.xml') -> str:
     tree.write(xmlfile, encoding='utf-8', method='xml')
 
     return xmlfile
+
+
+def create_mdict_red(metadata: CziMetadata,
+                     sort: bool = True) -> Dict:
+    """
+    Created a metadata dictionary to be displayed in napari
+
+    Args:
+        metadata: CziMetadata class
+        sort: sort the dictionary
+
+    Returns: dictionary with the metadata
+
+    """
+
+    # create a dictionary with the metadata
+    md_dict = {'Directory': metadata.info.dirname,
+               'Filename': metadata.info.filename,
+               'AcqDate': metadata.info.acquisition_date,
+               'SizeX': metadata.image.SizeX,
+               'SizeY': metadata.image.SizeY,
+               'SizeZ': metadata.image.SizeZ,
+               'SizeC': metadata.image.SizeC,
+               'SizeT': metadata.image.SizeT,
+               'SizeS': metadata.image.SizeS,
+               'SizeB': metadata.image.SizeB,
+               'SizeM': metadata.image.SizeM,
+               'SizeH': metadata.image.SizeH,
+               'SizeI': metadata.image.SizeI,
+               'isRGB': metadata.isRGB,
+               'ismosaic': metadata.ismosaic,
+               'ObjNA': metadata.objective.NA,
+               'ObjMag': metadata.objective.mag,
+               'TubelensMag': metadata.objective.tubelensmag,
+               'XScale': metadata.scale.X,
+               'YScale': metadata.scale.Y,
+               'ZScale': metadata.scale.Z,
+               'ChannelsNames': metadata.channelinfo.names,
+               'ChannelShortNames': metadata.channelinfo.shortnames,
+               'bbox_all_scenes': metadata.bbox.all_scenes,
+               'WellArrayNames': metadata.sample.well_array_names,
+               'WellIndicies': metadata.sample.well_indices,
+               'WellPositionNames': metadata.sample.well_position_names,
+               'WellRowID': metadata.sample.well_rowID,
+               'WellColumnID': metadata.sample.well_colID,
+               'WellCounter': metadata.sample.well_counter,
+               'SceneCenterStageX': metadata.sample.scene_stageX,
+               'SceneCenterStageY': metadata.sample.scene_stageX
+               }
+
+    # check fro extra entries when reading mosaic file with a scale factor
+    if hasattr(metadata.image, "SizeX_sf"):
+        md_dict['SizeX sf'] = metadata.image.SizeX_sf
+        md_dict['SizeY sf'] = metadata.image.SizeY_sf
+        md_dict['XScale sf'] = metadata.scale.X_sf
+        md_dict['YScale sf'] = metadata.scale.Y_sf
+        md_dict['ratio sf'] = metadata.scale.ratio_sf
+        md_dict['scalefactorXY'] = metadata.scale.scalefactorXY
+
+    if sort:
+        return misc.sort_dict_by_key(md_dict)
+    if not sort:
+        return md_dict
