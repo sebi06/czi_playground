@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : segmentation_tools.py
-# Version     : 0.9
+# Version     : 1.0
 # Author      : sebi06
-# Date        : 18.03.2021
+# Date        : 22.03.2021
 #
 # Kudos also to: https://github.com/haesleinhuepf/napari-segment-blobs-and-things-with-membranes/blob/main/docs/demo.ipynb
 #
@@ -36,63 +36,84 @@ from skimage.morphology import binary_opening
 from skimage.feature import peak_local_max
 from skimage.measure import label, regionprops
 from skimage.filters import threshold_otsu, threshold_triangle, rank, median, gaussian, sobel
-from skimage.segmentation import clear_border, watershed, random_walker
+from skimage.segmentation import clear_border, watershed, random_walker, relabel_sequential
 from skimage.color import label2rgb
 from skimage.util import invert
 from scipy.ndimage import distance_transform_edt
 from scipy import ndimage
-
-#from MightyMosaic import MightyMosaic
-
-try:
-    print('Trying to find mxnet library ...')
-    import mxnet
-except (ImportError, ModuleNotFoundError) as error:
-    # Output expected ImportErrors.
-    print(error.__class__.__name__ + ": " + error.msg)
-    print('mxnet will not be used.')
-
-try:
-    print('Trying to find cellpose library ...')
-    from cellpose import plot, transforms
-    from cellpose import models, utils
-except (ImportError, ModuleNotFoundError) as error:
-    # Output expected ImportErrors.
-    print(error.__class__.__name__ + ": " + error.msg)
-    print('CellPose cannot be used.')
-
-try:
-    print('Trying to find tensorflow library ...')
-    # silence tensorflow output
-    from silence_tensorflow import silence_tensorflow
-    silence_tensorflow()
-    import tensorflow as tf
-    logging.getLogger("tensorflow").setLevel(logging.ERROR)
-    print('TensorFlow Version : ', tf.version.GIT_VERSION, tf.__version__)
-except (ImportError, ModuleNotFoundError) as error:
-    # Output expected ImportErrors.
-    print(error.__class__.__name__ + ": " + error.msg)
-    print('TensorFlow will not be used.')
+from typing import List, Dict, NamedTuple, Tuple, Optional, Type, Any, Union
 
 
-def apply_watershed(binary, min_distance=10):
+class ObjParams(NamedTuple):
+    name: str
+    median: Optional[float]
+    mean: Optional[float]
+
+
+def get_params_median_mean(labels: np.ndarray,
+                           parameter: str = "feret_diameter_max") -> Optional[ObjParams]:
+
+    # make sure this is a labeld image
+    labels = label(labels)
+
+    # get the region properties
+    props = regionprops(labels)
+    values = []
+
+    try:
+        # get the individual values for each object and calculate the median
+        for prop in props:
+            values.append(prop[parameter])
+
+        values_array = np.asarray(values)
+
+        objparams = ObjParams(parameter,
+                              np.median(values_array),
+                              values_array.mean())
+
+    except Exception as e:
+        print("Parameter:", parameter, " does not exist.")
+        objparams = ObjParams(parameter,
+                              None,
+                              None)
+
+    return objparams
+
+
+def apply_watershed(binary: np.ndarray,
+                    estimate_min_distance: bool = False,
+                    min_distance: int = 10):
     """Apply normal watershed to a binary image
 
     :param binary: binary images from segmentation
     :type binary: NumPy.Array
+    :param estimate_min_distance: try to estimate the minimum distance.
+    Overrides min_dinstance, defaults to False
+    :type estimate_min_distance: bool, optional
     :param min_distance: minimum peak distance [pixel], defaults to 10
     :type min_distance: int, optional
     :return: mask - mask with separeted objects
     :rtype: NumPy.Array
     """
 
+    # create real binary image
+    binary = binary > 0
+
     # create distance map
-    distance = ndimage.distance_transform_edt(binary)
+    distance = distance_transform_edt(binary)
+
+    if estimate_min_distance:
+        feretmax = get_params_median_mean(binary,
+                                          parameter="feret_diameter_max")
+
+        min_distance = int(np.round(feretmax.median / 2 * 0.9, 0))
+        print("Estimated Minimum Distance for Watershed:", min_distance)
 
     # create the seeds
     peak_idx = peak_local_max(distance,
                               labels=binary,
                               min_distance=min_distance,
+                              # num_peaks_per_label=1,
                               )
 
     # create peak mask
@@ -100,7 +121,6 @@ def apply_watershed(binary, min_distance=10):
     peak_mask[tuple(peak_idx.T)] = True
 
     # label maxima
-    #markers, num_features = ndimage.label(local_maxi)
     markers, num_features = ndimage.label(peak_mask)
 
     # apply watershed
@@ -111,12 +131,13 @@ def apply_watershed(binary, min_distance=10):
     return mask
 
 
-def apply_watershed_adv(image2d,
-                        segmented,
-                        filtermethod_ws='median',
-                        filtersize_ws=3,
-                        min_distance=2,
-                        radius=1):
+def apply_watershed_adv(image2d: np.ndarray,
+                        segmented: np.ndarray,
+                        filtermethod_ws: str = "median",
+                        filtersize_ws: int = 3,
+                        estimate_min_distance: bool = False,
+                        min_distance: int = 10,
+                        radius: int = 1):
     """Apply advanced watershed to a binary image
 
     :param image2d: 2D image with pixel intensities
@@ -127,6 +148,9 @@ def apply_watershed_adv(image2d,
     :type filtermethod_ws: str, optional
     :param filtersize_ws: size paramater for the selected filter, defaults to 3
     :type filtersize_ws: int, optional
+    :param estimate_min_distance: try to estimate the minimum distance.
+    Overrides min_dinstance, defaults to False
+    :type estimate_min_distance: bool, optional
     :param min_distance: minimum peak distance [pixel], defaults to 2
     :type min_distance: int, optional
     :param radius: radius for dilation disk, defaults to 1
@@ -151,9 +175,18 @@ def apply_watershed_adv(image2d,
     # if image2d.dtype == np.float64:
     #    image2d = image2d.astype(np.float32)
     labels = label(segmented).astype(np.int32)
+
+    if estimate_min_distance:
+        feretmax = get_params_median_mean(segmented,
+                                          parameter="feret_diameter_max")
+
+        min_distance = int(np.round(feretmax.median / 2 * 0.9, 0))
+        print("Estimated Minimum Distance for Watershed:", min_distance)
+
     peak_idx = peak_local_max(image2d,
                               labels=labels,
                               min_distance=min_distance,
+                              # num_peaks_per_label=1,
                               # indices=False
                               )
 
@@ -281,287 +314,6 @@ def autoThresholding(image2d,
     return binary
 
 
-def cutout_subimage(image2d,
-                    startx=0,
-                    starty=0,
-                    width=100,
-                    height=200):
-    """Cutout a subimage ot of a bigger image
-
-    :param image2d: the original image
-    :type image2d: NumPy.Array
-    :param startx: startx, defaults to 0
-    :type startx: int, optional
-    :param starty: starty, defaults to 0
-    :type starty: int, optional
-    :param width: width, defaults to 100
-    :type width: int, optional
-    :param height: height, defaults to 200
-    :type height: int, optional
-    :return: image2d - subimage cutted out from original image2d
-    :rtype: NumPy.Array
-    """
-
-    image2d = image2d[starty:starty + height, startx:startx + width]
-
-    return image2d
-
-
-def segment_nuclei_cellpose2d(image2d, model,
-                              channels=[0, 0],
-                              rescale=None,
-                              diameter=None,
-                              verbose=False,
-                              autotune=False):
-    """Segment nucleus or cytosol using a cellpose model in 2D
-
-    - define CHANNELS to run segmentation on
-    - grayscale=0, R=1, G=2, B=3
-    - channels = [cytoplasm, nucleus]
-    - if NUCLEUS channel does not exist, set the second channel to 0
-    - IF ALL YOUR IMAGES ARE THE SAME TYPE, you can give a list with 2 elements
-    - channels = [0,0] # IF YOU HAVE GRAYSCALE
-    - channels = [2,3] # IF YOU HAVE G=cytoplasm and B=nucleus
-    - channels = [2,1] # IF YOU HAVE G=cytoplasm and R=nucleus
-
-
-    :param image2d: 2D image
-    :type image2d: NumPy.Array
-    :param model: cellposemodel for segmentation
-    :type model: cellpose model
-    :param channels: channels used for segmentation[description], defaults to [0, 0]
-    :type channels: list, optional
-    :param rescale: if diameter is set to None, and rescale is not None,
-    then rescale is used instead of diameter for resizing image, defaults to None
-    :type rescale: float, optional
-    :param diameter: Estimated diameter of objects. If set to None,
-    then diameter is automatically estimated if size model is loaded, defaults to None
-    :type diameter: float, optional
-    :param verbose: show additional output, defaults to False
-    :type verbose: bool, optional
-    :return: mask - binary mask
-    :rtype: NumPy.Array
-    """
-
-    if not autotune:
-        # Running performance tests to find the best convolution algorithm, this can take a while...
-        # set the environment variable MXNET_CUDNN_AUTOTUNE_DEFAULT to 0 to disable)
-        os.environ['MXNET_CUDNN_AUTOTUNE_DEFAULT'] = '0'
-
-    # define CHANNELS to run segmentation on
-    # grayscale=0, R=1, G=2, B=3
-    # channels = [cytoplasm, nucleus]
-    # if NUCLEUS channel does not exist, set the second channel to 0
-
-    # IF ALL YOUR IMAGES ARE THE SAME TYPE, you can give a list with 2 elements
-    # channels = [0,0] # IF YOU HAVE GRAYSCALE
-    # channels = [2,3] # IF YOU HAVE G=cytoplasm and B=nucleus
-    # channels = [2,1] # IF YOU HAVE G=cytoplasm and R=nucleus
-
-    # start the clock
-    if verbose:
-        start = perf_counter()
-
-    # get the mask for a single image
-    masks, _, _, _ = model.eval([image2d],
-                                channels=channels,
-                                diameter=diameter,
-                                invert=False,
-                                rescale=rescale,
-                                do_3D=False,
-                                net_avg=True,
-                                tile=False,
-                                flow_threshold=0.4,
-                                cellprob_threshold=0.0,
-                                progress=None)
-
-    if verbose:
-        end = perf_counter()
-        st = end - start
-        print('Segmentation Time CellPose:', st)
-
-    return masks[0]
-
-
-def load_cellpose_model(model_type='nuclei',
-                        gpu=True,
-                        net_avg=True):
-
-    # load cellpose model for cell nuclei using GPU or CPU
-    print('Loading Cellpose Model ...')
-
-    """
-    # try to get the device
-    try:
-        device = set_device()
-    except NameError as error:
-        print(error.__class__.__name__ + ": " + error.msg)
-        device = None
-
-    if device is None:
-        model = models.Cellpose(gpu=False,
-                                model_type='nuclei',
-                                net_avg=net_avg,
-                                )
-
-    if device is not None:
-        model = models.Cellpose(model_type=model_type,
-                                net_avg=net_avg,
-                                device=device
-                                )
-    """
-
-    model = models.Cellpose(gpu=gpu,
-                            model_type=model_type,
-                            net_avg=net_avg)
-
-    return model
-
-
-def load_tfmodel(modelfolder='model_folder'):
-
-    start = perf_counter()
-    tfmodel = tf.keras.models.load_model(modelfolder)
-
-    # Determine input shape required by the model and crop input image
-    tile_height, tile_width = tfmodel.signatures["serving_default"].inputs[0].shape[1:3]
-    end = perf_counter()
-    print('Time to load TF2 model:', end - start)
-
-    return tfmodel, tile_height, tile_width
-
-
-def segment_zentf(image2d, model, classlabel=1):
-    """Segment a singe [X, Y] 2D image using a pretrained segmentation
-    model from the ZEN. The out will be a binary mask from the prediction
-    of ZEN czmodel which is a TF.SavedModel with metainformation.
-    Should work for any TF.SavedModel that fullfil the requirements.
-    See also: https://pypi.org/project/czmodel/
-
-    :param image2d: image to be segmented
-    :type image2d: NumPy.Array
-    :param model: trained TF2 model used for segmentation
-    :type model: TF.SavedModel
-    :param classlabel: Index for the class one is interested in
-    :type classlabel: int
-    :return: binary - binary mask of the specified class
-    :rtype: NumPy.Array
-    """
-
-    # add add batch dimension (at the front) and channel dimension (at the end)
-    image2d = image2d[np.newaxis, ..., np.newaxis]
-
-    # Run prediction - array shape must be [1, 1024, 1024, 1]
-    prediction = model.predict(image2d)[0]  # Removes batch dimension
-
-    # Generate labels from one-hot encoded vectors
-    prediction_labels = np.argmax(prediction, axis=-1)
-
-    # get the desired class
-    # background = 0, nuclei = 1 and borders = 2
-
-    # extract desired class
-    binary = np.where(prediction_labels == classlabel, 1, 0)
-
-    return binary
-
-
-def segment_zentf_tiling(image2d, model,
-                         tilesize=1024,
-                         classlabel=1,
-                         overlap_factor=1):
-    """Segment a singe [X, Y] 2D image using a pretrained segmentation
-    model from the ZEN. The out will be a binary mask from the prediction
-    of ZEN czmodel which is a TF.SavedModel with metainformation.
-
-    Before the segmentation via the network will be applied
-    the image2d will be tiled in order to match the tile size to the required
-    batch tile size of the used network. Default is (1024, 1024)
-
-    :param image2d: image to be segmented
-    :type image2d: NumPy.Array
-    :param model: trained TF2 model used for segmentation
-    :type model: TF.SavedModel
-    :param tilesize: required tile size for the segmentation model, defaults to 1024
-    :type tilesize: int, optional
-    :param classlabel: Index for the class one is interested in, defaults to 1
-    :type classlabel: int, optional
-    :param overlap_factor: overlap_factor of 2 = stride between each tile
-    is only tile_shape/overlap_factor and therefore
-    overlap_factor = 1 means no overlap, defaults to 1
-    :type overlap_factor: int, optional
-    :return: binary - binary mask of the specified class
-    :rtype: Numpy.Array
-    """
-
-    # create tile image using MightMosaic
-    image2d_tiled = MightyMosaic.from_array(image2d, (tilesize, tilesize),
-                                            overlap_factor=overlap_factor,
-                                            fill_mode='reflect')
-
-    print('image2d_tiled shape : ', image2d_tiled.shape)
-    # get number of tiles
-    num_tiles = image2d_tiled.shape[0] * image2d_tiled.shape[1]
-    print('Number of Tiles: ', num_tiles)
-
-    # create array for the binary results
-    binary_tiled = image2d_tiled
-
-    ct = 0
-    for n1 in range(image2d_tiled.shape[0]):
-        for n2 in range(image2d_tiled.shape[1]):
-
-            ct += 1
-            print('Processing Tile : ', ct, ' Size : ', image2d_tiled[n1, n2, :, :].shape)
-
-            # extract a tile
-            tile = image2d_tiled[n1, n2, :, :]
-
-            # get the binary from the prediction for a single tile
-            binary_tile = segment_zentf(tile, model, classlabel=classlabel)
-
-            # cats the result into the output array
-            binary_tiled[n1, n2, :, :] = binary_tile
-
-    # created fused binary and covert to int
-    binary = binary_tiled.get_fusion().astype(int)
-
-    return binary
-
-
-def add_padding(image2d, input_height=1024, input_width=1024):
-    """Add padding to an image if the size of that image is
-    smaller than the required input width and input height
-
-    :param image2d: 2d image
-    :type image2d: NumPy.Array
-    :param input_height: required height of the input image, defaults to 1024
-    :type input_height: int, optional
-    :param input_width: required width of the input image, defaults to 1024
-    :type input_width: int, optional
-    :return: image2d_padded - added image with teh required size
-    :rtype: NumPy Array
-    """
-
-    if len(image2d.shape) == 2:
-        isrgb = False
-        image2d = image2d[..., np.newaxis]
-    else:
-        isrgb = True
-
-    padding_height = input_height - image2d.shape[0]
-    padding_width = input_width - image2d.shape[1]
-    padding_left, padding_right = padding_width // 2, padding_width - padding_width // 2
-    padding_top, padding_bottom = padding_height // 2, padding_height - padding_height // 2
-
-    image2d_padded = np.pad(image2d, ((padding_top, padding_bottom), (padding_left, padding_right), (0, 0)), 'reflect')
-
-    if not isrgb:
-        image2d_padded = np.squeeze(image2d_padded, axis=2)
-
-    return image2d_padded, (padding_top, padding_bottom, padding_left, padding_right)
-
-
 def subtract_background(image,
                         elem='disk',
                         radius=50,
@@ -594,7 +346,7 @@ def subtract_background(image,
     return img_subtracted
 
 
-def _sobel_3d(image):
+def sobel_3d(image):
     kernel = np.asarray([
         [
             [0, 0, 0],
@@ -620,7 +372,7 @@ def split_touching_objects(binary: np.ndarray, sigma: float = 3.5) -> np.ndarray
     --------
     .. [0] https://imagej.nih.gov/ij/docs/menus/process.html#watershed
     """
-    #binary = np.asarray(binary)
+    # binary = np.asarray(binary)
 
     # typical way of using scikit-image watershed
     distance = ndimage.distance_transform_edt(binary)
@@ -637,14 +389,15 @@ def split_touching_objects(binary: np.ndarray, sigma: float = 3.5) -> np.ndarray
         edges = sobel(labels)
         edges2 = sobel(binary)
     else:  # assuming 3D
-        edges = _sobel_3d(labels)
-        edges2 = _sobel_3d(binary)
+        edges = sobel_3d(labels)
+        edges2 = sobel_3d(binary)
 
     almost = np.logical_not(np.logical_xor(edges != 0, edges2 != 0)) * binary
     return binary_opening(almost)
 
 
 def erode_labels(segmentation, erosion_iterations, relabel=True):
+
     # create empty list where the eroded masks can be saved to
     list_of_eroded_masks = list()
     regions = regionprops(segmentation)
@@ -673,7 +426,7 @@ def erode_labels(segmentation, erosion_iterations, relabel=True):
     # max_IP to reduce the stack of arrays, each containing one labelled region, to a single 2D np array.
     final_array_labelled = np.sum(final_array, axis=0)
 
-    return (final_array_labelled)
+    return final_array_labelled
 
 
 def area_filter(im: np.ndarray, area_min: int = 10, area_max: int = 100000) -> np.ndarray:
@@ -683,15 +436,18 @@ def area_filter(im: np.ndarray, area_min: int = 10, area_max: int = 100000) -> n
     Parameters
     ----------
     im : 2d-array, int
-        Labeled segmentation mask to be filtered. 
-    area_bounds : tuple of ints
-        Range of areas in which acceptable objects exist. This should be 
-        provided in units of square pixels.
+        Labeled segmentation mask to be filtered.
+    area_min : int
+        Minimum value for the area in units of square pixels.
+    area_man : int
+        Maximum value for the area in units of square pixels.
 
     Returns
     -------
     im_relab : 2d-array, int
         The relabeled, filtered image.
+    num_labels : int
+        The number of returned labels.
     """
 
     # Extract the region props of the objects.
@@ -710,6 +466,6 @@ def area_filter(im: np.ndarray, area_min: int = 10, area_max: int = 100000) -> n
             im_approved += im == labels[i]
 
     # Relabel the image.
-    im_filt = measure.label(im_approved > 0)
+    im_filt, num_labels = measure.label(im_approved > 0, return_num=True)
 
-    return im_filt
+    return im_filt, num_labels
