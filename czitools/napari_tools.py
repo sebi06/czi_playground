@@ -2,9 +2,7 @@
 
 #################################################################
 # File        : napari_tools.py
-# Version     : 0.1.3
 # Author      : sebi06
-# Date        : 02.02.2022
 #
 # Disclaimer: This code is purely experimental. Feel free to
 # use it at your own risk.
@@ -42,9 +40,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt, QDir, QSortFilterProxyModel
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtGui import QFont
-#from pylibCZIrw import czi as pyczi
 from czitools import pylibczirw_metadata as czimd
-#from czitools import czi_metadata as czimd_aics
 from czitools import misc
 import numpy as np
 from typing import List, Dict, Tuple, Optional, Type, Any, Union
@@ -146,10 +142,6 @@ def show(viewer: Any, array: np.ndarray, metadata: czimd.CziMetadata,
     # modify the tuple for the scales for napari
     scalefactors[dim_order["Z"]] = metadata.scale.ratio["zx"]
 
-    # remove C dimension from scalefactor
-    #scalefactors_ch = scalefactors.copy()
-    #del scalefactors_ch[dim_order["C"]]
-
     # add Qt widget for metadata
     if add_mdtable:
 
@@ -159,10 +151,9 @@ def show(viewer: Any, array: np.ndarray, metadata: czimd.CziMetadata,
                                       name="mdbrowser",
                                       area="right")
 
-        # add the metadata and adapt the table
-        mdbrowser.update_metadata(czimd.obj2dict(metadata, sort=True))
-
-        # mdbrowser.update_metadata(misc.sort_dict_by_key(metadata.metadict))
+        # create dictionary with some metadata
+        mdict = czimd.create_mdict_red(metadata, sort=True)
+        mdbrowser.update_metadata(mdict)
         mdbrowser.update_style()
 
     # add all channels as individual layers
@@ -218,8 +209,10 @@ def show(viewer: Any, array: np.ndarray, metadata: czimd.CziMetadata,
                                          gamma=gamma)
         if contrast == "from_czi":
             # guess an appropriate scaling from the display setting embedded in the CZI
-            lower = np.round(metadata.channelinfo.clims[ch][0] * metadata.maxrange, 0)
-            higher = np.round(metadata.channelinfo.clims[ch][1] * metadata.maxrange, 0)
+            lower = np.round(
+                metadata.channelinfo.clims[ch][0] * metadata.maxrange, 0)
+            higher = np.round(
+                metadata.channelinfo.clims[ch][1] * metadata.maxrange, 0)
 
             # simple validity check
             if lower >= higher:
@@ -227,7 +220,8 @@ def show(viewer: Any, array: np.ndarray, metadata: czimd.CziMetadata,
                 lower = 0
                 higher = np.round(metadata.maxrange * 0.25, 0)
 
-            print("Display Scaling from CZI for CH:", ch, "Min-Max", lower, higher)
+            print("Display Scaling from CZI for CH:",
+                  ch, "Min-Max", lower, higher)
 
             # add channel to Napari viewer
             new_layer = viewer.add_image(channel,

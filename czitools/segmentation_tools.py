@@ -88,7 +88,7 @@ def apply_watershed(binary: np.ndarray,
     :param binary: binary images from segmentation
     :type binary: NumPy.Array
     :param estimate_min_distance: try to estimate the minimum distance.
-    Overrides min_dinstance, defaults to False
+    Overrides min_distance, defaults to False
     :type estimate_min_distance: bool, optional
     :param min_distance: minimum peak distance [pixel], defaults to 10
     :type min_distance: int, optional
