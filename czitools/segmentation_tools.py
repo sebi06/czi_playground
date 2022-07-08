@@ -92,7 +92,7 @@ def apply_watershed(binary: np.ndarray,
     :type estimate_min_distance: bool, optional
     :param min_distance: minimum peak distance [pixel], defaults to 10
     :type min_distance: int, optional
-    :return: mask - mask with separeted objects
+    :return: mask - mask with separated objects
     :rtype: NumPy.Array
     """
 
@@ -146,10 +146,10 @@ def apply_watershed_adv(image2d: np.ndarray,
     :type segmented: NumPy.Array
     :param filtermethod_ws: choice of filter method, defaults to 'median'
     :type filtermethod_ws: str, optional
-    :param filtersize_ws: size paramater for the selected filter, defaults to 3
+    :param filtersize_ws: size parameter for the selected filter, defaults to 3
     :type filtersize_ws: int, optional
     :param estimate_min_distance: try to estimate the minimum distance.
-    Overrides min_dinstance, defaults to False
+    Overrides min_distance, defaults to False
     :type estimate_min_distance: bool, optional
     :param min_distance: minimum peak distance [pixel], defaults to 2
     :type min_distance: int, optional
@@ -227,7 +227,7 @@ def segment_threshold(image2d,
     :type image2d: NumPy.Array
     :param filtermethod: choice of filter method, defaults to 'median'
     :type filtermethod: str, optional
-    :param filtersize: size paramater for the selected filter, defaults to 3
+    :param filtersize: size parameter for the selected filter, defaults to 3
     :type filtersize: int, optional
     :param threshold: choice of thresholding method, defaults to 'triangle'
     :type threshold: str, optional
