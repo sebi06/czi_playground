@@ -295,7 +295,7 @@ def add_boundingbox(props, ax2plot):
 
 
 def scatterplot_mpl(planetable,
-                    S=0, T=0, Z=0, C=0,
+                    s=0, t=0, z=0, c=0,
                     msz2d=35,
                     normz=True,
                     fig1savename='zsurface2d.png',
@@ -313,7 +313,7 @@ def scatterplot_mpl(planetable,
         zpos = zpos - zpos.min()
 
     # create a name for the figure
-    figtitle = 'XYZ-Positions:  S=' + str(S) + ' T=' + str(T) + ' Z=' + str(Z) + ' CH=' + str(C)
+    figtitle = 'XYZ-Positions:  S=' + str(s) + ' T=' + str(t) + ' Z=' + str(z) + ' CH=' + str(c)
 
     # try to find a "good" aspect ration for the figures
     dx = xpos.max() - xpos.min()
@@ -410,7 +410,7 @@ def scatterplot_mpl(planetable,
 
 
 def scatterplot_plotly(planetable,
-                       S=0, T=0, Z=0, C=0,
+                       s=0, t=0, z=0, c=0,
                        msz2d=35,
                        normz=True,
                        fig1savename='zsurface2d.html',
@@ -430,7 +430,7 @@ def scatterplot_plotly(planetable,
         scalebar_title = 'Z-Position [micron]'
 
     # create a name for the figure
-    figtitle = 'XYZ-Positions:  S=' + str(S) + ' T=' + str(T) + ' Z=' + str(Z) + ' CH=' + str(C)
+    figtitle = 'XYZ-Positions:  S=' + str(s) + ' T=' + str(t) + ' Z=' + str(z) + ' CH=' + str(c)
 
     fig1 = go.Figure(
         data=go.Scatter(
