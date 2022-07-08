@@ -304,9 +304,14 @@ def scatterplot_mpl(planetable,
                     msz3d=20):
 
     # extract XYZ positions
-    xpos = planetable['X [micron]']
-    ypos = planetable['Y [micron]']
-    zpos = planetable['Z [micron]']
+    try:
+        xpos = planetable['X[micron]']
+        ypos = planetable['Y[micron]']
+        zpos = planetable['Z[micron]']
+    except KeyError as e:
+        xpos = planetable['X [micron]']
+        ypos = planetable['Y [micron]']
+        zpos = planetable['Z [micron]']
 
     # normalize z-data by substracting the minimum value
     if normz:
@@ -418,9 +423,14 @@ def scatterplot_plotly(planetable,
                        msz3d=20):
 
     # extract XYZ position for the selected channel
-    xpos = planetable['X [micron]']
-    ypos = planetable['Y [micron]']
-    zpos = planetable['Z [micron]']
+    try:
+        xpos = planetable['X[micron]']
+        ypos = planetable['Y[micron]']
+        zpos = planetable['Z[micron]']
+    except KeyError as e:
+        xpos = planetable['X [micron]']
+        ypos = planetable['Y [micron]']
+        zpos = planetable['Z [micron]']
 
     # normalize z-data by substracting the minimum value
     if normz:
