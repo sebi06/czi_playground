@@ -2,9 +2,7 @@
 
 #################################################################
 # File        : segmentation_tools.py
-# Version     : 1.0
 # Author      : sebi06
-# Date        : 22.03.2021
 #
 # Kudos also to: https://github.com/haesleinhuepf/napari-segment-blobs-and-things-with-membranes/blob/main/docs/demo.ipynb
 #
@@ -82,19 +80,19 @@ def get_params_median_mean(labels: np.ndarray,
 
 def apply_watershed(binary: np.ndarray,
                     estimate_min_distance: bool = False,
-                    min_distance: int = 10):
+                    min_distance: int = 10) -> np.ndarray:
     """Apply normal watershed to a binary image
 
-    :param binary: binary images from segmentation
-    :type binary: NumPy.Array
-    :param estimate_min_distance: try to estimate the minimum distance.
-    Overrides min_distance, defaults to False
-    :type estimate_min_distance: bool, optional
-    :param min_distance: minimum peak distance [pixel], defaults to 10
-    :type min_distance: int, optional
-    :return: mask - mask with separated objects
-    :rtype: NumPy.Array
-    """
+        :param binary: binary images from segmentation
+        :type binary: NumPy.Array
+        :param estimate_min_distance: try to estimate the minimum distance.
+        Overrides min_distance, defaults to False
+        :type estimate_min_distance: bool, optional
+        :param min_distance: minimum peak distance [pixel], defaults to 10
+        :type min_distance: int, optional
+        :return: mask - mask with separated objects
+        :rtype: NumPy.Array
+        """
 
     # create real binary image
     binary = binary > 0
@@ -137,7 +135,7 @@ def apply_watershed_adv(image2d: np.ndarray,
                         filtersize_ws: int = 3,
                         estimate_min_distance: bool = False,
                         min_distance: int = 10,
-                        radius: int = 1):
+                        radius: int = 1) -> np.ndarray:
     """Apply advanced watershed to a binary image
 
     :param image2d: 2D image with pixel intensities
@@ -217,7 +215,7 @@ def segment_threshold(image2d,
                       min_distance=30,
                       ws_method='ws_adv',
                       radius=1,
-                      dtypemask=np.int16):
+                      dtypemask=np.int16) -> np.ndarray:
     """Segment an image using the following steps:
     - filter image
     - threshold image
@@ -279,7 +277,7 @@ def segment_threshold(image2d,
 def autoThresholding(image2d,
                      method='triangle',
                      radius=10,
-                     value=50):
+                     value=50) -> np.ndarray:
     """Autothreshold an 2D intensity image which is calculated using:
     binary = image2d >= thresh
 
@@ -317,7 +315,7 @@ def autoThresholding(image2d,
 def subtract_background(image,
                         elem='disk',
                         radius=50,
-                        light_bg=False):
+                        light_bg=False) -> np.ndarray:
     """Background substraction using structure element.
     Slightly adapted from: https://forum.image.sc/t/background-subtraction-in-scikit-image/39118/4
 
@@ -346,7 +344,8 @@ def subtract_background(image,
     return img_subtracted
 
 
-def sobel_3d(image):
+def sobel_3d(image) -> np.ndarray:
+    
     kernel = np.asarray([
         [
             [0, 0, 0],
@@ -396,7 +395,7 @@ def split_touching_objects(binary: np.ndarray, sigma: float = 3.5) -> np.ndarray
     return binary_opening(almost)
 
 
-def erode_labels(segmentation, erosion_iterations, relabel=True):
+def erode_labels(segmentation, erosion_iterations, relabel=True) -> np.ndarray:
 
     # create empty list where the eroded masks can be saved to
     list_of_eroded_masks = list()
@@ -429,7 +428,7 @@ def erode_labels(segmentation, erosion_iterations, relabel=True):
     return final_array_labelled
 
 
-def area_filter(im: np.ndarray, area_min: int = 10, area_max: int = 100000) -> np.ndarray:
+def area_filter(im: np.ndarray, area_min: int = 10, area_max: int = 100000) -> Tuple[np.ndarray, int]:
     """
     Filters objects in an image based on their areas.
 

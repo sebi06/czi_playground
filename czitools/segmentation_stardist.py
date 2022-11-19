@@ -20,16 +20,18 @@ from stardist.models import StarDist2D
 from stardist.data import test_image_nuclei_2d
 from stardist.plot import render_label
 from csbdeep.utils import normalize
+from typing import List, Dict, NamedTuple, Tuple, Optional, Type, Any, Union
 
 
-def segment_nuclei_stardist(image2d, sdmodel,
-                            prob_thresh=0.5,
-                            overlap_thresh=0.3,
-                            overlap_label=None,
-                            n_tiles=None,
-                            norm_pmin=1.0,
-                            norm_pmax=99.8,
-                            norm_clip=False):
+def segment_nuclei_stardist(image2d: np.ndarray,
+                            sdmodel: StarDist2D,
+                            prob_thresh: float = 0.5,
+                            overlap_thresh: float = 0.3,
+                            overlap_label: Union[int, None] = None,
+                            n_tiles: Union[int, None] = None,
+                            norm_pmin: float = 1.0,
+                            norm_pmax: float = 99.8,
+                            norm_clip: bool = False):
     """Segment cell nuclei using StarDist
 
     :param image2d: 2d image to be segmented
@@ -77,7 +79,7 @@ def segment_nuclei_stardist(image2d, sdmodel,
     return mask2d
 
 
-def load_stardistmodel(modeltype='Versatile (fluorescent nuclei)'):
+def load_stardistmodel(modeltype: str = 'Versatile (fluorescent nuclei)') -> StarDist2D:
 
     # workaround explained here to avoid errors
     # https://github.com/openai/spinningup/issues/16
@@ -89,7 +91,7 @@ def load_stardistmodel(modeltype='Versatile (fluorescent nuclei)'):
     return sdmodel
 
 
-def stardistmodel_from_folder(modelfolder, mdname='2D_dsb2018'):
+def stardistmodel_from_folder(modelfolder: str, mdname: str = '2D_dsb2018') -> StarDist2D:
 
     # workaround explained here to avoid errors
     # https://github.com/openai/spinningup/issues/16
