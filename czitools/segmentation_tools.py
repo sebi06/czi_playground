@@ -207,7 +207,7 @@ def apply_watershed_adv(image2d: np.ndarray,
     return mask
 
 
-def segment_threshold(image2d,
+def segment_threshold(image2d: np.ndarray,
                       filtermethod='median',
                       filtersize=3,
                       threshold='triangle',
@@ -274,7 +274,7 @@ def segment_threshold(image2d,
     return mask.astype(dtypemask)
 
 
-def autoThresholding(image2d,
+def autoThresholding(image2d: np.ndarray,
                      method='triangle',
                      radius=10,
                      value=50) -> np.ndarray:
@@ -344,8 +344,16 @@ def subtract_background(image,
     return img_subtracted
 
 
-def sobel_3d(image) -> np.ndarray:
-    
+def sobel_3d(image: np.ndarray) -> np.ndarray:
+    """3D Sobel Filter
+
+    Args:
+        image (np.ndarray): Image to be filtered
+
+    Returns:
+        np.ndarray: Filtered image
+    """
+
     kernel = np.asarray([
         [
             [0, 0, 0],
@@ -395,7 +403,17 @@ def split_touching_objects(binary: np.ndarray, sigma: float = 3.5) -> np.ndarray
     return binary_opening(almost)
 
 
-def erode_labels(segmentation, erosion_iterations, relabel=True) -> np.ndarray:
+def erode_labels(segmentation: np.ndarray, erosion_iterations: int, relabel=True) -> np.ndarray:
+    """Erode labels inside label image
+
+    Args:
+        segmentation (np.ndarray): Image with the label masks
+        erosion_iterations (int): Number of iteration for the ersion
+        relabel (bool, optional): Relabel the image . Defaults to True.
+
+    Returns:
+        np.ndarray: _description_
+    """
 
     # create empty list where the eroded masks can be saved to
     list_of_eroded_masks = list()
@@ -468,3 +486,31 @@ def area_filter(im: np.ndarray, area_min: int = 10, area_max: int = 100000) -> T
     im_filt, num_labels = measure.label(im_approved > 0, return_num=True)
 
     return im_filt, num_labels
+
+
+def filter_labels(labels: np.ndarray, min_size: int, max_size: int) -> Tuple[np.ndarray, int]:
+    """Filter labels based on size.
+
+    Args:
+        labels (np.ndarray): Label Image
+        min_size (int): Minimum size of labels [pixels]
+        max_size (int): Maximum size of labels [pixels]
+
+    Returns:
+        Tuple[np.ndarray, int]: Label image with labels filtered by size and the number of labels left.
+    """
+
+    component_sizes = np.bincount(labels.ravel())
+    too_small = component_sizes < min_size
+    too_small_mask = too_small[labels]
+    labels[too_small_mask] = 0
+
+    component_sizes = np.bincount(labels.ravel())
+    too_big = component_sizes > max_size
+    too_big_mask = too_big[labels]
+    labels[too_big_mask] = 0
+
+    # Relabel the image.
+    labels, num_labels = measure.label(labels > 0, return_num=True)
+
+    return labels, num_labels
