@@ -2,9 +2,7 @@
 
 #################################################################
 # File        : segmentation_tools.py
-# Version     : 0.6
 # Author      : sebi06
-# Date        : 04.12.2021
 #
 # Disclaimer: This code is purely experimental. Feel free to
 # use it at your own risk.
@@ -80,31 +78,78 @@ except (ImportError, ModuleNotFoundError) as error:
 #     print('StarDist will not be used.')
 
 
-def apply_watershed(binary, min_distance=10):
+class ObjParams(NamedTuple):
+    name: str
+    median: Optional[float]
+    mean: Optional[float]
+
+    """Just a little helper class"""
+
+
+def get_params_median_mean(labels: np.ndarray,
+                           parameter: str = "feret_diameter_max") -> Optional[ObjParams]:
+
+    # make sure this is a labeld image
+    labels = label(labels)
+
+    # get the region properties
+    props = regionprops(labels)
+    values = []
+
+    try:
+        # get the individual values for each object and calculate the median
+        for prop in props:
+            values.append(prop[parameter])
+
+        values_array = np.asarray(values)
+
+        objparams = ObjParams(parameter,
+                              np.median(values_array),
+                              values_array.mean())
+
+    except Exception as e:
+        print("Parameter:", parameter, " does not exist.")
+        objparams = ObjParams(parameter,
+                              None,
+                              None)
+
+    return objparams
+
+
+def apply_watershed(binary: np.ndarray,
+                    estimate_min_distance: bool = False,
+                    min_distance: int = 10) -> np.ndarray:
     """Apply normal watershed to a binary image
 
-    :param binary: binary images from segmentation
-    :type binary: NumPy.Array
-    :param min_distance: minimum peak distance [pixel], defaults to 10
-    :type min_distance: int, optional
-    :return: mask - mask with separeted objects
-    :rtype: NumPy.Array
-    """
+        :param binary: binary images from segmentation
+        :type binary: NumPy.Array
+        :param estimate_min_distance: try to estimate the minimum distance.
+        Overrides min_distance, defaults to False
+        :type estimate_min_distance: bool, optional
+        :param min_distance: minimum peak distance [pixel], defaults to 10
+        :type min_distance: int, optional
+        :return: mask - mask with separated objects
+        :rtype: NumPy.Array
+        """
+
+    # create real binary image
+    binary = binary > 0
 
     # create distance map
-    distance = ndimage.distance_transform_edt(binary)
+    distance = distance_transform_edt(binary)
 
-    # determine local maxima
-    # local_maxi = peak_local_max(distance,
-    #                            min_distance=min_distance,
-    #                            # indices=False,
-    #                            labels=binary)
+    if estimate_min_distance:
+        feretmax = get_params_median_mean(binary,
+                                          parameter="feret_diameter_max")
+
+        min_distance = int(np.round(feretmax.median / 2 * 0.9, 0))
+        print("Estimated Minimum Distance for Watershed:", min_distance)
 
     # create the seeds
     peak_idx = peak_local_max(distance,
                               labels=binary,
                               min_distance=min_distance,
-                              # indices=False
+                              # num_peaks_per_label=1,
                               )
 
     # create peak mask
@@ -112,7 +157,6 @@ def apply_watershed(binary, min_distance=10):
     peak_mask[tuple(peak_idx.T)] = True
 
     # label maxima
-    #markers, num_features = ndimage.label(local_maxi)
     markers, num_features = ndimage.label(peak_mask)
 
     # apply watershed
@@ -123,12 +167,13 @@ def apply_watershed(binary, min_distance=10):
     return mask
 
 
-def apply_watershed_adv(image2d,
-                        segmented,
-                        filtermethod_ws='median',
-                        filtersize_ws=3,
-                        min_distance=2,
-                        radius=1):
+def apply_watershed_adv(image2d: np.ndarray,
+                        segmented: np.ndarray,
+                        filtermethod_ws: str = "median",
+                        filtersize_ws: int = 3,
+                        estimate_min_distance: bool = False,
+                        min_distance: int = 10,
+                        radius: int = 1) -> np.ndarray:
     """Apply advanced watershed to a binary image
 
     :param image2d: 2D image with pixel intensities
@@ -137,8 +182,11 @@ def apply_watershed_adv(image2d,
     :type segmented: NumPy.Array
     :param filtermethod_ws: choice of filter method, defaults to 'median'
     :type filtermethod_ws: str, optional
-    :param filtersize_ws: size paramater for the selected filter, defaults to 3
+    :param filtersize_ws: size parameter for the selected filter, defaults to 3
     :type filtersize_ws: int, optional
+    :param estimate_min_distance: try to estimate the minimum distance.
+    Overrides min_distance, defaults to False
+    :type estimate_min_distance: bool, optional
     :param min_distance: minimum peak distance [pixel], defaults to 2
     :type min_distance: int, optional
     :param radius: radius for dilation disk, defaults to 1
@@ -155,14 +203,26 @@ def apply_watershed_adv(image2d,
 
     # filter image
     if filtermethod_ws == 'median':
-        image2d = median(image2d, selem=disk(filtersize_ws))
+        image2d = median(image2d, disk(filtersize_ws))
     if filtermethod_ws == 'gauss':
         image2d = gaussian(image2d, sigma=filtersize_ws, mode='reflect')
 
     # create the seeds
+    # if image2d.dtype == np.float64:
+    #    image2d = image2d.astype(np.float32)
+    labels = label(segmented).astype(np.int32)
+
+    if estimate_min_distance:
+        feretmax = get_params_median_mean(segmented,
+                                          parameter="feret_diameter_max")
+
+        min_distance = int(np.round(feretmax.median / 2 * 0.9, 0))
+        print("Estimated Minimum Distance for Watershed:", min_distance)
+
     peak_idx = peak_local_max(image2d,
-                              labels=label(segmented),
+                              labels=labels,
                               min_distance=min_distance,
+                              # num_peaks_per_label=1,
                               # indices=False
                               )
 
@@ -185,7 +245,7 @@ def apply_watershed_adv(image2d,
     return mask
 
 
-def segment_threshold(image2d,
+def segment_threshold(image2d: np.ndarray,
                       filtermethod='median',
                       filtersize=3,
                       threshold='triangle',
@@ -193,7 +253,7 @@ def segment_threshold(image2d,
                       min_distance=30,
                       ws_method='ws_adv',
                       radius=1,
-                      dtypemask=np.int16):
+                      dtypemask=np.int16) -> np.ndarray:
     """Segment an image using the following steps:
     - filter image
     - threshold image
@@ -203,7 +263,7 @@ def segment_threshold(image2d,
     :type image2d: NumPy.Array
     :param filtermethod: choice of filter method, defaults to 'median'
     :type filtermethod: str, optional
-    :param filtersize: size paramater for the selected filter, defaults to 3
+    :param filtersize: size parameter for the selected filter, defaults to 3
     :type filtersize: int, optional
     :param threshold: choice of thresholding method, defaults to 'triangle'
     :type threshold: str, optional
@@ -252,10 +312,10 @@ def segment_threshold(image2d,
     return mask.astype(dtypemask)
 
 
-def autoThresholding(image2d,
+def autoThresholding(image2d: np.ndarray,
                      method='triangle',
                      radius=10,
-                     value=50):
+                     value=50) -> np.ndarray:
     """Autothreshold an 2D intensity image which is calculated using:
     binary = image2d >= thresh
 
@@ -288,6 +348,210 @@ def autoThresholding(image2d,
     binary = image2d >= thresh
 
     return binary
+
+
+def subtract_background(image,
+                        elem='disk',
+                        radius=50,
+                        light_bg=False) -> np.ndarray:
+    """Background substraction using structure element.
+    Slightly adapted from: https://forum.image.sc/t/background-subtraction-in-scikit-image/39118/4
+
+    :param image: input image
+    :type image: NumPy.Array
+    :param elem: type of the structure element, defaults to 'disk'
+    :type elem: str, optional
+    :param radius: size of structure element [pixel], defaults to 50
+    :type radius: int, optional
+    :param light_bg: light background, defaults to False
+    :type light_bg: bool, optional
+    :return: image with background subtracted
+    :rtype: NumPy.Array
+    """
+    # use 'ball' here to get a slightly smoother result at the cost of increased computing time
+    if elem == 'disk':
+        str_el = disk(radius)
+    if elem == 'ball':
+        str_el = ball(radius)
+
+    if light_bg:
+        img_subtracted = black_tophat(image, str_el)
+    if not light_bg:
+        img_subtracted = white_tophat(image, str_el)
+
+    return img_subtracted
+
+
+def sobel_3d(image: np.ndarray) -> np.ndarray:
+    """3D Sobel Filter
+
+    Args:
+        image (np.ndarray): Image to be filtered
+
+    Returns:
+        np.ndarray: Filtered image
+    """
+
+    kernel = np.asarray([
+        [
+            [0, 0, 0],
+            [0, 1, 0],
+            [0, 0, 0]
+        ], [
+            [0, 1, 0],
+            [1, -6, 1],
+            [0, 1, 0]
+        ], [
+            [0, 0, 0],
+            [0, 1, 0],
+            [0, 0, 0]
+        ]
+    ])
+    return ndimage.convolve(image, kernel)
+
+
+def split_touching_objects(binary: np.ndarray, sigma: float = 3.5) -> np.ndarray:
+    """
+    Takes a binary image and draws cuts in the objects similar to the ImageJ watershed algorithm.
+    See also
+    --------
+    .. [0] https://imagej.nih.gov/ij/docs/menus/process.html#watershed
+    """
+    # binary = np.asarray(binary)
+
+    # typical way of using scikit-image watershed
+    distance = ndimage.distance_transform_edt(binary)
+    blurred_distance = gaussian(distance, sigma=sigma)
+    fp = np.ones((3,) * binary.ndim)
+    coords = peak_local_max(blurred_distance, footprint=fp, labels=binary)
+    mask = np.zeros(distance.shape, dtype=bool)
+    mask[tuple(coords.T)] = True
+    markers = label(mask)
+    labels = watershed(-blurred_distance, markers, mask=binary)
+
+    # identify label-cutting edges
+    if len(binary.shape) == 2:
+        edges = sobel(labels)
+        edges2 = sobel(binary)
+    else:  # assuming 3D
+        edges = sobel_3d(labels)
+        edges2 = sobel_3d(binary)
+
+    almost = np.logical_not(np.logical_xor(edges != 0, edges2 != 0)) * binary
+    return binary_opening(almost)
+
+
+def erode_labels(segmentation: np.ndarray, erosion_iterations: int, relabel=True) -> np.ndarray:
+    """Erode labels inside label image
+
+    Args:
+        segmentation (np.ndarray): Image with the label masks
+        erosion_iterations (int): Number of iteration for the ersion
+        relabel (bool, optional): Relabel the image . Defaults to True.
+
+    Returns:
+        np.ndarray: _description_
+    """
+
+    # create empty list where the eroded masks can be saved to
+    list_of_eroded_masks = list()
+    regions = regionprops(segmentation)
+
+    def erode_mask(segmentation_labels, label_id, erosion_iterations, relabel=True):
+        only_current_label_id = np.where(segmentation_labels == label_id, 1, 0)
+        eroded = ndimage.binary_erosion(only_current_label_id, iterations=erosion_iterations)
+
+        if relabel:
+            # relabeled_eroded = np.where(eroded == 1, label_id, 0)
+            return (np.where(eroded == 1, label_id, 0))
+
+        if not relabel:
+            return (eroded)
+
+    for i in range(len(regions)):
+        label_id = regions[i].label
+        list_of_eroded_masks.append(erode_mask(segmentation,
+                                               label_id,
+                                               erosion_iterations,
+                                               relabel=relabel))
+
+    # convert list of numpy arrays to stacked numpy array
+    final_array = np.stack(list_of_eroded_masks)
+
+    # max_IP to reduce the stack of arrays, each containing one labelled region, to a single 2D np array.
+    final_array_labelled = np.sum(final_array, axis=0)
+
+    return final_array_labelled
+
+
+def area_filter(im: np.ndarray, area_min: int = 10, area_max: int = 100000) -> Tuple[np.ndarray, int]:
+    """
+    Filters objects in an image based on their areas.
+
+    Parameters
+    ----------
+    im : 2d-array, int
+        Labeled segmentation mask to be filtered.
+    area_min : int
+        Minimum value for the area in units of square pixels.
+    area_man : int
+        Maximum value for the area in units of square pixels.
+
+    Returns
+    -------
+    im_relab : 2d-array, int
+        The relabeled, filtered image.
+    num_labels : int
+        The number of returned labels.
+    """
+
+    # Extract the region props of the objects.
+    props = measure.regionprops(im)
+
+    # Extract the areas and labels.
+    areas = np.array([prop.area for prop in props])
+    labels = np.array([prop.label for prop in props])
+
+    # Make an empty image to add the approved cells.
+    im_approved = np.zeros_like(im)
+
+    # Threshold the objects based on area and eccentricity
+    for i, _ in enumerate(areas):
+        if areas[i] > area_min and areas[i] < area_max:
+            im_approved += im == labels[i]
+
+    # Relabel the image.
+    im_filt, num_labels = measure.label(im_approved > 0, return_num=True)
+
+    return im_filt, num_labels
+
+
+def filter_labels(labels: np.ndarray, min_size: int, max_size: int) -> Tuple[np.ndarray, int]:
+    """Filter labels based on size.
+
+    Args:
+        labels (np.ndarray): Label Image
+        min_size (int): Minimum size of labels [pixels]
+        max_size (int): Maximum size of labels [pixels]
+
+    Returns:
+        Tuple[np.ndarray, int]: Label image with labels filtered by size and the number of labels left.
+    """
+
+    component_sizes = np.bincount(labels.ravel())
+    too_small = component_sizes < min_size
+    too_small_mask = too_small[labels]
+    labels[too_small_mask] = 0
+
+    component_sizes = np.bincount(labels.ravel())
+    too_big = component_sizes > max_size
+    too_big_mask = too_big[labels]
+    labels[too_big_mask] = 0
+
+    # Relabel the image.
+    labels, num_labels = measure.label(labels > 0, return_num=True)
+
+    return labels, num_labels
 
 
 def cutout_subimage(image2d,
@@ -692,33 +956,3 @@ def add_padding(image2d, input_height=1024, input_width=1024):
     return image2d_padded, (padding_top, padding_bottom, padding_left, padding_right)
 
 
-def subtract_background(image,
-                        elem='disk',
-                        radius=50,
-                        light_bg=False):
-    """Background substraction using structure element.
-    Slightly adapted from: https://forum.image.sc/t/background-subtraction-in-scikit-image/39118/4
-
-    :param image: input image
-    :type image: NumPy.Array
-    :param elem: type of the structure element, defaults to 'disk'
-    :type elem: str, optional
-    :param radius: size of structure element [pixel], defaults to 50
-    :type radius: int, optional
-    :param light_bg: light background, defaults to False
-    :type light_bg: bool, optional
-    :return: image with background subtracted
-    :rtype: NumPy.Array
-    """
-    # use 'ball' here to get a slightly smoother result at the cost of increased computing time
-    if elem == 'disk':
-        str_el = disk(radius)
-    if elem == 'ball':
-        str_el = ball(radius)
-
-    if light_bg:
-        img_subtracted = black_tophat(image, str_el)
-    if not light_bg:
-        img_subtracted = white_tophat(image, str_el)
-
-    return img_subtracted

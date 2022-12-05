@@ -14,11 +14,11 @@
 import os
 import numpy as np
 from stardist.models import StarDist2D
-from stardist.data import test_image_nuclei_2d
-from stardist.plot import render_label
+from skimage.measure import label, regionprops
 from csbdeep.utils import normalize
 from typing import List, Dict, NamedTuple, Tuple, Optional, Type, Any, Union
 from csbdeep.data import Normalizer, normalize_mi_ma
+from skimage import measure
 
 
 def segment_nuclei_stardist(img2d: np.ndarray,
@@ -27,13 +27,13 @@ def segment_nuclei_stardist(img2d: np.ndarray,
                             prob_thresh: float = 0.5,
                             overlap_thresh: float = 0.3,
                             overlap_label: Union[int, None] = None,
-                            blocksize: int = 1024,
+                            #blocksize: int = 1024,
                             min_overlap: int = 128,
                             n_tiles: Union[int, None] = None,
                             norm_pmin: float = 1.0,
                             norm_pmax: float = 99.8,
                             norm_clip: bool = False,
-                            local_normalize: bool = True):
+                            normalize_whole: bool = True):
     """Segment cell nuclei using StarDist
 
     :param img2d: 2d image to be segmented
@@ -64,7 +64,7 @@ def segment_nuclei_stardist(img2d: np.ndarray,
     :rtype: NumPy.Array
     """
 
-    if local_normalize:
+    if normalize_whole:
         # normalize whole 2d image
         img2d = normalize(img2d,
                           pmin=norm_pmin,
@@ -76,7 +76,7 @@ def segment_nuclei_stardist(img2d: np.ndarray,
 
         normalizer = None
 
-    if not local_normalize:
+    if not normalize_whole:
         mi, ma = np.percentile(img2d, [norm_pmin, norm_pmax])
         #mi, ma = image2d.min(), image2d.max()
 
@@ -177,3 +177,73 @@ class MyNormalizer(Normalizer):
     @ property
     def do_after(self):
         return False
+
+
+def area_filter(im: np.ndarray, area_min: int = 10, area_max: int = 100000) -> Tuple[np.ndarray, int]:
+    """
+    Filters objects in an image based on their areas.
+
+    Parameters
+    ----------
+    im : 2d-array, int
+        Labeled segmentation mask to be filtered.
+    area_min : int
+        Minimum value for the area in units of square pixels.
+    area_man : int
+        Maximum value for the area in units of square pixels.
+
+    Returns
+    -------
+    im_relab : 2d-array, int
+        The relabeled, filtered image.
+    num_labels : int
+        The number of returned labels.
+    """
+
+    # Extract the region props of the objects.
+    props = measure.regionprops(im)
+
+    # Extract the areas and labels.
+    areas = np.array([prop.area for prop in props])
+    labels = np.array([prop.label for prop in props])
+
+    # Make an empty image to add the approved cells.
+    im_approved = np.zeros_like(im)
+
+    # Threshold the objects based on area and eccentricity
+    for i, _ in enumerate(areas):
+        if areas[i] > area_min and areas[i] < area_max:
+            im_approved += im == labels[i]
+
+    # Relabel the image.
+    im_filt, num_labels = measure.label(im_approved > 0, return_num=True)
+
+    return im_filt, num_labels
+
+
+def filter_labels(labels: np.ndarray, min_size: int, max_size: int) -> Tuple[np.ndarray, int]:
+    """Filter labels based on size.
+
+    Args:
+        labels (np.ndarray): Label Image
+        min_size (int): Minimum size of labels [pixels]
+        max_size (int): Maximum size of labels [pixels]
+
+    Returns:
+        Tuple[np.ndarray, int]: Label image with labels filtered by size and the number of labels left.
+    """
+
+    component_sizes = np.bincount(labels.ravel())
+    too_small = component_sizes < min_size
+    too_small_mask = too_small[labels]
+    labels[too_small_mask] = 0
+
+    component_sizes = np.bincount(labels.ravel())
+    too_big = component_sizes > max_size
+    too_big_mask = too_big[labels]
+    labels[too_big_mask] = 0
+
+    # Relabel the image.
+    labels, num_labels = measure.label(labels > 0, return_num=True)
+
+    return labels, num_labels
