@@ -43,7 +43,9 @@ from PyQt5.QtGui import QFont
 from czitools import pylibczirw_metadata as czimd
 from czitools import misc
 import numpy as np
-from typing import List, Dict, Tuple, Optional, Type, Any, Union
+from typing import List, Dict, Tuple, Optional, Type, Any, Union, Literal, Mapping
+from napari.utils.colormaps import Colormap
+import dask.array as da
 
 
 class TableWidget(QWidget):
@@ -61,6 +63,11 @@ class TableWidget(QWidget):
         header.setDefaultAlignment(Qt.AlignLeft)
 
     def update_metadata(self, md_dict: Dict) -> None:
+        """Update the table with the metadata from the dictionary
+
+        Args:
+            md_dict (Dict): Metadata dictionary
+        """
 
         # number of rows is set to number of metadata entries
         row_count = len(md_dict)
@@ -82,6 +89,8 @@ class TableWidget(QWidget):
         self.mdtable.resizeColumnsToContents()
 
     def update_style(self) -> None:
+        """Update the style for the table
+        """
 
         # define font size and type
         fnt = QFont()
@@ -102,31 +111,38 @@ class TableWidget(QWidget):
         self.mdtable.setHorizontalHeaderItem(1, item2)
 
 
-def show(viewer: Any, array: np.ndarray, metadata: czimd.CziMetadata,
-         dim_order: dict,
+def show(viewer: napari.Viewer,
+         array: Union[np.ndarray, List[da.Array], da.Array],
+         metadata: czimd.CziMetadata,
+         dim_string: str,
          blending: str = "additive",
-         contrast: str = "calc",
+         contrast: Literal["calc", "napari_auto", "from_czi"] = "calc",
          gamma: float = 0.85,
          add_mdtable: bool = True,
          name_sliders: bool = False) -> List:
-    """ Display the multidimensional array inside the Napari viewer.
+    """Display the multidimensional array inside the Napari viewer.
     Optionally the CziMetadata class will be used show a table with the metadata.
     Every channel will be added as a new layer to the viewer.
 
-    :param viewer: Napari viewer object
-    :param array: multi-dimensional array containing the pixel data
-    :param metadata: CziMetadata class
-    :param dim_order: Dictionary with the dimension order.
-    :param blending: blending mode for viewer
-    :param contrast: method to be used to calculate an appropriate display scaling.
-    - "calc" : real min & max calculation (might be slow) be calculated (slow)
-    - "napari_auto" : let Napari figure out a display scaling. Will look in the center of an image !
-    - "from_czi" : use the display scaling from ZEN stored inside the CZI metadata
-    :param gamma: gamma value for the Viewer for all layers
-    :param add_mdtable: option to show the CziMetadata as a table widget
-    :param name_sliders: option to use the dimension letters as slider labels for the viewer
-    :return:
+    Args:
+        viewer (Any): Napari viewer object
+        array (Union[np.ndarray, List[da.Array], da.Array]): multi-dimensional array containing the pixel data (Numpy, List of Dask Array or Dask array
+        metadata (czimd.CziMetadata): CziMetadata class
+        dim_string (str): dimension string for the array to be shown
+        blending (str, optional): blending mode for viewer. Defaults to "additive".
+        contrast (Literal[str], optional): method to be used to calculate an appropriate display scaling.
+            - "calc" : real min & max calculation (might be slow) be calculated (slow)
+            - "napari_auto" : Let Napari figure out a display scaling. Will look in the center of an image!
+            - "from_czi" : use the display scaling from ZEN stored inside the CZI metadata. Defaults to "calc".
+        gamma (float, optional): gamma value for the Viewer for all layers Defaults to 0.85.
+        add_mdtable (bool, optional): option to show the CziMetadata as a table widget. Defaults to True.
+        name_sliders (bool, optional): option to use the dimension letters as slider labels for the viewer. Defaults to False.
+
+    Returns:
+        List: List of napari layers
     """
+
+    dim_order, dim_index, dim_valid = czimd.CziMetadata.get_dimorder(dim_string)
 
     # check if contrast mode
     if contrast not in ["calc", "napari_auto", "from_czi"]:
@@ -136,11 +152,16 @@ def show(viewer: Any, array: np.ndarray, metadata: czimd.CziMetadata,
     # create empty list for the napari layers
     napari_layers = []
 
-    # create scalefactor with all ones
+    # create scale factor with all ones
     scalefactors = [1.0] * len(array.shape)
 
     # modify the tuple for the scales for napari
-    scalefactors[dim_order["Z"]] = metadata.scale.ratio["zx"]
+
+    # the "strange factor" is added due to an open (rounding) bug on the Napari side:
+    # https://github.com/napari/napari/issues/4861
+    # https://forum.image.sc/t/image-layer-in-napari-showing-the-wrong-dimension-size-one-plane-is-missing/69939/12
+
+    scalefactors[dim_order["Z"]] = metadata.scale.ratio["zx"] * 1.0000001
 
     # add Qt widget for metadata
     if add_mdtable:
@@ -158,12 +179,12 @@ def show(viewer: Any, array: np.ndarray, metadata: czimd.CziMetadata,
 
     # add all channels as individual layers
     if metadata.image.SizeC is None:
-        sizeC = 1
+        size_c = 1
     else:
-        sizeC = metadata.image.SizeC
+        size_c = metadata.image.SizeC
 
     # loop over all channels and add them as layers
-    for ch in range(sizeC):
+    for ch in range(size_c):
 
         try:
             # get the channel name
@@ -172,6 +193,10 @@ def show(viewer: Any, array: np.ndarray, metadata: czimd.CziMetadata,
             print(e)
             # or use CH1 etc. as string for the name
             chname = "CH" + str(ch + 1)
+
+        # inside the CZI metadata colors are defined as ARGB hexstring
+        rgb = "#" + metadata.channelinfo.colors[ch][3:]
+        ncmap = Colormap(["#000000", rgb], name="cm_" + chname)
 
         # cut out channel
         if metadata.image.SizeC is not None:
@@ -195,7 +220,8 @@ def show(viewer: Any, array: np.ndarray, metadata: czimd.CziMetadata,
                                          scale=scalefactors,
                                          contrast_limits=sc,
                                          blending=blending,
-                                         gamma=gamma)
+                                         gamma=gamma,
+                                         colormap=ncmap)
 
         if contrast == "napari_auto":
             # let Napari figure out what the best display scaling is
@@ -206,19 +232,20 @@ def show(viewer: Any, array: np.ndarray, metadata: czimd.CziMetadata,
                                          name=chname,
                                          scale=scalefactors,
                                          blending=blending,
-                                         gamma=gamma)
+                                         gamma=gamma,
+                                         colormap=ncmap)
         if contrast == "from_czi":
             # guess an appropriate scaling from the display setting embedded in the CZI
             lower = np.round(
-                metadata.channelinfo.clims[ch][0] * metadata.maxrange, 0)
+                metadata.channelinfo.clims[ch][0] * metadata.maxvalue[ch], 0)
             higher = np.round(
-                metadata.channelinfo.clims[ch][1] * metadata.maxrange, 0)
+                metadata.channelinfo.clims[ch][1] * metadata.maxvalue[ch], 0)
 
             # simple validity check
             if lower >= higher:
                 print("Fancy Display Scaling detected. Use Defaults")
                 lower = 0
-                higher = np.round(metadata.maxrange * 0.25, 0)
+                higher = np.round(metadata.maxvalue[ch] * 0.25, 0)
 
             print("Display Scaling from CZI for CH:",
                   ch, "Min-Max", lower, higher)
@@ -229,7 +256,8 @@ def show(viewer: Any, array: np.ndarray, metadata: czimd.CziMetadata,
                                          scale=scalefactors,
                                          contrast_limits=[lower, higher],
                                          blending=blending,
-                                         gamma=gamma)
+                                         gamma=gamma,
+                                         colormap=ncmap)
 
         # append the current layer
         napari_layers.append(new_layer)
@@ -243,20 +271,25 @@ def show(viewer: Any, array: np.ndarray, metadata: czimd.CziMetadata,
         viewer.dims.axis_labels = sliderlabels
 
     # workaround because of: https://forum.image.sc/t/napari-3d-view-shows-flat-z-stack/62744/9?u=sebi06
-    od = list(viewer.dims.order)
-    od[dim_order["C"]], od[dim_order["Z"]] = od[dim_order["Z"]], od[dim_order["C"]]
-    viewer.dims.order = tuple(od)
+    if dim_string == "STZCYX" or dim_string == "TZCYX":
+
+        od = list(viewer.dims.order)
+        od[dim_order["C"]], od[dim_order["Z"]] = od[dim_order["Z"]], od[dim_order["C"]]
+        viewer.dims.order = tuple(od)
 
     return napari_layers
 
 
 def rename_sliders(sliders: Tuple, dim_order: Dict) -> Tuple:
-    """rename the sliders inside the Napari viewer based on the metadata
+    """Rename the sliders inside the Napari viewer based on the metadata
 
-    :param sliders: labels of sliders from viewer
-    :param dim_order: dictionary indication the dimension string and its
-    position inside the array
-    :return: tuple with renamed sliders
+
+    Args:
+        sliders (Tuple): labels of sliders from viewer
+        dim_order (Dict): dictionary indication the dimension string and its position inside the array
+
+    Returns:
+        Tuple: tuple with renamed sliders
     """
 
     # update the labels with the correct dimension strings

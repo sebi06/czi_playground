@@ -24,9 +24,11 @@ import xml.etree.ElementTree as ET
 from aicspylibczi import CziFile
 from aicsimageio import AICSImage
 import dateutil.parser as dt
+from dask.array import Array
+from itertools import product
 from czitools import pylibczirw_metadata as czimd
-from tqdm.contrib.itertools import product
-from typing import List, Dict, Tuple, Optional, Type, Any, Union
+from tqdm.contrib.itertools import product as tqdm_product
+from typing import List, Dict, Tuple, Optional, Type, Any, Union, Mapping
 
 
 def openfile(directory: str,
@@ -60,6 +62,14 @@ def slicedim(array: Union[np.ndarray, dask.array.Array, zarr.Array],
     """Slice out a specific dimension without (!) dropping the dimension
     of the array to conserve the dimorder string
     this should work for Numpy.Array, Dask and ZARR ...
+
+    Example:
+
+    - array.shape = (1, 3, 2, 5, 170, 240) and dim_order is STCZYX
+    - index for C inside array = 2
+    - task: Cut out the fist channel = 0
+    - call: channel = slicedim(array, 0, 2)
+    - the resulting channel.shape = (1, 3, 1, 5, 170, 240)
 
     :param array: input array
     :param dimindex: index of the slice dimension to be kept
@@ -121,8 +131,8 @@ def calc_scaling(data: Union[np.ndarray, da.array],
 
     end = time.time()
 
-    minvalue = np.round((minvalue + offset_min) * corr_min, 0)
-    maxvalue = np.round((maxvalue + offset_max) * corr_max, 0)
+    minvalue = int(np.round((minvalue + offset_min) * corr_min, 0))
+    maxvalue = int(np.round((maxvalue + offset_max) * corr_max, 0))
 
     print("Scaling:", minvalue, maxvalue)
     print("Calculation of Min-Max [s] : ", end - start)
@@ -135,8 +145,8 @@ def md2dataframe(md_dict: Dict,
                  keycol: str = "Value") -> pd.DataFrame:
     """Convert the metadata dictionary to a Pandas DataFrame.
 
-    :param metadata: MeteData dictionary
-    :type metadata: dict
+    :param md_dict: MeteData dictionary
+    :type md_dict: dict
     :param paramcol: Name of Columns for the MetaData Parameters, defaults to "Parameter"
     :type paramcol: str, optional
     :param keycol: Name of Columns for the MetaData Values, defaults to "Value"
@@ -155,6 +165,15 @@ def md2dataframe(md_dict: Dict,
 
 
 def sort_dict_by_key(unsorted_dict: Dict) -> Dict:
+    """Sort a dictionary by key names
+
+    Args:
+        unsorted_dict: the unsorted dictionary where the keys should be sorted
+
+    Returns:
+        Dictionary with keys sorted by name
+    """
+
     sorted_keys = sorted(unsorted_dict.keys(), key=lambda x: x.lower())
     sorted_dict = {}
     for key in sorted_keys:
@@ -173,24 +192,26 @@ def addzeros(number: int) -> str:
     :rtype: str
     """
 
+    zerostring = None
+
     if number < 10:
         zerostring = '0000' + str(number)
-    if number >= 10 and number < 100:
+    if 10 <= number < 100:
         zerostring = '000' + str(number)
-    if number >= 100 and number < 1000:
+    if 100 <= number < 1000:
         zerostring = '00' + str(number)
-    if number >= 1000 and number < 10000:
+    if 1000 <= number < 10000:
         zerostring = '0' + str(number)
 
     return zerostring
 
 
-def get_fname_woext(filepath: str) -> str:
+def get_fname_woext(filepath: Union[str, os.PathLike[str]]) -> str:
     """Get the complete path of a file without the extension
-    It also will works for extensions like myfile.abc.xyz
+    It also works for extensions like myfile.abc.xyz
     The output will be: myfile
 
-    :param filepath: complete fiepath
+    :param filepath: complete filepath
     :type filepath: str
     :return: complete filepath without extension
     :rtype: str
@@ -209,37 +230,75 @@ def get_fname_woext(filepath: str) -> str:
     return filepath_woext
 
 
-def check_dimsize(mdata_entry: Union[int, None], set2value: int = 1) -> int:
+def check_dimsize(mdata_entry: Union[Any, None], set2value: Any = 1) -> Union[Any, None]:
+    """Check the entries for None
 
-    # check if the dimension entry is None
+    Args:
+        mdata_entry: entry to be checked
+        set2value: value to replace None
+
+    Returns:
+        A list of dask arrays
+    """
+
     if mdata_entry is None:
-        size = set2value
+        return set2value
     if mdata_entry is not None:
-        size = mdata_entry
-
-    return size
+        return mdata_entry
 
 
-def get_daskstack(aics_img: AICSImage) -> List:
+def get_daskstack(aics_img: AICSImage) -> List[da.array]:
+    """Create a Dask stack from a list of Dask stacks.
 
-    stacks = []
+    Args:
+        aics_img (AICSImage): An AICSImage object containing multiple scenes.
+
+    Returns:
+        List[da.array]: A list of Dask arrays representing the stack of all scenes
+        in the input AICSImage object.
+    """
+    # Initialize an empty list to store the Dask arrays for each scene.
+    stacks: List[da.array] = []
+
+    # Iterate over all scenes in the input AICSImage object.
     for scene in aics_img.scenes:
+        # Set the current scene of the AICSImage object.
         aics_img.set_scene(scene)
+        # Append the Dask array for the current scene to the stacks list.
         stacks.append(aics_img.dask_data)
 
-    stacks = da.stack(stacks)
+    # Stack all Dask arrays in the stacks list along the first axis to create
+    # a single Dask array representing the stack of all scenes.
+    stack = da.stack(stacks)
 
-    return stacks
+    return stack
 
 
-def get_planetable(czifile: str,
+def get_planetable(czifile: Union[str, os.PathLike[str]],
                    norm_time: bool = True,
                    savetable: bool = False,
                    separator: str = ',',
+                   read_one_only: bool = False,
                    index: bool = True) -> Tuple[pd.DataFrame, Optional[str]]:
+    """ Get the planetable from the individual subblocks
+    Args:
+        czifile: the source for the CZI image file
+        norm_time: normalize the timestamps
+        savetable: option save the planetable as CSV file
+        separator: specify the separator for the CSV file
+        read_one_only: option to read only the first entry
+        index:
+
+    Returns:
+        Planetable as pd.DataFrame and the location of the CSV file
+    """
+
+    if isinstance(czifile, Path):
+        # convert to string
+        czifile = str(czifile)
 
     # get the czi metadata
-    metadata = czimd.CziMetadata(czifile)
+    czi_dimensions = czimd.CziDimensions(czifile)
     aicsczi = CziFile(czifile)
 
     # initialize the plane table
@@ -262,11 +321,11 @@ def get_planetable(czifile: str,
     sbcount = -1
 
     # check if dimensions are None (because they do not exist for that image)
-    sizeC = check_dimsize(metadata.image.SizeC, set2value=1)
-    sizeZ = check_dimsize(metadata.image.SizeZ, set2value=1)
-    sizeT = check_dimsize(metadata.image.SizeT, set2value=1)
-    sizeS = check_dimsize(metadata.image.SizeS, set2value=1)
-    sizeM = check_dimsize(metadata.image.SizeM, set2value=1)
+    size_c = check_dimsize(czi_dimensions.SizeC, set2value=1)
+    size_z = check_dimsize(czi_dimensions.SizeZ, set2value=1)
+    size_t = check_dimsize(czi_dimensions.SizeT, set2value=1)
+    size_s = check_dimsize(czi_dimensions.SizeS, set2value=1)
+    size_m = check_dimsize(czi_dimensions.SizeM, set2value=1)
 
     def getsbinfo(subblock: Any) -> Tuple[float, float, float, float]:
         try:
@@ -296,16 +355,15 @@ def get_planetable(czifile: str,
 
         return timestamp, xpos, ypos, zpos
 
-    # in case the CZI has the M-Dimension
-    if metadata.ismosaic:
+    # do if the data is not a mosaic
+    if size_m > 1:
 
-        for s, m, t, z, c in product(range(sizeS),
-                                     range(sizeM),
-                                     range(sizeT),
-                                     range(sizeZ),
-                                     range(sizeC)):
+        for s, m, t, z, c in product(range(size_s),
+                                     range(size_m),
+                                     range(size_t),
+                                     range(size_z),
+                                     range(size_c)):
             sbcount += 1
-            print("Reading sublock : ", sbcount)
 
             # get x, y, width and height for a specific tile
             tilebbox = aicsczi.get_mosaic_tile_bounding_box(S=s,
@@ -326,22 +384,6 @@ def get_planetable(czifile: str,
             # get information from subblock
             timestamp, xpos, ypos, zpos = getsbinfo(sb)
 
-            # df_czi = df_czi.append({'Subblock': sbcount,
-            #                         'Scene': s,
-            #                         'Tile': m,
-            #                         'T': t,
-            #                         'Z': z,
-            #                         'C': c,
-            #                         'X[micron]': xpos,
-            #                         'Y[micron]': ypos,
-            #                         'Z[micron]': zpos,
-            #                         'Time[s]': timestamp,
-            #                         'xstart': tilebbox.x,
-            #                         'ystart': tilebbox.y,
-            #                         'width': tilebbox.w,
-            #                         'height': tilebbox.h},
-            #                         ignore_index=True)
-
             plane = pd.DataFrame({'Subblock': sbcount,
                                   'Scene': s,
                                   'Tile': m,
@@ -360,12 +402,16 @@ def get_planetable(czifile: str,
 
             df_czi = pd.concat([df_czi, plane], ignore_index=True)
 
-    if not metadata.ismosaic:
+            if read_one_only:
+                break
 
-        for s, t, z, c in product(range(sizeS),
-                                  range(sizeT),
-                                  range(sizeZ),
-                                  range(sizeC)):
+    # do if the data is not a mosaic
+    if size_m == 1:
+
+        for s, t, z, c in product(range(size_s),
+                                  range(size_t),
+                                  range(size_z),
+                                  range(size_c)):
             sbcount += 1
 
             # get x, y, width and height for a specific tile
@@ -385,22 +431,6 @@ def get_planetable(czifile: str,
             # get information from subblock
             timestamp, xpos, ypos, zpos = getsbinfo(sb)
 
-            # df_czi = df_czi.append({'Subblock': sbcount,
-            #                         'Scene': s,
-            #                         'Tile': 0,
-            #                         'T': t,
-            #                         'Z': z,
-            #                         'C': c,
-            #                         'X[micron]': xpos,
-            #                         'Y[micron]': ypos,
-            #                         'Z[micron]': zpos,
-            #                         'Time[s]': timestamp,
-            #                         'xstart': tilebbox.x,
-            #                         'ystart': tilebbox.y,
-            #                         'width': tilebbox.w,
-            #                         'height': tilebbox.h},
-            #                        ignore_index=True)
-
             plane = pd.DataFrame({'Subblock': sbcount,
                                   'Scene': s,
                                   'Tile': 0,
@@ -417,8 +447,10 @@ def get_planetable(czifile: str,
                                   'height': tilebbox.h},
                                  index=[0])
 
-            #df_czi = pd.concat([df_czi, plane], ignore_index=True)
             df_czi = pd.concat([df_czi, plane], ignore_index=True)
+
+            if read_one_only:
+                break
 
     # cast data  types
     df_czi = df_czi.astype({'Subblock': 'int32',
@@ -454,16 +486,15 @@ def norm_columns(df: pd.DataFrame,
                  colname: str = 'Time [s]',
                  mode: str = 'min') -> pd.DataFrame:
     """Normalize a specific column inside a Pandas dataframe
+    Args:
+        df: DataFrame
+        colname: Name of the column to be normalized, defaults to 'Time [s]'
+        mode: Mode of Normalization, defaults to 'min'
 
-    :param df: DataFrame
-    :type df: pf.DataFrame
-    :param colname: Name of the column to be normalized, defaults to 'Time [s]'
-    :type colname: str, optional
-    :param mode: Mode of Normalization, defaults to 'min'
-    :type mode: str, optional
-    :return: Dataframe with normalized column
-    :rtype: pd.DataFrame
+    Returns:
+        Dataframe with normalized columns
     """
+
     # normalize columns according to min or max value
     if mode == 'min':
         min_value = df[colname].min()
@@ -481,6 +512,17 @@ def filter_planetable(planetable: pd.DataFrame,
                       t: int = 0,
                       z: int = 0,
                       c: int = 0) -> pd.DataFrame:
+    """Filter the planetable for specific dimension entries
+    Args:
+        planetable: The planetable to be filtered
+        s: scene index
+        t: time index
+        z: z-plane index
+        c: channel index
+
+    Returns:
+        The filtered planetable
+    """
 
     # filter planetable for specific scene
     if s > planetable['Scene'].max():
@@ -520,31 +562,40 @@ def save_planetable(df: pd.DataFrame,
                     filename: str,
                     separator: str = ',',
                     index: bool = True) -> str:
-    """Save dataframe as CSV table
+    """Saves a pandas dataframe as a CSV file.
 
-    :param df: Dataframe to be saved as CSV.
-    :type df: pd.DataFrame
-    :param filename: filename of the CSV to be written
-    :type filename: str
-    :param separator: separator for the CSV file, defaults to ','
-    :type separator: str, optional
-    :param index: option write the index into the CSV file, defaults to True
-    :type index: bool, optional
-    :return: filename of the CSV
-    :rtype: str
+    Args:
+        df (pd.DataFrame): The dataframe to be saved as CSV.
+        filename (str): The filename of the CSV file to be written.
+        separator (str, optional): The separator character for the CSV file. Defaults to ','.
+        index (bool, optional): Whether to include the index in the CSV file. Defaults to True.
+
+    Returns:
+        str: The filename of the CSV file that was written.
     """
+    # Generate the filename for the planetable CSV.
     csvfile = os.path.splitext(filename)[0] + '_planetable.csv'
 
-    # write the CSV data table
+    # Write the dataframe to the planetable CSV file.
     df.to_csv(csvfile, sep=separator, index=index)
 
     return csvfile
 
 
-def expand5d(array):
+def expand5d(array: np.ndarray) -> np.ndarray:
+    """Expands a multi-dimensional numpy array to 5 dimensions.
 
+    Args:
+        array (np.ndarray): The numpy array to be extended to 5 dimensions.
+
+    Returns:
+        np.ndarray: The 5-dimensional numpy array.
+    """
+    # Expand the input array along the third-to-last dimension.
     array = np.expand_dims(array, axis=-3)
+    # Expand the result along the fourth-to-last dimension.
     array = np.expand_dims(array, axis=-4)
+    # Expand the result along the fifth-to-last dimension.
     array5d = np.expand_dims(array, axis=-5)
 
     return array5d

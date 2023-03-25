@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 
 #################################################################
-# File        : segmentation_stardist.py
+# File        : seg_stardist_cellpose.py
 # Author      : sebi06
 #
-# Kudos also to: https://github.com/haesleinhuepf/napari-segment-blobs-and-things-with-membranes/blob/main/docs/demo.ipynb
+# StarDist: https://github.com/stardist/stardist
+# CellPose: https://github.com/MouseLand/cellpose
+# CellPose API: https://cellpose.readthedocs.io/en/latest/
 #
 # Disclaimer: This code is purely experimental. Feel free to
 # use it at your own risk.
@@ -13,12 +15,140 @@
 
 import os
 import numpy as np
-from stardist.models import StarDist2D
-from skimage.measure import label, regionprops
-from csbdeep.utils import normalize
 from typing import List, Dict, NamedTuple, Tuple, Optional, Type, Any, Union
-from csbdeep.data import Normalizer, normalize_mi_ma
 from skimage import measure
+import matplotlib.pyplot as plt
+from skimage import measure, segmentation
+from czitools import pylibczirw_metadata as czimd
+from czitools import misc
+from cellpose import models
+from stardist.models import StarDist2D
+from csbdeep.utils import normalize
+from csbdeep.data import Normalizer, normalize_mi_ma
+
+
+def get_cpmodels_path(model_type: str,
+                      modelbasedir: str,
+                      use_gpu: bool = False) -> models.CellposeModel:
+    """Get the cellpose models from a folder directly.
+
+     Parameters
+     ----------
+     model_type : str
+         Type of the CellPose model to be used
+     modelbasedir : str
+         Base directory where to look for the pretrained models
+     use_gpu : bool, optional
+         Use GPU-based model
+
+     Returns
+     -------
+     models.CellposeModel
+         CellPose model to be used for segmentation
+     """
+
+    # check if the provide model_type is actually valid
+    if model_type not in ["2d_nuclei_fluo",
+                          "2d_cyto",
+                          "2d_cyto2",
+                          "2d_cyto_fluo",
+                          "2d_nuclei_fluo_test"]:
+
+        print("No match for found for model_type:", model_type)
+        return None
+    else:
+        # get the model locations
+        if model_type == "2d_nuclei_fluo" or model_type == "2d_nuclei_fluo_test":
+            print("Detected Modeltype:", model_type)
+            models_path = [os.path.join(os.getcwd(), os.path.join(modelbasedir, "nucleitorch_0")),
+                           os.path.join(os.getcwd(), os.path.join(
+                               modelbasedir, "nucleitorch_1")),
+                           os.path.join(os.getcwd(), os.path.join(
+                               modelbasedir, "nucleitorch_2")),
+                           os.path.join(os.getcwd(), os.path.join(modelbasedir, "nucleitorch_3"))]
+
+        if model_type == "2d_cyto":
+            print("Detected Modeltype:", model_type)
+            models_path = [os.path.join(os.getcwd(), os.path.join(modelbasedir, "cytotorch_0")),
+                           os.path.join(os.getcwd(), os.path.join(modelbasedir, "cytotorch_1")),
+                           os.path.join(os.getcwd(), os.path.join(modelbasedir, "cytotorch_2")),
+                           os.path.join(os.getcwd(), os.path.join(modelbasedir, "cytotorch_3"))]
+
+        if model_type == "2d_cyto2":
+            print("Detected Modeltype:", model_type)
+            models_path = [os.path.join(os.getcwd(), os.path.join(modelbasedir, "cyto2torch_0")),
+                           os.path.join(os.getcwd(), os.path.join(modelbasedir, "cyto2torch_1")),
+                           os.path.join(os.getcwd(), os.path.join(modelbasedir, "cyto2torch_2")),
+                           os.path.join(os.getcwd(), os.path.join(modelbasedir, "cyto2torch_3"))]
+
+        if model_type == "2d_cyto_fluo":
+            print("Detected Modeltype:", model_type)
+            models_path = [os.path.join(os.getcwd(), os.path.join(
+                modelbasedir, "CP_cyto_fluorescent"))]
+
+        print("Loading Cellpose Models from folder:", models_path)
+        cp_model = models.CellposeModel(gpu=use_gpu, pretrained_model=models_path)
+
+        return cp_model
+
+
+def segment_objects_cellpose2d(img2d: np.ndarray,
+                               cp_model: models.CellposeModel,
+                               channels: List[int] = [0, 0],
+                               rescale: bool = 1.0,
+                               diameter: int = 17,
+                               minsize_obj: int = 15,
+                               tile: bool = True,
+                               tile_overlap_cp: float = 0.1,
+                               cellprob_threshold: float = 0.0) -> np.ndarray:
+    """Segment objects using CellPose2D models
+
+    Parameters
+    ----------
+    img2d : np.ndarray
+        2D image to be segmented
+    cp_model : models.CellposeModel
+        the CellPose2D model to be used for segmentation
+    channels : List[int], optional
+        Channel information for cellPose2D - Must be [0,0] in case of grayscale, by default [0, 0]
+    rescale : bool, optional
+        resize factor for each image, by default 1.0
+    diameter : int, optional
+        Estimated Diameter for the objects, by default 17
+    minsize_obj : int, optional
+        Minimum size for the objects [pixel], by default 15
+    tile : bool, optional
+        Tile image to ensure GPU/CPU memory usage limited (recommended), by default True
+    tile_overlap : float, optional
+        Fraction of overlap of tiles when computing flows, by default 0.1
+    cellprob_threshold : float, optional
+        all pixels with value above threshold kept for masks, decrease to find more and larger masks, by default 0.0
+
+    Returns
+    -------
+    np.ndarray
+        2D image with labels
+    """
+
+    # get the mask for a single image
+    labels, _, _ = cp_model.eval([img2d],
+                                 batch_size=8,
+                                 channels=channels,
+                                 diameter=diameter,
+                                 min_size=minsize_obj,
+                                 normalize=True,
+                                 invert=False,
+                                 rescale=rescale,
+                                 do_3D=False,
+                                 net_avg=True,
+                                 tile=tile,
+                                 tile_overlap=tile_overlap_cp,
+                                 augment=False,
+                                 flow_threshold=0.4,
+                                 cellprob_threshold=cellprob_threshold,
+                                 progress=None)
+
+    return labels[0]
 
 
 def segment_nuclei_stardist(img2d: np.ndarray,
@@ -27,7 +157,6 @@ def segment_nuclei_stardist(img2d: np.ndarray,
                             prob_thresh: float = 0.5,
                             overlap_thresh: float = 0.3,
                             overlap_label: Union[int, None] = None,
-                            #blocksize: int = 1024,
                             min_overlap: int = 128,
                             n_tiles: Union[int, None] = None,
                             norm_pmin: float = 1.0,
@@ -78,7 +207,7 @@ def segment_nuclei_stardist(img2d: np.ndarray,
 
     if not normalize_whole:
         mi, ma = np.percentile(img2d, [norm_pmin, norm_pmax])
-        #mi, ma = image2d.min(), image2d.max()
+        # mi, ma = image2d.min(), image2d.max()
 
         normalizer = MyNormalizer(mi, ma)
 
@@ -144,12 +273,12 @@ def load_stardistmodel(modeltype: str = 'Versatile (fluorescent nuclei)') -> Sta
     return sdmodel
 
 
-def stardistmodel_from_folder(modelfolder: str, mdname: str = '2D_dsb2018') -> StarDist2D:
+def stardistmodel_from_folder(modelfolder: str, mdname: str = "2d_dsb2018_fluo") -> StarDist2D:
     """Load an StarDist model from a folder.
 
     Args:
         modelfolder (str): Basefolder for the model folders.
-        mdname (str, optional): Name of the StarDist model to be loaded. Defaults to '2D_dsb2018'.
+        mdname (str, optional): Name of the StarDist model to be loaded. Defaults to '2d_dsb2018_fluo'.
 
     Returns:
         StarDist2D: StarDist2D Model
